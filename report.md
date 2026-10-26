@@ -2,11 +2,11 @@
 
 | | |
 | --- | --- |
-| Report version | 5.2, final v5 (5.1, 5.0, 4.6, 4.5, 4.4, 4.3, 4.2, 4.1, 4.0 and 3.0 in git history; 2.0 is `docs/reports/report_archive_2026-10-07.md`) |
-| Datetime | 2026-10-23 16:15 (+07) |
+| Report version | 5.3, current snapshot; earlier versions in git history |
+| Datetime | 2026-10-26 18:20 (+07); new campaign status is a point-in-time snapshot |
 | Proposal / prereg | v10 (`docs/updates/research-proposal-v10-en.md`, 23/10; model and evidence updated, registered criteria of v9 unchanged); registered study v9 (`docs/updates/research-proposal-v9-en.md`) with `docs/updates/prereg-v8.md` and Amendments 1-5 (`docs/updates/prereg-v9-amendment*.md`) |
 | Plans | `docs/updates/stage-plan-v1.md` (grid), `docs/updates/lodo-plan-v1.md` (LODO, ensembles; Amendment 4 wins where they differ) |
-| Results (all on A) | `outputs/train/<run>/<cell>/seed<s>/` in this repo (section 4.3); checkpoints of the BEATs PAFA family on A, the others stay on B, D, E |
+| Results | Historical results are synced to A at `outputs/train/<run>/<cell>/seed<s>/` (section 4.3); the active campaign has its canonical snapshot on B and workers on A/B/D/E/F |
 | Detailed sources | `docs/reports/report_2026-10-09.md` (registered core), `docs/reports/grid-v1-results.md` (grid, every cell), `docs/reports/pcmcl-v1-results.md` (PC-MCL), `docs/reports/lodo-v1-results.md` (LODO v1, SC), `docs/reports/ensemble-v1-results.md` (ensembles by encoder group), `docs/reports/final-pafa-static-execution.md` (frozen final evaluation), `docs/decision_logs/2026-10-23-final-model.md` (final decision), `docs/handoff/HANDOFF.md` (state, commands; earlier machines and incidents in `HANDOFF_2026-10-19.md`) |
 
 Tags: [Fact] measured in the repo, [Interpretation] reasoned, [Assumption], [Pending] not run, [Preliminary] computed on
@@ -14,6 +14,101 @@ the units finished so far (may change; no verdict). Score = (Sp + Se) / 2 on ICB
 stated. All numbers are mean ± SD over seeds 0-4 unless a seed count is given.
 
 ## 1. Status and key findings
+
+### 26/10 18:20: completed follow-up evidence and active next campaign
+
+**Completed five-seed model comparison [Fact].** The newly matched gain6 anchor stopped at source-selected epoch 66 and obtained official ICBHI Score **63.143 ± 1.203**. The earlier fixed gain6 benchmark at epoch 67 was **62.416 ± 0.633**, and LLRD at epoch 21 was **62.313 ± 1.344**. Across the four LODO devices, the new anchor scores were AKGC417L **55.406**, Litt3200 **63.573**, LittC2SE **67.191**, Meditron **60.303** (macro **61.618**); the earlier gain6 macro was **61.093**. These are exploratory, different source-selected epochs and protocols; no paired superiority claim is made. The [follow-up model table](docs/reports/followup-2026-10-26/models.md) gives five-seed SDs and cohort scores.
+
+**Fixed ensemble follow-up [Fact].** On the common official cohort, adding the new gain6 anchor to E1 raised Score **63.424 → 64.307**; adding it to E1+E3 raised **63.378 → 64.228**. Adding LLRD gave **63.663** and **63.806**, respectively. LODO effects are mixed: E1+gain6 was lower on AKGC417L (**56.536 → 55.912**) and Litt3200 (**62.225 → 62.184**), while E1+E3+gain6 improved Meditron (**61.640 → 62.297**) and LittC2SE (**70.091 → 70.716**). These are exploratory equal-weight comparisons on matched whole-patient cohorts; historical LODO-v1 and new LODO-v2 protocols differ. See the [ensemble table and receipt](docs/reports/followup-2026-10-26/ensembles.md).
+
+**Target adaptation [Fact].** A fixed gain6cv66 model was compared with unlabelled, per-filter spectrum correction on one disjoint KAUH split (33 adaptation, 78 evaluation patients). Score changed by **+3.38** on Bell (95% paired interval **[-4.58, 11.38]**), **-0.74** on Diaphragm and **-0.56** on Extended; every interval crosses zero. The filters are software transformations, and this is a separate adaptation protocol. There is no general gain or deployment change. The [bounded adaptation report](docs/reports/next-addons-2026-10-26.md) also records why learned fusion was not fitted: complete complementary patient-disjoint OOF and an independent fusion-validation set were unavailable.
+
+**Source audio audit [Fact].** The official-training-only audit covered 4,025 cycles from 77 patients, excluding shared patients 156 and 218. It found **0 invalid boundaries**, flagged 50 recordings/cycles for human listening, and confirmed **0 label errors** so far. Duration and clipping flags are heuristics; source audio and annotations were not modified. The local review list is `outputs/evaluation/source-audio-audit-20261026/review.csv`.
+
+**New campaign [In progress, 26/10 18:20].** A/B/D/E/F are source-screening a matched gain6 anchor, LoRA, multi-scale, SWA, a lighter class-aware PAFA, and LoRA+class-aware PAFA. Refined KD follows frozen fold-specific teacher snapshots. **0/18** screen fits had completion receipts at this snapshot; no quality result is claimed. A (RTX 5000 Ada) received `lora/cv1` and `lora_class_aware/cv1` after a 174/174 snapshot-hash match; two worker slots reserve at most 28 GB of its 32 GB VRAM. B retains its active fits. The B controller and A/B/D/E/F screen services are active. The 23:00 +07 admission cutoff remains; unfinished work after it will be reported as pending. Source gates, then five-seed official/LODO evaluation if a candidate qualifies, determine whether any new result enters this report.
+
+**26/10 improvement programme [Fact]:** completed 30 initial source-CV fits, 6 confirmation fits and 25 final
+fits on A/B/D/F, plus three frozen-source preprocessing audits. LLRD alone passed source confirmation
+(+0.553 Score points); its five-seed official Score was62.313 versus62.416 for the previously frozen gain6
+benchmark, with a paired95% interval including zero. LODO macro means were60.610 versus61.093. No general
+improvement over gain6 is established; the deployment is unchanged. Registered8-second screening is retained.
+Source losers and the recording/PCSL refinement are preserved. The audit import failure delayed reporting;
+fixed import paths and a parity-checked CUDA audit completed the programme. All61unit receipts, checkpoints,
+three audits and the final report hash were verified. See the [completed report](docs/reports/all-improvements-2026-10-26.md),
+[execution ledger](docs/updates/all-improvements-execution-2026-10-26.md), and
+`outputs/evaluation/improvements-20261026/`. Older dated entries below are historical snapshots.
+
+**Revised execution budget:** the [48-hour sprint](docs/updates/improvement-sprint-48h-2026-10-24.md) supersedes
+the large programme: current PAFA/static control, token-attention PAFA/static, and the latter with existing
+spectral-gain augmentation. Four RTX 5090s for 48 h plus one RTX 6000 PRO for 24 h; no launch or gain claimed.
+
+**24/10 future improvement programme:** the user requested a hardware/time plan covering the proposed ICBHI,
+LODO and KAUH improvements. The [programme and estimate](docs/updates/improvement-programme-2026-10-24.md)
+cover 20 families/40 conditions, with full candidate evaluation as the endpoint and an earlier finalist delivery.
+This is proposed future work, not new results or a change to the registered criteria/selected model. No jobs
+were launched by the planning task.
+
+**24/10 PAFA implementation audit:** the local BEATs PAFA alignment branch uses mean pooling; released BEATs
+PAFA uses learned token attention before its projector. CPU algebra/gradient checks confirm a material training
+difference, with no quality claim. Keep the selected local variant and frozen queues unchanged; prioritize an
+isolated source-CV pooling comparison before warm-up tuning. See the [audit and bounded successor](docs/reports/pafa-pooling-audit-2026-10-24.md).
+The separate `ce_pafa_attn` candidate now passes 123 research tests and a real source-data CPU gradient preflight.
+Its six paired source-CV jobs are prepared and unlaunched; no measured classification improvement is attributed to it.
+
+**24/10 15:00 synced evidence:** 27/100 dynamic-SC and 4/6 KD units now have local completion markers.
+The first Litt3200 KD seed has Score 54.14 versus control 54.16 and teacher 49.73, with patient intervals
+spanning zero for both Score contrasts. Student conformal coverage 0.990 comes with mean set size 3.389
+and singleton rate 0.008. This is one seed, not evidence of a completed pilot or useful device robustness.
+See the [matched first-fold analysis](docs/reports/kd-litt3200-first-seed-2026-10-24.md).
+
+**24/10 KD runtime preflight:** student/teacher preprocessing passed on the same 32 clean official-test cycles,
+preserving the original 5-second student and 5/8/8-second teacher inputs. Teacher checkpoints are present on A;
+the seed-0 KD student checkpoint is absent from the expected local path. No runtime or VRAM benefit has been
+measured. See the [preflight evidence and three-arm benchmark commands](docs/reports/kd-runtime-preflight-2026-10-24.md).
+
+**24/10 exploratory evidence update:** registered E1–E4 predictions and finite-N k-rate analysis are now available;
+the detailed audit and tables are in [the ensemble/finite-N report](docs/reports/ensemble-finite-n-2026-10-24.md).
+BEATs-5 has the highest registered-group LODO macro Score (61.11 ± 1.43), but its paired patient/seed interval
+for the gain over PAFA is [-0.13, +4.88]; established superiority is not shown. No registered ensemble passes
+the seed-averaged fold-level coverage null gate. One-cycle k-rate substantially reduces specificity; larger
+adaptation cohorts perform better descriptively. SC remains full-pool in this analysis, so this is not a test
+of joint finite-N SC+k-rate. Remaining uncertainty/diagnostic work is explicitly listed in the detailed report.
+The dynamic-SC completion and distillation campaigns were recorded running at 10:00 local; fresh SSH inspection
+is unavailable in this session, so current remote progress is unverified. The completed-run tables below are
+the historical 23/10 state, not the status of these new campaigns. The selected model is unchanged.
+
+The [benchmark protocol audit](docs/reports/benchmark-protocol-audit-2026-10-24.md) checks published targets,
+test-selected versus fixed epochs, and the official split's two shared patients (156 and 218).
+The added unseen-patient test view has 2,636 cycles/47 patients: PAFA/static Score 62.03 and the static
+three-BEATs/two-HTS-AT mean 63.21 (five-seed means, raw softmax, no k-rate). E1–E4 now also have per-device
+patient/seed conformal intervals with recalibration in every draw. AKGC417L's pooled coverage shortfall
+remains visible alongside prior-matched coverage. A local warm-up-duration bug was fixed with regression
+tests; this does not change frozen campaigns or establish a model-quality improvement.
+
+The [SC and finite-N uncertainty update](docs/reports/sc-finite-n-uncertainty-2026-10-24.md) adds
+patient/seed resampling with adaptation-only k refitting, and compares 880 existing LODO SC arm/group units.
+At N=50, both static user ensembles have positive pointwise exploratory Score intervals versus PAFA, but
+specificity preservation is unproven. Trained static SC gives the three-BEATs group +1.40 Score
+[-0.24, +3.03] versus its no-SC counterpart. On the selected PAFA/static model, the existing source-device-robust
+conformal threshold raises macro coverage to 0.915 with larger sets (2.484 versus 2.132), while AKGC417L
+coverage remains 0.830. Neither a macro average above nominal nor the changed threshold proves SC-only H2.
+CPU analysis continues from completed results synced to A even while direct remote access is unavailable.
+The [first synced campaign analysis](docs/reports/synced-campaign-progress-2026-10-24.md) verifies five AST
+Patch-Mix CL dynamic-SC official units (59.60 +/- 0.50 Score) and the first KD seed (63.61 versus 63.50
+PAFA/static control and 62.94 teacher). These are preliminary: dynamic superiority intervals include zero,
+only one student seed is complete, and checkpoints/teacher-target exports are not yet locally certified.
+The 11:00 tracker records 5/100 dynamic and 1/6 KD units complete; other scheduled units remain pending/partial.
+
+**Later snapshot (14:29):** 23/100 dynamic and 3/6 KD units are complete. The
+[three-seed/LODO update](docs/reports/synced-three-seed-lodo-progress-2026-10-24.md) reports official KD
+62.75 +/- 0.76 versus matched PAFA 62.50 +/- 1.09 and teacher 63.47 +/- 0.47. Patient/seed intervals include
+zero. Completed AST Patch-Mix CL folds show dynamic-minus-static Score +3.35 on Litt3200 and -2.88 on
+LittC2SE; the full dynamic LODO macro is still pending. The existing allocation record extends admission to
+26/10 08:00 local and adds A while protecting the API. A new [warm-up CV preflight](docs/updates/pafa-warmup-cv-preflight-2026-10-24.md)
+passes six real-loader checks and source freezing; no new CV training has been launched. A fixed exploratory
+[class-conditional conformal comparison](docs/reports/class-conditional-conformal-2026-10-24.md) raises
+PAFA/static AKGC417L coverage from 0.700 to 0.863 while increasing set size from 1.890 to 2.389. Crackle
+inclusion improves, but wheeze/combined-class shortfalls persist; this is not a new H2 verdict or a serving change.
 
 **Current step (23/10):** final model selected by the user. Baseline = fine-tuned BEATs + PAFA without SC;
 AuscultTrust = BEATs + PAFA trained and evaluated with static SC. E1 and E1+E3 are exploratory extensions,

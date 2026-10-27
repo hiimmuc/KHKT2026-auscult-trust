@@ -70,7 +70,7 @@ The token is typed into the page's connection dialog; it is never part of the we
 ### 2. API host (this machine)
 
 ```bash
-bash app/deploy/serve.sh start        # uvicorn on 127.0.0.1:8000, detached; reads app/deploy/.env. Also `status`, `stop`. Log: logs/app-api.log
+bash app/deploy/serve.sh start        # uvicorn on 127.0.0.1:8000, detached; reads app/deploy/.env. Also `status`, `stop`. Set `AT_APP_PORT` in `.env` when 8000 is taken. Log: logs/app-api.log
 curl -s localhost:8000/v1/health      # {"status":"ok","pipelines":["auscult","baseline"],"gpu":true,...}
 ```
 

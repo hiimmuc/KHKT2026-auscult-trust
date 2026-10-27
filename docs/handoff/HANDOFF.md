@@ -36,6 +36,10 @@ contain the uncommitted tree (open issue 1), so edit the main checkout until it 
   probabilities (max diff 2e-4 LoRA, 4e-4 multiscale, 5e-3 SWA, which also differs from epoch 11 by 0.69, so SWA weights are exported).
 - Not yet done: the paired analysis (recipe vs anchor `gain6-cv66` and vs control: official, LODO per device and macro, worst device, set size,
   KAUH A/B2, screening) and its entry into `report.md` section 17. A cut-off unit must be set aside and rerun from epoch 0 (do not resume `last.pth`).
+- Incident 27/10 22:36: controller crash-looped (83 restarts) on "Completion receipt references another training unit": receipts from A carry the HDD mount path.
+  Fixed by `canonical_path` in `scripts/improvement_campaign.py` (commit 916d5d2); snapshot file and manifest updated on all machines with a
+  `recovery_amendments` entry. While pushing files I overwrote the remote copies with empty ones (`ssh -n` plus a redirect: never combine them);
+  files and manifest were restored (manifest from the 20:52 copy on A, commands verified against all `jobs.txt`). After the repair the first tick showed 44/150 complete (22:47).
 - If a service crash-loops: read its journal first; a hash mismatch on a snapshot file means someone edited the snapshot.
 
 ## 1. State

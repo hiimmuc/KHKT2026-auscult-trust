@@ -20,7 +20,7 @@ sys.path.insert(0, "scripts")
 from ensemble import ENS, G, L, REF, SC_ARMS, SEEDS
 from src.evaluation.lodo import load_unit
 from src.processing.icbhi import DEVICES
-from src.training.patchmix_cl.reporting import per_device_report
+from src.training.reporting import per_device_report
 
 GROUPS = [("ref", [REF])] + list(ENS.items())
 

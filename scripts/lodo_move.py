@@ -76,7 +76,8 @@ def sweep_pids(m, lst):
 
 def training(m):
     """Units with a training process on machine m."""
-    return {unit(l) for l in sh(m, "ps -eo args").splitlines() if "patchmix_cl.main" in l and unit(l)}
+    return {unit(l) for l in sh(m, "ps -eo args").splitlines()
+            if any(entry in l for entry in ("src.training.main", "src.training.patchmix_cl.main")) and unit(l)}
 
 
 def progress(m, lst):

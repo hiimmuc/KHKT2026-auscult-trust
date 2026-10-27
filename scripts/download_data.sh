@@ -69,16 +69,7 @@ $HF download google/hear-pytorch --cache-dir "$hub" > /dev/null || echo "HeAR do
 
 # Reference repositories (read-only): Patch-Mix CL (model, loss, official ICBHI split), OPERA (HTS-AT network), HeAR (preprocessing),
 # Lung-SRAD (DASS), RespireNet and SG-SCL (baselines), HTS-AT
-mkdir -p "$REPOS_DIR"
-clone() { [ -d "$REPOS_DIR/$2" ] || git clone "$1" "$REPOS_DIR/$2"; }
-clone https://github.com/raymin0223/patch-mix_contrastive_learning patch-mix_contrastive_learning
-clone https://github.com/evelyn0414/OPERA OPERA
-clone https://github.com/Google-Health/hear hear
-clone https://github.com/RSC-Toolkit/Lung-SRAD Lung-SRAD
-clone https://github.com/microsoft/RespireNet RespireNet
-clone https://github.com/kaen2891/stethoscope-guided_supervised_contrastive_learning SG-SCL
-clone https://github.com/RetroCirce/HTS-Audio-Transformer HTS-Audio-Transformer
-clone https://github.com/Saurabhbhati/DASS DASS  # selective-scan CUDA kernel, see scripts/build_dass_env.sh
+AT_REPOS="$REPOS_DIR" "${PY:-python}" -m src.references --install
 
 if [ "${1:-}" = "--hf-lung" ] && [ ! -d "$DATA_DIR/raw/hf_lung/train" ]; then
   git clone https://gitlab.com/techsupportHF/HF_Lung_V1 "$DATA_DIR/raw/hf_lung_download"

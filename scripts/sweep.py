@@ -13,8 +13,10 @@ Resume: run the same command again with the same RUN_ID. Units with a report.jso
 anything; an interrupted unit continues from its last.pth. One log per job: logs/<RUN_ID><SWEEP_TAG>/<n>.log.
 """
 import argparse
+from datetime import datetime, timezone
 import os
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -34,6 +36,9 @@ def free_ram_gb():
 
 def finished(cmd):
     """True when the unit of this training command already has its report.json (written last)."""
+    pipeline = re.search(r"(?:^|\s)PIPELINE_DONE=(\S+)", cmd)
+    if pipeline:
+        return Path(pipeline.group(1)).is_file()
     cell, seed, fold = (re.search(p, cmd) for p in (r"--cell (\S+)", r"--seed (\d+)", r"--cv_fold (\d+)"))
     if not cell:
         return False
@@ -48,6 +53,10 @@ def mem_gb(cmd, default):
     return float(m.group(1)) if m else default
 
 
+def with_loader_workers(command, workers):
+    return command if re.search(r'(?:^|\s)--num_workers(?:\s|=)', command) else command + f' --num_workers {workers}'
+
+
 def ps_args():
     return subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True).stdout
 
@@ -59,7 +68,23 @@ def running_elsewhere(cmd, ps=None):
         return False
     flag = f"--cv_fold {fold.group(1)}" if fold and "--cv_folds" in cmd else f"--seed {seed.group(1) if seed else 0}"
     ps = ps_args() if ps is None else ps
-    return any("patchmix_cl.main" in l and f"--cell {cell.group(1)} " in l and re.search(re.escape(flag) + r"( |$)", l) for l in ps.splitlines())
+    entrypoints = ("src.training.main", "src.training.patchmix_cl.main", "scripts/improvement_unit.py")
+    return any(any(entry in l for entry in entrypoints) and f"--cell {cell.group(1)} " in l
+               and re.search(re.escape(flag) + r"( |$)", l)
+               and (not fold or not seed or re.search(r'--seed ' + seed.group(1) + r'( |$)', l))
+               for l in ps.splitlines())
+
+
+def training_command(command):
+    """Run saved job lists through the current CLI without rewriting historical logs."""
+    return command.replace("-m src.training.patchmix_cl.main", "-m src.training.main")
+
+
+def admission_open(deadline, disk_gb, now=None):
+    """Gate new starts only; never interrupt a job already running."""
+    if deadline and (now or datetime.now(timezone.utc)) >= datetime.fromisoformat(deadline):
+        return False
+    return shutil.disk_usage('.').free / 1024 ** 3 >= disk_gb
 
 
 def main():
@@ -74,9 +99,13 @@ def main():
     ap.add_argument("--threads", type=int, default=3, help="math threads per job (OMP/MKL); jobs share the CPU")
     ap.add_argument("--num-workers", type=int, default=4, help="data loader workers per job")
     ap.add_argument("--gpu-gb", type=float, default=None, help="GPU memory the reservations of running units may sum to")
+    ap.add_argument("--disk-gb", type=float, default=0, help="minimum free disk before starting another job")
+    ap.add_argument("--deadline", help="timezone-aware ISO timestamp; running jobs drain after this time")
     a = ap.parse_args()
+    if a.deadline and datetime.fromisoformat(a.deadline).tzinfo is None:
+        ap.error('--deadline needs an explicit timezone')
     budget = a.gpu_gb if a.gpu_gb is not None else free_gb("total") - 1
-    jobs = [(i, line.strip()) for i, line in enumerate(Path(a.jobs).read_text().splitlines()) if line.strip()]
+    jobs = [(i, training_command(line.strip())) for i, line in enumerate(Path(a.jobs).read_text().splitlines()) if line.strip()]
     # units already running (a previous scheduler's orphans) stay queued: they count against the budget while they run and
     # are resumed from last.pth if they die unfinished
     queue = [(i, cmd, 0) for i, cmd in jobs if not finished(cmd)]
@@ -84,7 +113,7 @@ def main():
     tag = os.environ.get("SWEEP_TAG", "")  # distinguishes a second scheduler of the same RUN_ID
     log_dir = Path("logs") / (os.environ.get("RUN_ID", "sweep") + tag)
     log_dir.mkdir(parents=True, exist_ok=True)
-    running, failed, last_start = [], [], 0.0
+    running, failed, deferred, last_start = [], [], [], 0.0
     while queue or running:
         for job in running[:]:
             i, cmd, tries, proc = job
@@ -100,22 +129,32 @@ def main():
                     failed.append(i)
                     print(f"job {i}: FAILED, see {log_dir / f'{i}.log'}", flush=True)
         queue = [q for q in queue if not finished(q[1])]
+        if a.deadline and datetime.now(timezone.utc) >= datetime.fromisoformat(a.deadline):
+            if queue:
+                print(f"admission deadline reached; {len(queue)} jobs remain pending", flush=True)
+                deferred.extend(i for i, _, _ in queue)
+                queue.clear()
         ps = ps_args()
-        reserved = sum(mem_gb(cmd, a.mem_gb) for _, cmd in jobs if running_elsewhere(cmd, ps))
-        ready = [q for q in queue if not running_elsewhere(q[1], ps)]
+        active = {i: cmd for i, cmd in jobs if running_elsewhere(cmd, ps)}
+        active.update((i, cmd) for i, cmd, _, _ in running)
+        reserved = sum(mem_gb(cmd, a.mem_gb) for cmd in active.values())
+        ready = [q for q in queue if q[0] not in active]
         need = mem_gb(ready[0][1], a.mem_gb) if ready else 0
-        if (ready and len(running) < a.workers and time.time() - last_start > a.ramp and reserved + need <= budget
+        if (ready and admission_open(a.deadline, a.disk_gb) and len(active) < a.workers and time.time() - last_start > a.ramp and reserved + need <= budget
                 and free_gb() >= need and free_ram_gb() >= a.ram_gb):
             i, cmd, tries = ready[0]
             queue.remove(ready[0])
             env = {**os.environ, "OMP_NUM_THREADS": str(a.threads), "MKL_NUM_THREADS": str(a.threads), "OPENBLAS_NUM_THREADS": str(a.threads),
                    "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"}
-            proc = subprocess.Popen(cmd + f" --num_workers {a.num_workers}", env=env, shell=True, stdout=open(log_dir / f"{i}.log", "w"), stderr=subprocess.STDOUT)
+            proc = subprocess.Popen(with_loader_workers(cmd, a.num_workers), env=env, shell=True, stdout=open(log_dir / f"{i}.log", "w"), stderr=subprocess.STDOUT)
             running.append((i, cmd, tries, proc))
             last_start = time.time()
             print(f"job {i} started ({len(running)} running, {len(queue)} waiting, {reserved + need:.0f} GB reserved): {cmd[-90:]}", flush=True)
         time.sleep(a.poll)
-    print(f"all jobs finished, {len(failed)} failed: {failed}")
+    print(f"scheduler drained, {len(deferred)} pending at deadline" if deferred else 'all jobs finished',
+          f", {len(failed)} failed: {failed}")
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

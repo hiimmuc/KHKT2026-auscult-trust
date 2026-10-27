@@ -17,9 +17,10 @@ from scipy.optimize import minimize
 
 sys.path.insert(0, "scripts")
 from grid import unit_metrics
-from src.evaluation.lodo import coverage, load_unit
+from src.evaluation.calibration import coverage
+from src.evaluation.lodo import load_unit
 from src.processing.icbhi import DEVICES
-from src.training.patchmix_cl.reporting import per_device_report
+from src.training.reporting import per_device_report
 
 G, L = Path("outputs/train/grid-v1"), Path("outputs/train/lodo-v1")
 E1 = ["beats+ft+pafa", "beats+ft+sg_scl", "beats+ft+patchmix_cl"]

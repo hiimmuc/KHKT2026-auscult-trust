@@ -16,7 +16,7 @@ status() {  # $1 machine, $2 lists; prints a script to run in the repo root of t
   echo "M=$1; LISTS=\"$2\""
   cat <<'EOF'
 echo "== machine $M   GPU: $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader)   disk free: $(df -h . | tail -1 | awk '{print $4}')"
-echo "training now: $(ps -eo args | grep 'src.training.patchmix_cl.main' | grep -v grep | grep -v '^/bin/sh' | sed -E 's/.*--cell (\S+) .*--seed ([0-9]+).*/\1:\2/' | sort -u | tr '\n' ' ')"
+echo "training now: $(ps -eo args | grep 'src.training.main' | grep -v grep | grep -v '^/bin/sh' | sed -E 's/.*--cell (\S+) .*--seed ([0-9]+).*/\1:\2/' | sort -u | tr '\n' ' ')"
 for N in $LISTS; do
   L=logs/campaigns/$N.txt
   [ -f $L ] || continue

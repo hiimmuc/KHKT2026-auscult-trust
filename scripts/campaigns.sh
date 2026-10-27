@@ -9,7 +9,7 @@ PY=.venv-train/bin/python
 DASS_PY="LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:\$HOME/miniconda3/envs/cuda128/lib .venv-dass/bin/python"
 mkdir -p logs/campaigns
 cfg() { local c=$C/base.yaml; for p in ${1//+/ }; do c=$c,$C/$p.yaml; done; echo $c; }
-line() { echo "RUN_ID=$1 ${3:-$PY} -m src.training.patchmix_cl.main --config $(cfg $2) --cell ${4:-$2} ${@:5}"; }
+line() { echo "RUN_ID=$1 ${3:-$PY} -m src.training.main --config $(cfg $2) --cell ${4:-$2} ${@:5}"; }
 gain_cell() { $PY -c "import json; print(json.load(open('outputs/train/screen-ast-c0/screen.json'))['arms']['sc_gain']['cell'].replace('sc_gain', 'sc_gain_v2'))"; }
 lodo50() {  # lodo50 <run> <cell prefix> <config parts> [python]
   for d in $DEVS; do for s in 0 1 2 3 4; do

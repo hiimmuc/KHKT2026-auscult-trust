@@ -1,7 +1,7 @@
 """Run the frozen PAFA baseline/static-SC evaluation with an append-only command log.
 
 Run from the repository root with the training Python environment. Existing prediction exports are
-reused only when their checkpoint hash and SC flag match. No training or model selection is done.
+reused only when their full provenance and output hash match. No training or model selection is done.
 """
 
 import hashlib
@@ -14,8 +14,9 @@ import sys
 from datetime import datetime, timezone
 
 import numpy as np
-from src.runs import sha256_file as sha
-from src.artifacts import prediction_inputs, verify_prediction, immutable_json, environment
+from src.artifacts import sha256_file as sha
+from src.artifacts import immutable_json
+from src.provenance import prediction_inputs, verify_prediction, environment
 
 RUN = os.environ.get("AT_EVAL_RUN", "final-pafa-static")
 LOG = Path("logs") / RUN
@@ -66,7 +67,7 @@ def main():
           script_sha256=sha(__file__))
     # Record the exact evaluation inputs, including all audio and labels used downstream.
     from src.paths import DATA
-    from src.evaluation.lodo_ttsc import load_args
+    from src.training.config import load_args
     data_files = sorted((DATA / "raw/kauh").rglob("*"))
     args = load_args(BASE / "seed0")
     folder = Path(args.data_folder)
@@ -92,16 +93,18 @@ def main():
                         "inputs": {str(p): sha(p) for p in inputs}, "sc": sc}
             if sc:
                 with np.load(unit / "sc_state.npz") as z:
-                    assert str(z["sc_mode"]) == "static"
+                    if str(z["sc_mode"]) != "static":
+                        raise ValueError(f"Expected frozen static correction: {unit}")
                     manifest["s_ref_sha256"] = hashlib.sha256(z["reference"].tobytes()).hexdigest()
             immutable_json(frozen / "freeze.json", manifest)
             event(status="frozen", condition=name, seed=seed, checkpoint_sha256=checkpoint_sha)
             export = unit / "export"
             if not (export / "test.npz").exists():
-                run(["-m", "src.training.patchmix_cl.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
+                run(["-m", "src.training.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
             verify_prediction(export / "test.npz", prediction_inputs(unit, checkpoint, "cycles", sc,
                               options={"sc_test_profile": None}))
-            assert (export / "model.sha256").read_text().split()[0] == checkpoint_sha
+            if (export / "model.sha256").read_text().split()[0] != checkpoint_sha:
+                raise ValueError(f"Cycle export checkpoint mismatch: {unit}")
             for dataset, module in (("screening", "screening"), ("kauh", "kauh_infer")):
                 out = Path("outputs") / dataset / RUN / name / f"seed{seed}.npz"
                 if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):

@@ -36,7 +36,7 @@ for stage in "$@"; do
           ( eval "$cmd --num_workers 4" > $log 2>&1 ) &
           pid=$!; peak=0
           while kill -0 $pid 2>/dev/null; do
-            m=$(nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits | awk -v p=$(pgrep -P $pid -f patchmix_cl.main | head -1) '$1==p+0 {print $2}' | tr -d ' ,')
+            m=$(nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits | awk -v p=$(pgrep -P $pid -f 'src\.training(\.patchmix_cl)?\.main' | head -1) '$1==p+0 {print $2}' | tr -d ' ,')
             [ -n "$m" ] && [ "$m" -gt "$peak" ] && peak=$m
             sleep 5
           done
@@ -69,7 +69,7 @@ for stage in "$@"; do
       for s in 0 1 2 3 4; do
         u=outputs/train/screen-ast/$cell/seed$s
         [ -f $u/export${prof:+_$prof}/model.sha256 ] && continue
-        $PY -m src.training.patchmix_cl.export_probs $u --ckpt report_epoch_$ep.pth ${prof:+--sc_test_profile $prof}
+        $PY -m src.training.export_probs $u --ckpt report_epoch_$ep.pth ${prof:+--sc_test_profile $prof}
       done ;;
     screen:*)  # screen:<condition>:<cell>:<epoch>[:sc]  ICBHI official-test windows for the screening view
       IFS=: read -r _ cond cell ep mode <<< "$stage"
@@ -83,12 +83,12 @@ for stage in "$@"; do
       $PY -m src.evaluation.snr_stress infer outputs/train/screen-ast/$cell/seed{0,1,2,3,4} \
         ${folds:+--test_folds} --out outputs/snr${folds:+_test_folds}/$arm ;;
     c7_gate)  # CV epoch of sc_noise from the 5-fold screen
-      $PY -m src.training.patchmix_cl.summary screen --run screen-ast-cv5 --folds 5 > logs/campaigns/c7_screen_summary.txt 2>&1
+      $PY -m src.training.summary screen --run screen-ast-cv5 --folds 5 > logs/campaigns/c7_screen_summary.txt 2>&1
       cat logs/campaigns/c7_screen_summary.txt ;;
     c4_screen) sweep c4_screen $WORKERS 7 ;;
     c4_gate)
       [ -f outputs/train/screen-ast-cv5/screen_before_c4.json ] || cp outputs/train/screen-ast-cv5/screen.json outputs/train/screen-ast-cv5/screen_before_c4.json
-      $PY -m src.training.patchmix_cl.summary screen --run screen-ast-cv5 --folds 5 > logs/campaigns/c4_screen_summary.txt 2>&1
+      $PY -m src.training.summary screen --run screen-ast-cv5 --folds 5 > logs/campaigns/c4_screen_summary.txt 2>&1
       $PY scripts/c4_gate.py >> logs/campaigns/c4_screen_summary.txt 2>&1 || echo "STOP sc_cons: gate could not be computed (incomplete screen)" >> logs/campaigns/c4_screen_summary.txt
       cat logs/campaigns/c4_screen_summary.txt
       grep -q "^STOP" logs/campaigns/c4_screen_summary.txt && echo sc_cons >> logs/campaigns/smoke_failed.txt ;;

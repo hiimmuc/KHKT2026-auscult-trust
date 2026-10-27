@@ -27,8 +27,8 @@ import torch  # noqa: E402
 
 from src.processing.correction import clip_spectra_torch, reference_spectrum  # noqa: E402
 from src.processing.icbhi import DEVICES  # noqa: E402
-from src.training.patchmix_cl.config import build_parser  # noqa: E402
-from src.training.patchmix_cl.dataset import ICBHIDataset  # noqa: E402
+from src.training.config import build_parser  # noqa: E402
+from src.training.dataset import ICBHIDataset  # noqa: E402
 
 OUT = Path("outputs/sc_diag")
 FREQS = np.fft.rfftfreq(1024, 1 / 16000)

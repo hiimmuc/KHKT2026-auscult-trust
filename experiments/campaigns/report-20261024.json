@@ -1,0 +1,33 @@
+{
+  "name": "report-20261024",
+  "run": "sc-dynamic-completion-20261024",
+  "source": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust",
+  "snapshot": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust/build/campaigns/report-20261024",
+  "data": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/data",
+  "references": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust/build/campaigns/report-20261024/references",
+  "deadline": "2026-10-26T08:00:00+07:00",
+  "expected_units": 100,
+  "machines": {
+    "B": {
+      "host": "namdp15@10.148.183.8",
+      "workers": 2,
+      "jobs": "logs/campaigns/sc-dynamic-completion-20261024-B-optimized.txt"
+    },
+    "D": {
+      "host": "namdp15@10.148.183.171",
+      "workers": 1,
+      "jobs": "logs/campaigns/sc-dynamic-completion-20261024-D.txt"
+    },
+    "E": {
+      "host": "namdp15@10.148.182.179",
+      "workers": 2,
+      "jobs": "logs/campaigns/sc-dynamic-completion-20261024-E.txt"
+    },
+    "A": {
+      "host": "local",
+      "local": true,
+      "workers": 1,
+      "jobs": "logs/campaigns/sc-dynamic-completion-20261024-A.txt"
+    }
+  }
+}

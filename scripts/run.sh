@@ -41,7 +41,7 @@ train() {  # train <cell> <extra args...>; cell parts joined by '+' map to exper
   local cell=$1; shift
   local cfg=$CONF/base.yaml
   for part in ${cell//+/ }; do cfg=$cfg,$CONF/$part.yaml; done
-  local cmd="$PY -m src.training.patchmix_cl.main --config $cfg --cell $cell $EXTRA_ARGS $*"
+  local cmd="$PY -m src.training.main --config $cfg --cell $cell $EXTRA_ARGS $*"
   if [ -n "$PARALLEL" ]; then echo "$cmd" >> "$JOBS"; else $cmd || echo "FAILED: $cell $*"; fi
 }
 
@@ -63,7 +63,7 @@ case $mode in
       done
     done
     run_queued ;;
-  summary) $PY -m src.training.patchmix_cl.summary screen --run "$RUN_ID" --folds "$FOLDS" ;;
+  summary) $PY -m src.training.summary screen --run "$RUN_ID" --folds "$FOLDS" ;;
   final)
     plan=outputs/train/$RUN_ID/final_plan.txt  # one line per arm: <cell> <epoch> <seed list>
     $PY - "$RUN_ID" > $plan <<'PYEOF' || exit 1
@@ -105,6 +105,6 @@ PYEOF
   resume)  # run the jobs of every earlier parallel invocation of this RUN_ID again; finished units are skipped
     cat logs/$RUN_ID/jobs-*.txt | grep -v '^$' | awk '!seen[$0]++' > logs/$RUN_ID/jobs-resume.txt
     JOBS=logs/$RUN_ID/jobs-resume.txt; PARALLEL=${PARALLEL:-3}; run_queued ;;
-  report) $PY -m src.training.patchmix_cl.summary final --run "$RUN_ID" ;;
+  report) $PY -m src.training.summary final --run "$RUN_ID" ;;
   *) echo "usage: bash scripts/run.sh screen [arm ...] | summary | final | report | reproduce [cell ...] | resume  (details in the file header)"; exit 1 ;;
 esac

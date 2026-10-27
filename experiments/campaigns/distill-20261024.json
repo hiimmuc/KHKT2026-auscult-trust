@@ -1,0 +1,17 @@
+{
+  "name": "distill-20261024",
+  "run": "distill-pilot-20261024",
+  "source": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust",
+  "snapshot": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust/build/campaigns/distill-20261024",
+  "data": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/data",
+  "references": "/home/namdp15/Workspace/Personal/KHKT-CVA-2026/auscult-trust/build/campaigns/report-20261024/references",
+  "deadline": "2026-10-26T08:00:00+07:00",
+  "expected_units": 6,
+  "machines": {
+    "D": {
+      "host": "namdp15@10.148.183.171",
+      "workers": 1,
+      "jobs": "logs/campaigns/distill-pilot-20261024-D.txt"
+    }
+  }
+}

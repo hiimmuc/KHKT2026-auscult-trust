@@ -10,8 +10,9 @@ from pathlib import Path
 import numpy as np
 
 from final_evaluation import BASE, SC, RUN, event, export_ok, run, sha
-from src.evaluation.lodo_ttsc import report_epoch
-from src.artifacts import file_hashes, record_prediction, atomic_npz, immutable_json
+from src.training.state import report_epoch
+from src.artifacts import file_hashes, atomic_npz, immutable_json
+from src.provenance import record_prediction
 
 E1 = ["beats+ft+pafa", "beats+ft+sg_scl", "beats+ft+patchmix_cl"]
 E3 = ["htsat+ft+patchmix_cl", "htsat+ft+sg_scl"]

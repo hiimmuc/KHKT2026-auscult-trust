@@ -1,4 +1,4 @@
-# Handoff (27/10/2026 17:00): stage 12 source CV done, target evaluation planned, report v6
+# Handoff (27/10/2026 18:30): stage 12 source CV done, target evaluation RUNNING (campaign target-20261027), report v6
 
 | Type | Date | Status |
 | --- | --- | --- |
@@ -14,6 +14,29 @@ older handoffs were folded into `report.md` (sections 4 and 17) and removed on 2
 Session style asked by the user: terse replies, minimal code, one runnable check per change. Earlier sessions edited
 through a git worktree and pushed to `origin main` with a `Claude-Session:` line; a worktree made from HEAD does not
 contain the uncommitted tree (open issue 1), so edit the main checkout until it is committed.
+
+
+## 0. Running campaign `target-20261027` (launched 27/10 18:12 +07, independent of any Claude session)
+
+- What: official + four-device LODO + KAUH/screening, 5 seeds, for class_aware_light (epoch 4), lora_class_aware (43), lora (83),
+  swa (43), multiscale (68), plus the PCSL-5 PAFA control (`pcsl5_control`). Phase `main` = 25 control CV fits + 125 finals
+  (150 jobs); phase `control_final` = 25 control finals at the epoch the controller picks from the control's own mean curve.
+  The anchor is not re-run: reuse the 25 `gain6-cv66` finals (B, `build/campaigns/followup-20261026/outputs/train/followup-20261026-final/`).
+  Code path: `scripts/target_campaign.py` (controller, B) on top of `scripts/improvement_campaign.py` (core) and `scripts/improvement_unit.py`.
+- Where: snapshot `build/campaigns/target-20261027/` (frozen; same path on A, B, D, E, F; never edit). Manifest and job lists:
+  `logs/target-20261027/programme.json`, `logs/target-20261027/<phase>/<machine>.jobs.txt` (on B, the controller).
+  Outputs and checkpoints are collected on B (canonical), archived on E; A's snapshot `outputs`/`checkpoints` are symlinks to the HDD.
+- Services (systemd --user, enabled, linger on): controller `auscult-target-20261027-controller` on B; workers
+  `auscult-target-20261027-<phase>-<A|B|D|E|F>` (2 jobs per GPU; F limited to 30 GB). They restart on failure and survive logout and reboot.
+- Status: `ssh namdp15@10.148.183.8 "python3 -c \"import json;s=json.load(open('<snapshot>/logs/target-20261027/programme.json'));print(s['phase'],s['status'])\""`;
+  `journalctl --user -u auscult-target-20261027-controller -n 30` on B. Expected total 8-9 h wall (main 6-7 h, control_final 1.5 h).
+- Done when `outputs/evaluation/target-20261027/complete.json` exists on B (phase `complete`). It lists the control epoch and
+  scores of control / anchor / class-aware light at epochs 4, 66 and the control epoch.
+- Smoke before launch (2-epoch fits on B): LoRA, SWA, multiscale and control pass fit, export, screening and KAUH; export probabilities match training
+  probabilities (max diff 2e-4 LoRA, 4e-4 multiscale, 5e-3 SWA, which also differs from epoch 11 by 0.69, so SWA weights are exported).
+- Not yet done: the paired analysis (recipe vs anchor `gain6-cv66` and vs control: official, LODO per device and macro, worst device, set size,
+  KAUH A/B2, screening) and its entry into `report.md` section 17. A cut-off unit must be set aside and rerun from epoch 0 (do not resume `last.pth`).
+- If a service crash-loops: read its journal first; a hash mismatch on a snapshot file means someone edited the snapshot.
 
 ## 1. State
 

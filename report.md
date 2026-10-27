@@ -879,7 +879,7 @@ State on 27/10: all registered and exploratory training of the main study is fin
 1. **Target evaluation of the stage-12 recipes** on A, B, D, E: official, four-device LODO and KAUH (with recording
    screening) for 5 seeds, from the frozen `fivefold-20261026` snapshot, with a PCSL-5 non-class-aware control and the
    anchor as paired references. Tiers, GPU-hour estimate, preflight checks and stop rules:
-   `docs/updates/2026-10-27-target-evaluation-plan.md`. [Pending the user's approval; nothing is launched.]
+   `docs/updates/2026-10-27-target-evaluation-plan.md`. [Running since 27/10 18:12 as campaign `target-20261027`; see `docs/handoff/HANDOFF.md` section 0.]
 2. Human listening of the 50 audio-audit candidates; keep the registered 8-second preprocessing.
 3. Optional before the cut-off (31/01/2027): `k rate` with few target cycles and SC jointly at finite N; distillation of an
    ensemble into one BEATs model. The registered E1-E4 and the AST / HTS-AT dynamic-SC cells are already computed (sections 12.2, 13.2).

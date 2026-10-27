@@ -347,7 +347,7 @@ def _unlink_f_replica(request):
     parts = checkpoint.relative_to(base).parts
     programme = request.get('programme_name', 'improvements-20261026')
     if programme not in {'improvements-20261026', 'followup-20261026', 'next-improvements-20261026',
-                         'fivefold-20261026'}:
+                         'fivefold-20261026', 'target-20261027'}:
         raise ValueError('Unsupported replica programme')
     if (len(parts) != 4 or not (parts[0] == programme or parts[0].startswith(programme + '-'))
             or not (parts[3] == 'best.pth' or re.fullmatch(r'report_epoch_[0-9]+\.pth', parts[3]))):

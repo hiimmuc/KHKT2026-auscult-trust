@@ -2,9 +2,9 @@
 
 | Type | Date | Status |
 | --- | --- | --- |
-| plan | 2026-10-27 | proposed, not launched |
+| plan | 2026-10-27 | launched 2026-10-27 18:12 (campaign `target-20261027`, see `handoff/HANDOFF.md` section 0) |
 
-Status: **proposed, not launched.** Nothing in this plan changes the frozen AuscultTrust (BEATs + PAFA + trained static SC),
+Status: **launched 27/10 18:12 with tiers 0, 1 and 2 on A, B, D, E, F (F capped at 30 GB).** Nothing in this plan changes the frozen AuscultTrust (BEATs + PAFA + trained static SC),
 the serving bundle or any registered criterion. Context: `report.md` section 17 (stage 12) and
 `docs/reports/2026-10-27-findings.md`.
 

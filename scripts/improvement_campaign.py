@@ -262,6 +262,23 @@ def unit_path(spec, job, kind='outputs'):
     return Path(spec['snapshot']) / kind / 'train' / job['run'] / job['cell'] / job['unit']
 
 
+def canonical_path(spec, name, out):
+    """Map a completion-receipt entry to this snapshot.
+
+    Receipts keep the path the writing machine used, for example an HDD mount on A, so a relative entry is resolved
+    under the unit and an absolute one is rebased onto the snapshot's outputs or checkpoints by its `<kind>/train/...` tail.
+    Archive paths are returned unchanged.
+    """
+    path = Path(name)
+    if not path.is_absolute():
+        return (out / name).resolve()
+    if 'archive' not in path.parts:
+        for i in range(len(path.parts) - 1, 0, -1):
+            if path.parts[i] == 'train' and path.parts[i - 1] in ('outputs', 'checkpoints'):
+                return (Path(spec['snapshot']) / Path(*path.parts[i - 1:])).resolve()
+    return path.resolve()
+
+
 def verify_job(spec, job):
     out = unit_path(spec, job)
     marker = out / ('pipeline-complete.json' if 'cohort' in job else 'completion.json')
@@ -270,7 +287,7 @@ def verify_job(spec, job):
     # Receipts retain absolute worker paths; all workers share the frozen snapshot path.
     files = load(marker)['files']
     for name, digest in files.items():
-        artifact = Path(name) if Path(name).is_absolute() else out / name
+        artifact = canonical_path(spec, name, out)
         if not artifact.is_file():
             return False
         verify_file(artifact, digest)
@@ -306,7 +323,7 @@ def _certified_checkpoint(spec, job):
     receipt = load(marker)
     expected = receipt.get('checkpoint_sha256') if 'cohort' in job else None
     for name, digest in receipt['files'].items():
-        path = (Path(name) if Path(name).is_absolute() else out / name).resolve()
+        path = canonical_path(spec, name, out)
         if path == checkpoint:
             expected = digest
         else:
@@ -466,7 +483,7 @@ def collect(spec):
         checkpoint_dir = unit_path(spec, job, 'checkpoints').resolve()
         main_checkpoint = checkpoint_dir / (f'report_epoch_{job["epoch"]}.pth' if 'cohort' in job else 'best.pth')
         for name, digest in load(marker)['files'].items():
-            path = (Path(name) if Path(name).is_absolute() else out / name).resolve()
+            path = canonical_path(spec, name, out)
             if path == main_checkpoint or not path.is_relative_to(checkpoint_dir):
                 continue
             if path.is_file() and sha256_file(path) == digest:

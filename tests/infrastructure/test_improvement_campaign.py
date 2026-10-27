@@ -878,3 +878,13 @@ def test_followup_low_disk_reclamation_requires_e_hash_and_names_f_request(tmp_p
     assert pointer['archive_machine'] == 'E'
     assert [machine for machine, argv in calls if argv[0] == 'sha256sum'] == ['E']
     assert checkpoint.exists()
+
+
+def test_receipt_entries_from_another_mount_are_rebased_to_this_snapshot(tmp_path):
+    spec = {'snapshot': str(tmp_path / 'snap')}
+    out = tmp_path / 'snap/outputs/train/run/cell/unit'
+    foreign = '/storage/hdd/disk0/namdp15/auscult-trust-A/campaigns/run/outputs/train/run/cell/unit/export/model.sha256'
+    assert campaign.canonical_path(spec, foreign, out) == (tmp_path / 'snap/outputs/train/run/cell/unit/export/model.sha256').resolve()
+    assert campaign.canonical_path(spec, 'export/test.npz', out) == (out / 'export/test.npz').resolve()
+    archived = '/storage/hdd/x/archive/checkpoints/train/run/cell/unit/best.pth'
+    assert campaign.canonical_path(spec, archived, out) == Path(archived).resolve()

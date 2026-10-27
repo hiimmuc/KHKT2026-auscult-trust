@@ -11,7 +11,6 @@
 processes: a fresh id never touches earlier runs.
 """
 
-import hashlib
 import json
 import os
 import subprocess
@@ -71,15 +70,6 @@ def twin_dir(path, kind="checkpoints"):
     raise ValueError("{} is neither under outputs/ nor checkpoints/".format(path))
 
 
-def sha256_file(path):
-    """SHA-256 hex digest of a file."""
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def _git(*args):
     try:
         return subprocess.run(
@@ -110,9 +100,10 @@ def write_meta(exp, cfg):
         }
     except Exception:
         hw = {}
-    from src.artifacts import environment, atomic_json
+    from src.artifacts import atomic_json
+    from src.provenance import environment
     snapshot = environment()
-    snapshot["hardware"] = hw
+    snapshot["hardware"].update(hw)
     atomic_json(f.parent / "environment.json", snapshot)
     atomic_json(f,
             {

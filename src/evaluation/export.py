@@ -1,4 +1,4 @@
-"""Conformal coverage on a held-out device from the softmax export of `src/training/patchmix_cl/export_probs.py`.
+"""Conformal coverage on a held-out device from the softmax export of `src/training/export_probs.py`.
 
 Device held out: calibration and evaluation patients come from the official test patients of the other devices,
 split 20 times (stratified by device); the held-out device's test cycles are the shifted target. Patients recorded on the

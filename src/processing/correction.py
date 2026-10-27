@@ -191,3 +191,10 @@ def apply_spectrum_correction_torch(waves, coef, n_fft=1024, hop=512):
     coef = coef if coef.dim() == 2 else coef[None]
     win = torch.hann_window(n_fft, device=waves.device, dtype=waves.dtype)
     return torch.istft(spec * coef[:, :, None].to(spec.dtype), n_fft, hop, window=win, center=True, length=waves.shape[-1])
+
+
+def coef_db_distance(c1, c2, sr=16000, n_fft=1024, lo=50.0, hi=2000.0):
+    """RMS difference in dB between two coefficient curves over the band [lo, hi] Hz."""
+    f = np.fft.rfftfreq(n_fft, 1 / sr)
+    band = (f >= lo) & (f <= hi)
+    return float(np.sqrt(np.mean((20 * np.log10(c1[band] / c2[band])) ** 2)))

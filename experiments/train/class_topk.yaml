@@ -1,0 +1,2 @@
+class_pool: topk
+class_topk_fraction: 0.2

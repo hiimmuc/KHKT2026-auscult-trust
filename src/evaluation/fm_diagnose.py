@@ -11,18 +11,10 @@ Usage: python -m src.evaluation.fm_diagnose --run repro-wave1 [--cells substring
 import argparse
 
 import numpy as np
-from scipy.stats import rankdata
+from src.evaluation.metrics import auroc
 from src.paths import OUTPUTS
 
 CLASSES = ["normal", "crackle", "wheeze", "both"]
-
-
-def auroc(score, positive):
-    """Rank-based AUROC (ties averaged)."""
-    n1 = int(positive.sum())
-    n0 = len(positive) - n1
-    r = rankdata(score)
-    return float((r[positive].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
 def diagnose(npz, epoch):

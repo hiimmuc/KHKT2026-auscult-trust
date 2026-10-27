@@ -28,19 +28,18 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
-from torchaudio import transforms as T
 
 from src.evaluation.conformal import lac_scores, predict_sets, split_threshold
 from src.evaluation.kauh import load as load_kauh
-from src.evaluation.kauh import recordings as kauh_recordings
-from src.evaluation.kauh_infer import predict
-from src.evaluation.lodo_ttsc import load_args
+from src.evaluation.recordings import kauh_recordings, icbhi_recordings
+from src.inference.model import predict
+from src.training.config import load_args
 from src.evaluation.shift import prior_matched_coverage
 from src.processing.correction import apply_spectrum_correction
 from src.processing.icbhi import DEVICES
 from src.processing.splits import calibration_eval_splits
-from src.training.patchmix_cl.cycles import FADE_RATIO, cut_pad, read_annotations
-from src.training.patchmix_cl.summary import both_sides_patients
+from src.processing.cycles import cut_pad, prepare_recording, read_annotations
+from src.processing.splits import both_sides_patients
 
 SR, WIN = 16000, 8.0
 ALPHA = 0.1
@@ -51,15 +50,12 @@ def icbhi_windows(args):
     wav_dir = os.path.join(args.data_folder, "audio_test_data")
     official = dict(line.strip().split("\t") for line in open(os.path.join(args.data_folder, "official_split.txt")).read().splitlines())
     ann = read_annotations(wav_dir)
-    both = both_sides_patients()
+    both = both_sides_patients(Path(args.data_folder) / "official_split.txt")
     waves, rows = [], []
     for stem in sorted(s for s, side in official.items() if side == "test" and s.split("_")[0] not in both):
         x, sr = sf.read(os.path.join(wav_dir, stem + ".wav"), dtype="float32", always_2d=True)
         x = torch.from_numpy(x.T.copy())
-        if sr != SR:
-            x = T.Resample(sr, SR)(x)
-        fade = int(SR / FADE_RATIO)
-        x = T.Fade(fade_in_len=fade, fade_out_len=fade, fade_shape="linear")(x)
+        x = prepare_recording(x, sr, SR)
         dur = x.shape[1] / SR
         a = ann[stem]
         label = int(((a["Crackles"] > 0) | (a["Wheezes"] > 0)).any())
@@ -72,7 +68,8 @@ def icbhi_windows(args):
 
 
 def infer(a):
-    from src.artifacts import prediction_inputs, record_prediction, atomic_npz
+    from src.artifacts import atomic_npz
+    from src.provenance import prediction_inputs, record_prediction
     from src.runs import twin_dir
     unit = Path(a.unit_dir)
     context = dict(unit=unit, checkpoint=twin_dir(unit) / a.ckpt, dataset="screening", sc=a.sc)
@@ -83,35 +80,25 @@ def infer(a):
         st = np.load(unit / "sc_state.npz")
         coef = {d: st["test_coefficients_{}".format(d)] for d in win.device.unique()}
         waves = [apply_spectrum_correction(w, coef[d]).astype(np.float32) for w, d in zip(waves, win.device)]
-    from src import runs
+    from src import runs, artifacts
 
     ckpt = runs.twin_dir(unit, "checkpoints") / a.ckpt
-    probs = predict(waves, args, ckpt)
+    recording = {}
+    if args.method == "ce_recording_pafa":
+        from src.inference.model import images_of, load_frozen, predict_images
+        from src.evaluation.recording_head import recording_predictions
+        model, classifier = load_frozen(args, ckpt)
+        images = images_of(waves, args)
+        probs = predict_images(images, model, classifier, method=args.method)
+        recording = recording_predictions(images, win, model, classifier)
+    else:
+        probs = predict(waves, args, ckpt)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    atomic_npz(out, probs=probs, **{k: win[k].to_numpy() for k in win.columns}, sc=np.array(a.sc),
-                        ckpt_sha256=np.array(runs.sha256_file(ckpt)))
+    atomic_npz(out, probs=probs, **{k: win[k].to_numpy() for k in win.columns}, **recording, sc=np.array(a.sc),
+                        ckpt_sha256=np.array(artifacts.sha256_file(ckpt)))
     record_prediction(out, inputs, **context)
     print(out, probs.shape)
-
-
-def icbhi_recordings(d, agg="mean"):
-    stems, inv = np.unique(d["stem"], return_inverse=True)
-    f = np.mean if agg == "mean" else np.max
-    p_abn = np.array([f(1 - d["probs"][inv == k][:, 0]) for k in range(len(stems))])
-    first = np.array([np.flatnonzero(inv == k)[0] for k in range(len(stems))])
-    return {"p": np.stack([1 - p_abn, p_abn], 1), "y": d["label"][first], "patient": d["patient"][first],
-            "device": d["device"][first]}
-
-
-def kauh_recs(d, agg="mean"):
-    if agg == "mean":
-        return kauh_recordings(d)
-    stems, inv = np.unique(d["stem"], return_inverse=True)
-    p_abn = np.array([(1 - d["probs"][inv == k][:, 0]).max() for k in range(len(stems))])
-    first = np.array([np.flatnonzero(inv == k)[0] for k in range(len(stems))])
-    return {"p": np.stack([1 - p_abn, p_abn], 1), "y": (d["label"][first] > 0).astype(int), "patient": d["patient"][first],
-            "filter": d["filter"][first]}
 
 
 def triage(thr, p, y, prior):
@@ -147,7 +134,7 @@ def analyse(a):
             for s in seeds:
                 ic = icbhi_recordings(dict(np.load(root / cal_cond / "seed{}.npz".format(s), allow_pickle=True)), agg)
                 kf = kroot / kauh_cond / "seed{}.npz".format(s)
-                kr = kauh_recs(load_kauh(kf), agg) if kf.exists() else None
+                kr = kauh_recordings(load_kauh(kf), agg) if kf.exists() else None
                 df = pd.DataFrame({"patient": ic["patient"], "device": ic["device"]})
                 for sp in calibration_eval_splits(df, n_splits=20, seed=0):
                     ci, ei = np.isin(ic["patient"], sp["calibration"]), np.isin(ic["patient"], sp["evaluation"])

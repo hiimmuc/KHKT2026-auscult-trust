@@ -11,8 +11,8 @@ __pycache__/
 .ipynb_checkpoints/
 # run artefacts (see src/runs.py): small outputs and weights stay out of git, keep the READMEs
 outputs/
-checkpoints/*
-!checkpoints/README.md
+/outputs
+/checkpoints
 logs/
 *.log
 # data lives in ../data (or $AT_DATA); only the README is tracked
@@ -21,6 +21,8 @@ data/*
 !data/.gitkeep
 # local
 .env
+.env.*
+!.env.example
 .DS_Store
 CODE_COMMIT
 node_modules/

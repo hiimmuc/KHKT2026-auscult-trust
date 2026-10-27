@@ -14,19 +14,14 @@ import json
 from pathlib import Path
 
 import numpy as np
-import torch
-from src import runs
+from src import runs, artifacts
 from src.paths import DATA
 from src.processing.audio import SR, crop_pad, load_wav
-from src.processing.correction import (
-    apply_spectrum_correction,
-    mean_spectrum,
-    spectrum_coefficients,
-)
 from src.processing.kauh import file_table, windows
-from src.training.patchmix_cl.config import build_parser
-from src.training.patchmix_cl.encoders import get_encoder
-from src.training.patchmix_cl.modeling import build_model
+from src.training.config import load_args
+from src.training.encoders import get_encoder
+from src.inference.model import load_frozen, images_of, predict_images
+from src.inference.adaptation import test_time_sc, source_stats
 
 KAUH_ROOT = DATA / "raw" / "kauh"
 WINDOW_SEC = 8.0
@@ -44,80 +39,6 @@ def window_waves(win):
     return out
 
 
-def test_time_sc(waves, filters, sc_state, args):
-    """Spectrum-correct every window towards the saved reference, one coefficient curve per KAUH filter."""
-    ref = sc_state["reference"]
-    spectra = {
-        f: mean_spectrum([w for w, g in zip(waves, filters) if g == f]) for f in sorted(set(filters))
-    }
-    coef = spectrum_coefficients(
-        spectra,
-        reference=args.sc_reference,
-        sc_mode=args.sc_mode,
-        limit_freq_low=args.sc_limit_freq_low,
-        limit_freq_high=args.sc_limit_freq_high,
-        limit_freq_diff=args.sc_limit_freq_diff,
-        reference_spectra={"ref": ref},
-    )
-    return [apply_spectrum_correction(w, coef[g]).astype(np.float32) for w, g in zip(waves, filters)]
-
-
-def load_frozen(args, ckpt_path):
-    model, classifier, _, _, _ = build_model(args)
-    ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    if ck["model"] is not None:
-        model.load_state_dict(ck["model"])
-    classifier.load_state_dict(ck["classifier"])
-    return model.eval(), classifier.eval()
-
-
-def images_of(waves, args):
-    enc = get_encoder(args.encoder)
-    return np.stack([enc.preprocess(torch.from_numpy(w)[None]) for w in waves])[..., 0]  # (n, time, freq)
-
-
-@torch.no_grad()
-def predict_images(images, model, classifier, curves=None):
-    """Softmax on (n, time, freq) images; `curves` (n, freq) are added to every frame (TTA-EQ view)."""
-    probs = []
-    for i in range(0, len(images), 32):
-        x = torch.from_numpy(images[i : i + 32]).float()[:, None]
-        if curves is not None:
-            x = x + torch.from_numpy(curves[i : i + 32])[:, None, None, :]
-        o = classifier(model(x.cuda()))  # fp32, as the earlier KAUH conditions
-        probs.append(torch.softmax(o.float(), 1).cpu().numpy())
-    return np.concatenate(probs)
-
-
-def predict(waves, args, ckpt_path):
-    """Softmax of the frozen model on every waveform."""
-    model, classifier = load_frozen(args, ckpt_path)
-    return predict_images(images_of(waves, args), model, classifier)
-
-
-def source_stats(unit, args):
-    """Per-freq-bin mean and SD of the training images of the unit's recipe (A2 source statistics), cached on disk."""
-    cell = Path(unit).parent.name
-    f = Path("outputs/kauh/a2_stats") / (cell + ".npz")
-    if f.exists():
-        z = np.load(f)
-        return z["mean"], z["sd"]
-    from src.training.patchmix_cl.dataset import ICBHIDataset
-
-    tr = vars(argparse.Namespace(**vars(args))).copy()
-    a = argparse.Namespace(**{**tr, "holdout_device": None, "cv_folds": 0})
-    ds = ICBHIDataset(True, None, a, print_flag=False)
-    acc, acc2, n = 0.0, 0.0, 0
-    for i in range(0, len(ds.images), 256):
-        x = np.asarray(ds.images[i : i + 256], dtype=np.float64)[..., 0]
-        acc, acc2, n = acc + x.sum((0, 1)), acc2 + (x ** 2).sum((0, 1)), n + x.shape[0] * x.shape[1]
-    mean = acc / n
-    sd = np.sqrt(acc2 / n - mean ** 2) + 1e-6
-    f.parent.mkdir(parents=True, exist_ok=True)
-    np.savez(f, mean=mean, sd=sd)
-    return mean, sd
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("unit_dir", help="outputs/<exp>/<run_id>/<cell>/<unit> of the trained model (holds train_args.json)")
@@ -130,14 +51,14 @@ def main():
     ap.add_argument("--tta_eq", type=int, default=0, help="TTA-EQ views (6 dB SD per-bin gain, seeds 1000 + k)")
     a = ap.parse_args()
     unit = Path(a.unit_dir)
-    from src.artifacts import prediction_inputs, record_prediction, atomic_npz
+    from src.artifacts import atomic_npz
+    from src.provenance import prediction_inputs, record_prediction
     context = dict(unit=unit, checkpoint=runs.twin_dir(unit) / a.ckpt, dataset="kauh", sc=a.sc,
                    sc_unit=Path(a.sc_state).parent if a.sc_state else unit,
                    options={"a2": a.a2, "tta_eq": a.tta_eq,
                             "sc_state": a.sc_state, "sc_args": a.sc_args})
     inputs = prediction_inputs(**context)
-    args = build_parser().parse_args([])
-    vars(args).update(json.load(open(unit / "train_args.json")))
+    args = load_args(unit)
     sc_args = argparse.Namespace(**json.load(open(a.sc_args or unit / "train_args.json")))
     win = windows(file_table(KAUH_ROOT), WINDOW_SEC).reset_index(drop=True)
     waves = window_waves(win)
@@ -157,20 +78,33 @@ def main():
             flat = images[m].reshape(-1, images.shape[-1]).astype(np.float64)
             images[m] = isa_match(images[m], (flat.mean(0), flat.std(0) + 1e-6), src).astype(np.float32)
     view_probs = None
+    recording = {}
     if a.tta_eq:
-        from src.evaluation.lodo_ttsc import TTA_DB, TTA_SEED0, gain_curves
+        from src.inference.adaptation import TTA_DB, TTA_SEED0, gain_curves
 
         sd = TTA_DB * get_encoder(args.encoder).db_scale
-        view_probs = np.stack([predict_images(images, model, classifier, gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k))
+        view_probs = np.stack([predict_images(images, model, classifier, gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k), method=args.method)
                                for k in range(a.tta_eq)])
         probs = view_probs.mean(0)
+        if args.method == "ce_recording_pafa":
+            from src.evaluation.recording_head import recording_predictions
+            views = [recording_predictions(images, win, model, classifier,
+                         gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k))
+                     for k in range(a.tta_eq)]
+            recording = views[0]
+            recording["recording_view_probs"] = np.stack([v["recording_probs"] for v in views])
+            recording["recording_probs"] = recording["recording_view_probs"].mean(0)
     else:
-        probs = predict_images(images, model, classifier)
+        probs = predict_images(images, model, classifier, method=args.method)
+        if args.method == "ce_recording_pafa":
+            from src.evaluation.recording_head import recording_predictions
+            recording = recording_predictions(images, win, model, classifier)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     atomic_npz(
         out,
         probs=probs,
+        **recording,
         label=win["label"].to_numpy(),
         patient=win["patient"].to_numpy(),
         stem=win["stem"].to_numpy(),
@@ -180,7 +114,7 @@ def main():
         a2=np.array(a.a2),
         tta_eq=np.array(a.tta_eq),
         **({"view_probs": view_probs.astype(np.float16)} if view_probs is not None else {}),
-        ckpt_sha256=np.array(runs.sha256_file(ckpt)),
+        ckpt_sha256=np.array(artifacts.sha256_file(ckpt)),
     )
     record_prediction(out, inputs, **context)
     print(out, probs.shape, "sc" if a.sc else "no sc", "a2" if a.a2 else "", "tta{}".format(a.tta_eq) if a.tta_eq else "")

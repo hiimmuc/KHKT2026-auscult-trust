@@ -23,28 +23,18 @@ from pathlib import Path
 
 import numpy as np
 
-from src.evaluation.lodo import ALPHA, _resample_rows, _rows_by_patient, coverage, null_delta_p95
+from src.evaluation.calibration import resample_rows, patient_rows, coverage, null_delta_p95
+from src.evaluation.recordings import kauh_recordings
 from src.processing.kauh import FILTERS, ORDERED_PAIRS, file_table, rotation_partitions
 
-KAUH_ROOT = Path(__file__).resolve().parents[3] / "data" / "raw" / "kauh"
+from src.paths import DATA
+
+KAUH_ROOT = DATA / "raw/kauh"
 
 
 def load(path):
     d = np.load(path, allow_pickle=True)
     return {k: d[k] for k in d.files}
-
-
-def recordings(d):
-    """Recording-level screening view: one row per recording and filter."""
-    stems, inv = np.unique(d["stem"], return_inverse=True)
-    p_abn = np.array([(1 - d["probs"][inv == k][:, 0]).mean() for k in range(len(stems))])
-    first = np.array([np.flatnonzero(inv == k)[0] for k in range(len(stems))])
-    return {
-        "p": np.stack([1 - p_abn, p_abn], 1),
-        "y": (d["label"][first] > 0).astype(int),
-        "patient": d["patient"][first],
-        "filter": d["filter"][first],
-    }
 
 
 def invariance(d, patients=None):
@@ -94,8 +84,8 @@ def b2_delta(recs, folds, src, tgt, rng=None):
     for test_pat, cal_pat in folds:
         u = pair_fold(recs, src, tgt, test_pat, cal_pat)
         if rng is not None:
-            ci = _resample_rows(_rows_by_patient(u["cal_pat"]), rng)
-            ti = _resample_rows(_rows_by_patient(u["test_pat"]), rng)
+            ci = resample_rows(patient_rows(u["cal_pat"]), rng)
+            ti = resample_rows(patient_rows(u["test_pat"]), rng)
             u = {"cal_p": u["cal_p"][ci], "cal_y": u["cal_y"][ci], "cal_pat": u["cal_pat"][ci],
                  "test_p": u["test_p"][ti], "test_y": u["test_y"][ti], "test_pat": u["test_pat"][ti]}
         out.append(abs(coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"])["delta"]))
@@ -113,7 +103,7 @@ def main():
     root = Path(a.dir)
     conds = [a.base] + a.arms
     data = {c: {int(p.stem[4:]): load(p) for p in sorted((root / c).glob("seed*.npz"))} for c in conds}
-    recs = {c: {s: recordings(d) for s, d in data[c].items()} for c in conds}
+    recs = {c: {s: kauh_recordings(d) for s, d in data[c].items()} for c in conds}
     seeds = sorted(set.intersection(*[set(v) for v in data.values()]))
     if not seeds:
         raise ValueError("No paired seeds found for the requested conditions")

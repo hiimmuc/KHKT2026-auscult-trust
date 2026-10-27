@@ -1,0 +1,6 @@
+# Joint source recording screening and cycle classification.
+method: ce_recording_pafa
+recording_bag_cycles: 4
+recording_eval_cycles: 8
+recording_weight: 0.5
+batch_size: 8

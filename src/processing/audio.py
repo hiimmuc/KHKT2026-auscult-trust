@@ -7,7 +7,6 @@ from scipy.io import wavfile
 from scipy.signal import resample_poly
 
 SR = 16000  # OPERA input rate
-CYCLE_SEC = 8.0  # fixed cycle length fed to the encoder
 
 
 def load_wav(path, sr=SR):
@@ -43,24 +42,3 @@ def crop_pad(x, n):
         1-D array of length `n`.
     """
     return x[:n] if len(x) >= n else np.pad(x, (0, n - len(x)))
-
-
-def cycle_wave(x, start, end, sr=SR, sec=CYCLE_SEC):
-    """Cut one breath cycle out of a recording and fix its length by repeating it.
-
-    Repeat padding follows OPERA and Patch-Mix CL. Zero padding left about two thirds of
-    every 8 s input silent (median ICBHI cycle is 2.5 s).
-
-    Args:
-        x: Full recording at rate `sr`.
-        start: Cycle start in seconds.
-        end: Cycle end in seconds.
-        sr: Sample rate in Hz.
-        sec: Output length in seconds.
-
-    Returns:
-        1-D array of `sec * sr` samples.
-    """
-    return np.resize(
-        x[int(start * sr) : int(end * sr)], int(sec * sr)
-    )  # tiles, or crops if longer

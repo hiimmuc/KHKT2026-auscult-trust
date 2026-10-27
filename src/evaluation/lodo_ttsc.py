@@ -32,34 +32,25 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from src import runs
-from src.evaluation.lodo import coverage
+from src import runs, artifacts
+from src.evaluation.calibration import coverage
 from src.processing.correction import (
     apply_spectrum_correction_torch,
     clip_spectra_torch,
-    isa_match,
     spectrum_coefficients,
 )
 from src.processing.icbhi import DEVICES
-from src.training.patchmix_cl.config import build_parser
-from src.training.patchmix_cl.dataset import ICBHIDataset
-from src.training.patchmix_cl.encoders import get_encoder
-from src.training.patchmix_cl.modeling import build_model
-from src.training.patchmix_cl.reporting import per_device_report
+from src.training.config import load_args
+from src.training.state import report_epoch
+from src.training.dataset import ICBHIDataset
+from src.training.encoders import get_encoder
+from src.inference.model import load_frozen
+from src.training.reporting import per_device_report
+from src.training.methods import get_method
 
-TTA_SEED0, TTA_DB, TTA_KNOTS = 1000, 6.0, 6
+from src.inference.adaptation import TTA_SEED0, TTA_DB, gain_curves, a2_images
+from src.processing.correction import coef_db_distance
 BATCH = 64
-
-
-def load_args(unit_dir):
-    args = build_parser().parse_args([])
-    vars(args).update(json.load(open(Path(unit_dir) / "train_args.json")))
-    return args
-
-
-def report_epoch(unit_dir):
-    rep = json.loads((Path(unit_dir) / "report.json").read_text())
-    return int(sorted(rep["fixed"], key=int)[0])
 
 
 class Pipeline:
@@ -84,13 +75,7 @@ class Pipeline:
             j = self.used[i : i + 256]
             self.clip_spec[j] = clip_spectra_torch(self.waves[j].cuda().double()).cpu().numpy()
         self.ckpt = runs.twin_dir(self.unit, "checkpoints") / "report_epoch_{}.pth".format(self.epoch)
-        self.args.class_nums = np.bincount(self.labels[self.tr], minlength=self.args.n_cls)  # QLung margin, as in training
-        self.model, self.classifier, _, _, _ = build_model(self.args)
-        ck = torch.load(self.ckpt, map_location="cpu", weights_only=False)
-        if ck["model"] is not None:
-            self.model.load_state_dict(ck["model"])
-        self.classifier.load_state_dict(ck["classifier"])
-        self.model.eval(), self.classifier.eval()
+        self.model, self.classifier = load_frozen(self.args, self.ckpt)
         self.memo = {}
 
     def spectra(self, held_rows=None):
@@ -140,27 +125,9 @@ class Pipeline:
             with torch.cuda.amp.autocast():
                 f = self.model(x)
                 o = self.classifier(f)
-            probs.append(torch.softmax(o.float(), 1).cpu().numpy())
+            probs.append(get_method(self.args.method).probabilities(o).cpu().numpy())
             feats.append(f.float().cpu().numpy())
         return np.concatenate(probs), np.concatenate(feats)
-
-
-def gain_curves(n_total, n_freq, sd, seed, knots=TTA_KNOTS):
-    """One smooth random per-bin gain curve per cycle index (same draw as `random_bin_gain`), shape (n_total, n_freq)."""
-    rng = np.random.default_rng(seed)
-    grid, kn = np.linspace(0, 1, n_freq), np.linspace(0, 1, knots)
-    return np.stack([np.interp(grid, kn, rng.normal(0, sd, knots)) for _ in range(n_total)]).astype(np.float32)
-
-
-def a2_images(images_test, images_source):
-    """A2 on (n, 1, time, freq) images: per-freq-bin moments of the test images mapped onto the source images'."""
-    def stats(x):
-        flat = x[:, 0].reshape(-1, x.shape[-1]).double()
-        return flat.mean(0).numpy(), flat.std(0).numpy() + 1e-6
-
-    t, s = stats(images_test), stats(images_source)
-    out = isa_match(images_test[:, 0].numpy(), t, s)
-    return torch.from_numpy(out.astype(np.float32))[:, None]
 
 
 def resolve_sc_mode(p, sc_mode):
@@ -216,7 +183,7 @@ def write_arm(p, a, res):
                             test=np.stack(res["views"]["test"]).astype(np.float16))
     if res["coef"] is not None:
         np.savez_compressed(out / "sc_coefficients.npz", **{"coefficients_{}".format(d): c for d, c in res["coef"].items()})
-    meta = {"source_unit": str(p.unit), "ckpt": p.ckpt.name, "ckpt_sha256": runs.sha256_file(p.ckpt), "sc": a.sc,
+    meta = {"source_unit": str(p.unit), "ckpt": p.ckpt.name, "ckpt_sha256": artifacts.sha256_file(p.ckpt), "sc": a.sc,
             "sc_mode": res["sc_mode"] if a.sc != "none" else None, "a2": a.a2, "tta_eq": a.tta_eq,
             "code_commit": _code_commit()}
     (out / "infer_meta.json").write_text(json.dumps(meta, indent=1))
@@ -233,13 +200,6 @@ def _code_commit():
 
     r = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
     return r.stdout.strip() or None
-
-
-def coef_db_distance(c1, c2, sr=16000, n_fft=1024, lo=50.0, hi=2000.0):
-    """RMS difference in dB between two coefficient curves over the band [lo, hi] Hz."""
-    f = np.fft.rfftfreq(n_fft, 1 / sr)
-    band = (f >= lo) & (f <= hi)
-    return float(np.sqrt(np.mean((20 * np.log10(c1[band] / c2[band])) ** 2)))
 
 
 def target_n_sweep(p, a):

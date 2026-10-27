@@ -1,12 +1,13 @@
 """Epoch-boundary restart state and validated completion records."""
 import json
+import os
 import random
+from pathlib import Path
 
 import numpy as np
 import torch
 
-from src.artifacts import atomic_json, verify_file
-from src.runs import sha256_file
+from src.artifacts import atomic_json, sha256_file, verify_file
 
 
 def capture_rng():
@@ -29,7 +30,7 @@ def publish_completion(out, checkpoints):
     files = [p for p in out.iterdir() if p.suffix in (".json", ".npz") and p.name != "completion.json"]
     files += [p for p in checkpoints.glob("*.pth") if p.name != "last.pth"]
     atomic_json(out / "completion.json", {"schema": 1, "files": {
-        str(p.relative_to(out)) if p.is_relative_to(out) else str(p.resolve()): sha256_file(p) for p in files}})
+        os.path.relpath(p, out): sha256_file(p) for p in files}})
 
 
 def completed(out, checkpoints=None):
@@ -49,3 +50,8 @@ def completed(out, checkpoints=None):
     if not report.get("history"):
         raise ValueError(f"Empty training report: {out}")
     return True
+
+
+def report_epoch(unit_dir):
+    rep = json.loads((Path(unit_dir) / "report.json").read_text())
+    return int(sorted(rep["fixed"], key=int)[0])

@@ -11,20 +11,19 @@ Usage: python -m src.evaluation.layer_probe --encoder hear [--seeds 0 1 2] [--ba
 import argparse
 import copy
 import json
-import sys
 
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from src.evaluation.fm_diagnose import auroc
+from src.evaluation.metrics import auroc
 from src.paths import OUTPUTS
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from src.training.patchmix_cl.config import parse_args
-from src.training.patchmix_cl.dataset import build_loaders
-from src.training.patchmix_cl.encoders import get_encoder
+from src.training.config import parse_args
+from src.training.dataset import build_loaders
+from src.training.encoders import get_encoder
 
 
 def _pool(tokens, groups=1):

@@ -25,15 +25,17 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.evaluation.lodo import coverage
-from src.evaluation.lodo_ttsc import Pipeline, coef_db_distance, load_args
+from src.evaluation.calibration import coverage
+from src.evaluation.lodo_ttsc import Pipeline
+from src.processing.correction import coef_db_distance
+from src.training.config import load_args
 from src.processing.correction import clip_spectra_torch, spectrum_coefficients
-from src.processing.icbhi import DEVICES
+from src.training.state import report_epoch
 from src.processing.noise import SAMPLES, TEST_FOLDS, noise_bank
 from src.processing.splits import calibration_eval_splits
-from src.training.patchmix_cl.dataset import ICBHIDataset
-from src.training.patchmix_cl.reporting import per_device_report
-from src.training.patchmix_cl.summary import both_sides_patients
+from src.training.dataset import ICBHIDataset
+from src.training.reporting import per_device_report
+from src.processing.splits import both_sides_patients
 
 SNRS = (30, 20, 10, 5)
 
@@ -55,23 +57,17 @@ class OfficialPipeline(Pipeline):
     def __init__(self, unit_dir):
         self.unit = Path(unit_dir)
         self.args = load_args(unit_dir)
-        rep = json.loads((self.unit / "report.json").read_text())
-        self.epoch = int(sorted(rep["fixed"], key=int)[0])
+        self.epoch = report_epoch(unit_dir)
         ds = ICBHIDataset(False, None, self.args, audio_only=True, print_flag=False)
         self.labels, self.devices, self.patients = np.asarray(ds.labels), np.asarray(ds.devices), np.asarray(ds.patients)
         self.waves = torch.stack([a[0] for a in ds.audio])
-        from src.training.patchmix_cl.encoders import get_encoder
-        from src.training.patchmix_cl.modeling import build_model
+        from src.training.encoders import get_encoder
+        from src.inference.model import load_frozen
         from src import runs
 
         self.encoder = get_encoder(self.args.encoder)
         self.ckpt = runs.twin_dir(self.unit, "checkpoints") / "report_epoch_{}.pth".format(self.epoch)
-        self.model, self.classifier, _, _, _ = build_model(self.args)
-        ck = torch.load(self.ckpt, map_location="cpu", weights_only=False)
-        if ck["model"] is not None:
-            self.model.load_state_dict(ck["model"])
-        self.classifier.load_state_dict(ck["classifier"])
-        self.model.eval(), self.classifier.eval()
+        self.model, self.classifier = load_frozen(self.args, self.ckpt)
         self.memo = {}
         self.rows = np.arange(len(self.waves))
 

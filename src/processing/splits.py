@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from src.paths import DATA
 
 
 def split_patients(patients, fracs=(0.7, 0.15, 0.15), seed=0, names=("train", "val", "test")):
@@ -287,3 +288,13 @@ def lodo_split(patients, devices, held, cal_frac=0.2, seed=0, drop=()):
             cal.update(ids[: max(1, int(round(cal_frac * len(ids))))])
     is_cal = np.isin(patients, list(cal))
     return np.flatnonzero(src & ~is_cal), np.flatnonzero(src & is_cal), np.flatnonzero(held_mask)
+
+
+def both_sides_patients(split_file=None):
+    """Patients whose recordings appear in both the train and the test list of `official_split.txt`."""
+    split_file = split_file or DATA / "processed/patchmix_icbhi/official_split.txt"
+    sides = {}
+    for line in open(split_file).read().splitlines():
+        stem, side = line.strip().split("\t")
+        sides.setdefault(stem.split("_")[0], set()).add(side)
+    return {p for p, v in sides.items() if len(v) > 1}

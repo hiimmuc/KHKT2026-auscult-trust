@@ -1,0 +1,9 @@
+# Acquisition bandwidth and moderate additive waveform noise.
+method: ce_device_pafa
+device_augment_prob: 0.5
+device_rate_low: 4000
+device_rate_high: 8000
+device_snr_low: 20.0
+device_snr_high: 35.0
+consistency_weight: 0.0
+num_workers: 0

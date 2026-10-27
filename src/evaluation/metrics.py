@@ -2,6 +2,7 @@
 
 import numpy as np
 from sklearn.metrics import f1_score, recall_score
+from scipy.stats import rankdata
 
 
 def class_report(y, pred, n_classes=4):
@@ -34,9 +35,7 @@ def icbhi_score(y, pred):
     Returns:
         Float in [0, 1].
     """
-    n, a = y == 0, y != 0
-    sp = (pred[n] == 0).mean() if n.any() else 0.0
-    se = ((pred[a] == y[a]).mean()) if a.any() else 0.0
+    sp, se = sp_se(y, pred)
     return (sp + se) / 2
 
 
@@ -97,19 +96,6 @@ def patient_bootstrap(metric, patients, n_boot=1000, seed=0, **arrays):
     return metric(**arrays), *np.percentile(vals, [2.5, 97.5])
 
 
-def mean_sd(values):
-    """Mean and sample SD over seeds.
-
-    Args:
-        values: Per-seed metric values.
-
-    Returns:
-        Tuple (mean, sd). A gain below `sd` is not a result.
-    """
-    v = np.asarray(values, dtype=float)
-    return v.mean(), v.std(ddof=1) if len(v) > 1 else 0.0
-
-
 def sp_se(y, pred):
     """Specificity (normal recall) and sensitivity (correct abnormal / all abnormal), class 0 = normal.
 
@@ -156,16 +142,25 @@ def by_device(y, pred, devices, n_classes=4):
         se2 = (
             float((pred[m][y[m] != 0] > 0).mean()) if (y[m] != 0).any() else 0.0
         )  # abnormal predicted as any abnormal class
+        report = class_report(y[m], pred[m], n_classes)
         out[str(d)] = {
             "n": int(m.sum()),
             "sp": sp,
             "se": se,
             "score": (sp + se) / 2,
-            "hs": hs(y[m], pred[m]),
-            "macro_f1": macro_f1(y[m], pred[m], n_classes),
-            "recall": class_report(y[m], pred[m], n_classes)["recall"].tolist(),
+            "hs": 2 * sp * se / (sp + se) if sp + se else 0.0,
+            "macro_f1": float(report["f1"].mean()),
+            "recall": report["recall"].tolist(),
             "two_cls_se": se2,
             "two_cls_score": (sp + se2) / 2,
             "two_cls_hs": 2 * sp * se2 / (sp + se2) if sp + se2 else 0.0,
         }
     return out
+
+
+def auroc(score, positive):
+    """Rank-based AUROC (ties averaged)."""
+    n1 = int(positive.sum())
+    n0 = len(positive) - n1
+    r = rankdata(score)
+    return float((r[positive].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))

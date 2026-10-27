@@ -1,0 +1,4 @@
+lora_rank: 8
+method: ce_pafa_class_aware
+lambda_pcsl: 5.0
+lambda_gpal: 0.0005

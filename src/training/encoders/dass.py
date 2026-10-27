@@ -1,0 +1,88 @@
+"""DASS (distilled audio state-space model, VMamba medium) from the Lung-SRAD repository, with its Patch-Mix.
+
+Same shape as AST (798 x 128 Kaldi fbank) but normalised per cycle, as Lung-SRAD does for DASS. The network is the Lung-SRAD one.
+By default its Gaussian blur blocks are switched off, so this is plain DASS; `--gaussian_blur` switches them on with the settings of
+the Lung-SRAD training script (blocks 2 and 3 of stage 2, kernel 5, sigma 3). Patch-Mix: the AST-equivalent 2-D token swap, or a
+time-only / frequency-only swap (`mix_type`) for the dual-axis contrastive loss.
+Needs the selective-scan CUDA kernel and runs in the separate `.venv-dass` (CUDA 12.8 build, see docs/SETUP.md).
+Weights: DASS_medium_v2.pth (AudioSet) in `<data>/models/dass/pretrained_models/`.
+"""
+
+import contextlib
+import importlib
+import os
+import sys
+import types
+from functools import lru_cache
+
+import torch.nn as nn
+from src.paths import DATA, REPOS
+
+from src.processing.cycles import DB_PER_NAT, FBANK_STD, IMG_MEL, IMG_TIME, generate_fbank
+
+LUNG_SRAD = REPOS / "Lung-SRAD" / "models_DASS"
+WEIGHTS_ROOT = DATA / "models" / "dass"  # holds pretrained_models/DASS_medium_v2.pth
+FEATURE_DIM = 768
+
+
+@contextlib.contextmanager
+def _working_directory(path):
+    previous = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(previous)
+
+
+@lru_cache(maxsize=1)
+def _dass_class():
+    package = types.ModuleType("lung_srad_dass")
+    package.__path__ = [str(LUNG_SRAD)]
+    sys.modules["lung_srad_dass"] = package
+    return importlib.import_module("lung_srad_dass.ast_models").DASS
+
+
+class DassEncoder(nn.Module):
+    final_feat_dim = FEATURE_DIM
+
+    def __init__(self, n_cls, mix_beta, gaussian_blur=False):
+        super().__init__()
+        with _working_directory(
+            WEIGHTS_ROOT
+        ):  # the reference reads ./pretrained_models/DASS_medium_v2.pth
+            self.dass = _dass_class()(
+                label_dim=n_cls,
+                imagenet_pretrain=False,
+                audioset_pretrain=True,
+                enable_patch_mix=True,
+                mix_beta=mix_beta,
+                model_size="medium",
+                blur_blocks={2, 3} if gaussian_blur else set(),
+                gaussian_blur=True,  # selects the Lung-SRAD network; blur_blocks decides whether any block blurs
+                kernel_size=5,
+                sigma=3.0,
+                blur_stage={2},
+                verbose=False,
+            )
+        self.mlp_head = nn.Linear(
+            FEATURE_DIM, n_cls
+        )  # fresh head; the reference's own head output is not used
+
+    def forward(self, x, y=None, patch_mix=False, time_domain=False, mix_type="2d"):
+        x = x.squeeze(1)  # (B, time, freq)
+        if patch_mix:
+            return self.dass(x, y=y, patch_mix=True, mix_type=mix_type)
+        return self.dass(x)[0]
+
+
+def build_dass(args):
+    return DassEncoder(args.n_cls, args.mix_beta, args.gaussian_blur)
+
+
+def preprocess_dass(wave):
+    return generate_fbank(wave, 16000, n_mels=IMG_MEL, per_sample_norm=True)  # as in Lung-SRAD for every model but AST
+
+
+# ponytail: the per-cycle std varies a little around FBANK_STD, so the dB scale of the random gain is approximate for DASS
+IMAGE_SHAPE, DB_SCALE = (IMG_TIME, IMG_MEL), 1 / (2 * FBANK_STD * DB_PER_NAT)

@@ -2,7 +2,8 @@
 
 | | |
 | --- | --- |
-| Report version | 5.3, current snapshot; earlier versions in git history |
+| Report version | 5.3 historical snapshot; completed improvement results linked below |
+| Completed improvement results (27/10) | [Detailed tables, configurations and decision logs](docs/reports/improvement-results-2026-10-27.md) |
 | Datetime | 2026-10-26 18:20 (+07); new campaign status is a point-in-time snapshot |
 | Proposal / prereg | v10 (`docs/updates/research-proposal-v10-en.md`, 23/10; model and evidence updated, registered criteria of v9 unchanged); registered study v9 (`docs/updates/research-proposal-v9-en.md`) with `docs/updates/prereg-v8.md` and Amendments 1-5 (`docs/updates/prereg-v9-amendment*.md`) |
 | Plans | `docs/updates/stage-plan-v1.md` (grid), `docs/updates/lodo-plan-v1.md` (LODO, ensembles; Amendment 4 wins where they differ) |

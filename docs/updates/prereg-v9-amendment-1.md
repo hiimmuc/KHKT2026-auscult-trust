@@ -1,5 +1,9 @@
 # Amendment 1 to `prereg-v8.md` (proposal v9)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-07 | registered |
+
 **Status: registered 07/10/2026.** Appended to the end of `prereg-v8.md`; committed before any Stage-1 run.
 - **Earlier runs:** none. No Stage-1 run (v8 or v9) had started before this date (`save/` and `baselines/patchmix_cl` carry no run output). *Corrected 14/10/2026, see the correction note at the end of this file.*
 
@@ -142,5 +146,5 @@ Added after the 2026-10-09 results report. The registered rules above are unchan
 3. **Deviations.**
    - *Scope cut (08/10/2026, agreed with the supervisor):* phantom (H1 primary, H3, H2 co-primary), RespireNet, pretrained checkpoints, SC for other encoders, KAUH B1 and C, TTA-EQ were deferred.
    - *Early CV epochs:* the registered rule picked epoch 2 for the baseline and SC + gain, 3 for Freq-MixStyle and 14 for SC. The rule was applied unchanged. An epoch control (baseline refit at epoch 14, official split and LODO) is added as a sensitivity analysis, with no verdict; the registered gate G and H2 stay as computed.
-   - *`db_scale` (`docs/decision_logs/2026-10-14-db-scale.md`):* the random per-bin gain of `sc_gain` (P1P3), registered as 6 dB SD, ran at about 26 dB SD on AST because the Kaldi fbank is a natural log. All `sc_gain` numbers in the 2026-10-09 report are labelled as a deviation. `sc_gain` is rerun with the fix (RUN_ID `screen-ast-c0`); the AuscultTrust selection made on 08/10 (SC, static bound) is not revisited.
+   - *`db_scale` (`docs/decision-logs/2026-10-14-db-scale.md`):* the random per-bin gain of `sc_gain` (P1P3), registered as 6 dB SD, ran at about 26 dB SD on AST because the Kaldi fbank is a natural log. All `sc_gain` numbers in the 2026-10-09 report are labelled as a deviation. `sc_gain` is rerun with the fix (RUN_ID `screen-ast-c0`); the AuscultTrust selection made on 08/10 (SC, static bound) is not revisited.
 4. **Primary variant for the LODO test-time SC arm (`baseline_ttsc`, isolation contrast of H2).** The baseline weights were trained on raw source audio, so the primary variant corrects the held-out device only (source calibration cycles stay raw); the coefficient is the held-out device's mean spectrum mapped to the mean of the source devices' spectra, bound as in AuscultTrust (static). Secondary: correct every device, as in the SC arm. Inference only, no verdict.

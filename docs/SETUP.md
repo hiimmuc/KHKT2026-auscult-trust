@@ -1,5 +1,9 @@
 # Setup
 
+| Type | Date | Status |
+| --- | --- | --- |
+| reference | 2026-10-23 | current |
+
 Install the environments, download the data, check the data. Then go to [QUICKSTART.md](QUICKSTART.md).
 
 ## 1. Directory layout
@@ -45,7 +49,7 @@ uv pip install --python .venv-train/bin/python -r requirements-train.txt
 | Env | Used for |
 | --- | --- |
 | `.venv` | pytest, `src/evaluation`, notebooks |
-| `.venv-train` | `src.training.patchmix_cl.main`, `export_probs`, `scripts/run.sh` (via `PY`) |
+| `.venv-train` | `src.training.main`, `export_probs`, `scripts/run.sh` (via `PY`) |
 
 ## 4. Data and reference code
 
@@ -75,16 +79,47 @@ Expected after setup: ICBHI 920 wav, 6898 cycles, 126 patients; KAUH 336 wav.
 
 ## 5. Verify
 
+For the production research gate, use the resolved Python 3.10 environment:
+
+```bash
+uv venv .venv-train --python 3.10
+uv pip sync --python .venv-train/bin/python --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
+.venv-train/bin/python -m src.references --install
+bash scripts/validate.sh
+```
+
+The lock records the current Linux/CUDA environment; other platforms need their own validated lock. The reference installer
+clones missing repositories at pinned commits and refuses to alter existing mismatched or source-modified checkouts.
+`AT_REPOS` can select a clean reference location. The input requirements files remain the dependency-maintenance inputs;
+refresh the lock deliberately when upgrading and run the validation gate before accepting a new environment.
+
+Run metadata records resolved packages, Python, CUDA/cuDNN, GPU identity and reference revisions. To capture an environment
+independently, use `.venv-train/bin/python -m src.provenance --environment outputs/environment.json`.
+
+New training units validate configuration before accepting completion, verify completed artifact hashes, and restore
+Python/NumPy/PyTorch/CUDA RNG state on resume. Keep worker count fixed across restarts. cuDNN benchmarking is disabled for
+new runs; identical RNG streams do not promise bitwise equality across hardware or dependency changes. Historical runs
+are preserved; legacy checkpoints without RNG state require a new run rather than an uncertified resume.
+
+Export sidecars bind the output bytes to data, arguments, correction state, model files, implementation and environment.
+Missing or stale sidecars require explicitly re-running the exporter; they are never backfilled onto old predictions.
+Campaign frozen manifests refuse changed inputs. Set `AT_EVAL_RUN=<new-name>` for a fresh final-evaluation campaign.
+Schema-2 serving bundles require fresh verified cycle and screening exports and check their runtime inputs at startup.
+
 ```bash
 uv run --no-project --python .venv/bin/python python -m pytest -q tests
 ```
 
-Tests that build training models (`tests/test_pafa.py`, `test_db_scale.py`, `test_grid_audit.py`,
-`test_lung_srad_config.py`) import the reference code, which needs `wget`: run them with `.venv-train/bin/python -m pytest`.
+Tests are grouped by training, processing, evaluation and infrastructure. Use `.venv-train` for the full suite;
+method tests exercise synthetic batches without pretrained weights, with CPU adapters for the reference losses' CUDA calls.
 API contract: `.venv-train/bin/python -m pytest -q api/test_contract.py`. From a git worktree set `AT_DATA` and
 `AT_REPOS` to the wrapper's `data/` and `repos/` (the default `../data` points elsewhere).
 
-Single test: append `tests/test_training.py::test_summary_counts_match_metrics`.
+Single test: append `tests/training/test_training.py::test_summary_counts_match_metrics`.
+
+Training CLI: `python -m src.training.main`. Method modules are under `src/training/methods/`, encoder adapters under
+`src/training/encoders/`; configs and checkpoint tensor keys retain their existing names. The scheduler accepts saved job
+lists using the former module path. Rebuild provenance exports and serving bundles after the source layout changes.
 
 ## Troubleshooting
 

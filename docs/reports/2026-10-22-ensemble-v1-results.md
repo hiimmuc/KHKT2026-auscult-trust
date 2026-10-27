@@ -1,5 +1,9 @@
 # Ensembles by encoder group, equal and fitted weights (22/10/2026)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-22 | final |
+
 Regenerate: `PYTHONPATH=. .venv-train/bin/python scripts/ensemble.py` (CPU, about 10 min); check `tests/test_ensemble.py`.
 
 ## 1. Setup

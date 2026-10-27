@@ -1,7 +1,11 @@
 # LODO v1 results: leave-one-device-out, inference arms and trained SC (21/10/2026, trained SC dynamic and PAFA + PC-MCL added 23/10)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-21 | final |
+
 Registration: `docs/updates/prereg-v9-amendment-4.md` (exploratory, no verdict; the registered AST results in
-`docs/reports/report_2026-10-09.md` stay the registered outcomes). Run `lodo-v1`; plan `docs/updates/lodo-plan-v1.md`.
+`docs/reports/2026-10-09-registered-core-report.md` stay the registered outcomes). Run `lodo-v1`; plan `docs/updates/lodo-plan-v1.md`.
 Tables: `scripts/lodo_h2_all.sh` (null gate and H2 per cell, `outputs/train/lodo-v1/h2_<cell>.{md,json}`) and
 `scripts/lodo_tables.py`. Tags: [Fact], [Interpretation].
 

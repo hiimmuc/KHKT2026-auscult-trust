@@ -1,9 +1,13 @@
 # PC-MCL v1 results: BEATs PC-MCL and PAFA + PC-MCL on the ICBHI official split (20/10/2026)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-20 | final |
+
 Registration: `docs/updates/prereg-v9-amendment-5.md` (exploratory, no verdict). Run `pcmcl-v1`, machine D, seeds 0-4,
 100 epochs, finished 20/10/2026 (10 of 10 units, 0 failed). Outputs and checkpoints copied to A and checked by checksum
 (`outputs|checkpoints/train/pcmcl-v1/`). Comparators: grid-v1 `beats+ft+pafa` and `beats+ft+ce`, same seeds.
-Columns as in `docs/reports/grid-v1-results.md` (all in %; Cov = LAC split-conformal coverage at 90%).
+Columns as in `docs/reports/2026-10-19-grid-v1-results.md` (all in %; Cov = LAC split-conformal coverage at 90%).
 
 ## Summary
 

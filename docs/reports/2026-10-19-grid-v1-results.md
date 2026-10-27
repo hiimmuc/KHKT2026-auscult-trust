@@ -1,5 +1,9 @@
 # Grid v1 results: method x encoder on the ICBHI official split (19/10/2026)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-19 | final |
+
 Plan: `docs/updates/stage-plan-v1.md`. Next stage: `docs/updates/lodo-plan-v1.md`. Raw tables:
 `outputs/train/grid-v1/table_last.md`, `table_best_test.md`.
 

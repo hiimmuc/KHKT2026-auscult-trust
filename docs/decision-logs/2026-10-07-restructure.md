@@ -1,5 +1,9 @@
 # 2026-10-07: repository restructure
 
+| Type | Date | Status |
+| --- | --- | --- |
+| decision | 2026-10-07 | final |
+
 [Fact] Layout now follows the conventional research layout: `src/{processing,training,evaluation}`, `experiments/`, `notebooks/`,
 `data/` (README only), `checkpoints/`, `docs/`; reference repos, proposals and Phase 0 code live in the wrapper directory
 (`../repos`, `../docs`, `../archive`). Git tag `pre-restructure` holds the old tree.

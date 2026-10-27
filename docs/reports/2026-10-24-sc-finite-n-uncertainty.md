@@ -1,6 +1,10 @@
 # Existing SC arms and finite-N uncertainty, 24 October 2026
 
-Exploratory analysis of frozen predictions. Selected serving model remains BEATs + PAFA trained/evaluated with static SC. No new training, target-label fitting, ensemble member search or model promotion occurred. Read with the [earlier ensemble/finite-N report](ensemble-finite-n-2026-10-24.md) and [benchmark protocol audit](benchmark-protocol-audit-2026-10-24.md).
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-24 | current |
+
+Exploratory analysis of frozen predictions. Selected serving model remains BEATs + PAFA trained/evaluated with static SC. No new training, target-label fitting, ensemble member search or model promotion occurred. Read with the [earlier ensemble/finite-N report](2026-10-24-ensemble-finite-n.md) and [benchmark protocol audit](2026-10-24-benchmark-protocol-audit.md).
 
 ## Patient/seed uncertainty for finite-N k-rate
 

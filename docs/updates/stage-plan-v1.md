@@ -1,5 +1,9 @@
 # Stage plan v1: method x encoder grid (written 15/10/2026)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| plan | 2026-10-15 | executed |
+
 Scope: the stages before LODO. LODO scope and the definition of "best" are decided after the grid table is in.
 
 ## Grid (run `grid-v1`, launched 15/10/2026 on both machines)

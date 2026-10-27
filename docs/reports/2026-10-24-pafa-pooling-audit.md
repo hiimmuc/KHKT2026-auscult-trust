@@ -1,6 +1,10 @@
 # BEATs PAFA pooling audit
 
-[Fact] The current BEATs + PAFA implementation is a variant of the released BEATs PAFA training path. The loss implementation and salient scalar recipe settings match, but its alignment representation differs. This qualifies the settings-only comparison in the [benchmark audit](benchmark-protocol-audit-2026-10-24.md). It does not invalidate the locally measured variant's results or establish why its Score differs from the paper.
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-24 | current |
+
+[Fact] The current BEATs + PAFA implementation is a variant of the released BEATs PAFA training path. The loss implementation and salient scalar recipe settings match, but its alignment representation differs. This qualifies the settings-only comparison in the [benchmark audit](2026-10-24-benchmark-protocol-audit.md). It does not invalidate the locally measured variant's results or establish why its Score differs from the paper.
 
 ## Traced behavior
 
@@ -37,7 +41,7 @@ Before pursuing further recipe tuning, prioritize a bounded pooling comparison: 
 
 Select the earliest maximum of the three-fold mean validation Score, retain the control on ties, and fix the recipe/epoch before any subsequent official or LODO evaluation. Three folds at one screening seed do not establish a trained-arm improvement. Paired multi-seed frozen evaluation and SC/conformal assessment remain necessary.
 
-The already prepared [warm-up comparison](../updates/pafa-warmup-cv-preflight-2026-10-24.md) stays unlaunched. The pooling comparison has a more direct reproduction rationale and takes precedence as the next six-unit source-CV budget after the active queues. Do not combine attention and warm-up into one intervention or silently reuse a completed control if its source, initialization, split or schedule differs. This is a revised proposed successor, not a new resource assignment or launch manifest.
+The already prepared warm-up comparison (preflight note removed 27/10, see `docs/README.md`) stays unlaunched. The pooling comparison has a more direct reproduction rationale and takes precedence as the next six-unit source-CV budget after the active queues. Do not combine attention and warm-up into one intervention or silently reuse a completed control if its source, initialization, split or schedule differs. This is a revised proposed successor, not a new resource assignment or launch manifest.
 
 [Hypothesis] Restoring the released alignment representation may improve classification. It may also worsen or leave it unchanged. No improvement, SOTA result or device-robustness claim follows from this audit.
 

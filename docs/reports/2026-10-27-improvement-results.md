@@ -1,5 +1,9 @@
 # Tổng hợp các cải tiến AuscultTrust — 27/10/2026
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-27 | current |
+
 ## Phạm vi và trạng thái
 
 | Hạng mục | Trạng thái | Quy mô | Artifact |
@@ -8,13 +12,14 @@
 | Chín cải tiến tiếp theo | Hoàn tất | 30 fit screen + 6 fit confirm + 25 fit final | `outputs/evaluation/improvements-20261026/` |
 | SWA, LoRA, multi-scale, class-aware light, LoRA + class-aware | Hoàn tất source CV | 6 arm × 5 fold × 5 seed = 150 fit | `build/campaigns/fivefold-20261026/outputs/evaluation/fivefold-20261026/` |
 | KD cũ | Hoàn tất pilot | 3 seed official + 3 seed Litt3200 | `outputs/train/distill-pilot-20261024/` |
-| KD hard + soft cải tiến | Đã triển khai, chưa có kết quả GPU | 25 test CPU đạt | `docs/updates/next-improvements-2026-10-26.md` |
-| Equal-weight ensemble | Hoàn tất | 5 seed × official/4 LODO | `docs/reports/followup-2026-10-26/ensembles.md` |
+| KD hard + soft cải tiến | Screen 3 fold seed 0 xong trên B; không qua gate (epoch 13, Δ +0,009; fold +0,99/−1,76/+0,79). Chưa có official/LODO | 25 test CPU đạt, 3 fit GPU | `next-improvements-20261026-s0/kd/cv0-2` trên B; gate tính lại 27/10 bằng `improvement_campaign.gate` |
+| Event heads (BCE crackle/wheeze phụ) | Screen 3 fold seed 0 xong trên B; không qua gate (epoch 22, Δ −1,637; fold −1,47/−0,41/−3,02). Không confirm/final | 3 fit | `followup-20261026-s0/event_heads/cv0-2` trên B |
+| Equal-weight ensemble | Hoàn tất | 5 seed × official/4 LODO | tables in this file (section on equal-weight ensembles) |
 | Learned fusion | Chưa fit | OOF anchor/LLRD: 4.142 cycle, 79 patient, 3 fold | `outputs/evaluation/next-addons-20261026/fusion-feasibility.json` |
 | Target adaptation | Hoàn tất đánh giá tách riêng | 5 seed; 33 adaptation + 78 evaluation patient | `outputs/evaluation/next-addons-20261026/summary.json` |
 | Source label/boundary audio audit | Hoàn tất tự động; nghe người chưa hoàn tất | 4.025 cycle, 77 patient | `outputs/evaluation/source-audio-audit-20261026/` |
 | Trained SC static/dynamic và PAFA + PC-MCL | Hoàn tất | 125/125 fit, 5 seed × official/4 LODO | `report.md` mục 13 |
-| External pretraining | Bỏ qua theo yêu cầu | 0 fit | `docs/updates/next-improvements-2026-10-26.md` |
+| External pretraining | Bỏ qua theo yêu cầu | 0 fit | user decision 26/10 (`report.md` section 3) |
 
 ## Cấu hình và cách đánh giá
 
@@ -28,6 +33,20 @@
 | Chương trình 27/10 | 5 fold patient-disjoint × 5 seed (0–4), 100 epoch, epoch chọn trên mean source-validation curve riêng từng arm; anchor epoch 66 |
 | Thước đo | ICBHI Score = (Sp + Se)/2, đơn vị điểm phần trăm; Δ là hiệu Score paired với anchor cùng seed/fold tại epoch source-CV đã chọn |
 | Phạm vi 150-fit | Source patient CV; chưa có official-test, LODO hoặc KAUH cho SWA/LoRA/multi-scale/class-aware light/combo |
+
+| Năm arm mới | Official test | LODO bốn thiết bị | KAUH |
+| --- | --- | --- | --- |
+| SWA | Chưa chạy | Chưa chạy | Chưa chạy |
+| LoRA | Chưa chạy | Chưa chạy | Chưa chạy |
+| Multi-scale | Chưa chạy | Chưa chạy | Chưa chạy |
+| Class-aware light | Chưa chạy | Chưa chạy | Chưa chạy |
+| LoRA + class-aware | Chưa chạy | Chưa chạy | Chưa chạy |
+
+| Phép đo tiếp theo | Quy trình |
+| --- | --- |
+| Official | Retrain với epoch và recipe đã chọn bằng source CV; đánh giá official test bằng seed ghép cặp. |
+| LODO | Retrain riêng khi giữ lại từng thiết bị; đánh giá trên thiết bị đó, bốn cohort. |
+| KAUH | Đóng băng checkpoint rồi chạy inference mức bản ghi và bộ lọc KAUH, không chọn theo nhãn KAUH. |
 
 ## Trained SC static/dynamic và PAFA + PC-MCL (5 seed)
 
@@ -95,6 +114,10 @@
 | class_aware_light | 61.988 | 62.119 | 62.167 | 62.956 | 60.996 |
 | lora_class_aware | 61.247 | 60.595 | 61.133 | 61.082 | 62.353 |
 
+| Source CV contrast at epoch 4 | Anchor Score | Class-aware light Score | Paired Δ | Seed-mean Δ (0–4) |
+| --- | ---: | ---: | ---: | --- |
+| 25 matched fold/seed units | 55.802 | 62.045 | +6.243 | +9.90 / +8.27 / +2.49 / +5.75 / +4.80 |
+
 ## Official và LODO đã chạy (Score mean ± seed SD, 5 seed)
 
 | Candidate | Cohort | Arm | Score mean ± seed SD |
@@ -154,7 +177,7 @@
 | --- | --- | ---: | ---: | --- |
 | KD student cũ | Official | 3 | 62.751 ± 0.757 | 63.607 / 62.167 / 62.480 |
 | KD student cũ | LODO Litt3200 | 3 | 60.565 ± 6.718 | 54.144 / 60.007 / 67.545 |
-| KD hard + soft cải tiến | Chưa train GPU | 0 | — | — |
+| KD hard + soft cải tiến | Screen 3 fold (không phải official/LODO) | 3 fold | Δ source +0,009 (không qua gate) | — |
 
 | KD cải tiến: tham số | Giá trị |
 | --- | --- |
@@ -251,11 +274,11 @@
 
 | Ngày | Quyết định | Cấu hình/đầu ra | Nguồn |
 | --- | --- | --- | --- |
-| 23/10 | Primary baseline: BEATs + PAFA no SC; AuscultTrust: BEATs + PAFA trained static SC | Epoch 100, seed 0–4; serving seed 0 | `docs/decision_logs/2026-10-23-final-model.md` |
+| 23/10 | Primary baseline: BEATs + PAFA no SC; AuscultTrust: BEATs + PAFA trained static SC | Epoch 100, seed 0–4; serving seed 0 | `docs/decision-logs/2026-10-23-final-model.md` |
 | 25/10 | Chọn mean + gain6 trên source CV | Epoch 67, Score 61.084, Δ +0.959 so với control | `logs/improvement-20261025/cv-selection-next.json` |
 | 26/10 | LLRD qua screen/confirm source gate; chạy final official + 4 LODO | Epoch 21, 5 seed mỗi cohort | `build/campaigns/improvements-20261026/logs/improvements-20261026/programme.json` |
 | 26/10 | Giữ registered 8 s preprocessing | Source recording Score 71.769 | `outputs/evaluation/improvements-20261026/preprocessing/summary.json` |
 | 26/10 | Learned fusion không fit | Thiếu full complementary OOF và validation độc lập; equal weights đã chạy | `outputs/evaluation/next-addons-20261026/fusion-feasibility.json` |
 | 26/10 | Target adaptation đánh giá tách riêng; không thay deployment | 33/78 patient split, 5 seed | `outputs/evaluation/next-addons-20261026/summary.json` |
 | 27/10 | Hoàn tất 150/150 source-CV fit | 5 fold × 5 seed × 6 arm; `complete.json` và `summary.json` hash khớp | `build/campaigns/fivefold-20261026/outputs/evaluation/fivefold-20261026/` |
-| Theo yêu cầu người dùng | Bỏ external pretraining | 0 fit | `docs/updates/next-improvements-2026-10-26.md` |
+| Theo yêu cầu người dùng | Bỏ external pretraining | 0 fit | user decision 26/10 (`report.md` section 3) |

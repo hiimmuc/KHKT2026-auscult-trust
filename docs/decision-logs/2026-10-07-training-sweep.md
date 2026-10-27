@@ -1,5 +1,9 @@
 # Training sweep: definition checked against the papers (2026-10-07)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| decision | 2026-10-07 | final |
+
 ## What the papers do [Fact, read from the papers and their scripts]
 - Patch-Mix CL, SG-SCL, Lung-SRAD: ICBHI official 60/40 split (4,142 train / 2,756 test cycles), **5 random seeds, no cross-validation**.
   Lung-SRAD (https://arxiv.org/abs/2606.11922): Adam, lr 5e-5, batch 16, 50 epochs, 8 s cycles, SpecAugment (160 frames, 48 bins), mean over 5 seeds.

@@ -1,5 +1,9 @@
 # Exploratory ensemble and finite-target-batch evidence, 24 October 2026
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-24 | current |
+
 [Fact] Reanalysis of existing fixed-epoch predictions; no new model fitting or model selection. The selected AuscultTrust remains BEATs + PAFA trained/evaluated with static SC. Registered ensemble identities follow Amendment 4; user-group identities are distinct. These are exploratory findings, not a new confirmatory test.
 
 ## Registered equal-weight ensembles
@@ -145,7 +149,7 @@ All contrasts below use controls on the exact same evaluation cohort as the fini
 
 [Interpretation] One or two cycles produce unstable adjustment with substantial specificity losses. Fifty-cycle estimates descriptively approach the full-adaptation control, but this is not a validated minimum budget or evidence of equivalence. Predicted-normal-rate matching does not guarantee specificity preservation.
 
-[Limitation] SC coefficients here were already estimated from the full target pool, including evaluation-patient audio without labels. Only k estimation is patient-disjoint and finite-N. These tables cannot establish performance of an entirely patient-disjoint or N-total-cycle SC+k pipeline. Joint finite-N SC remains pending. Patient/seed bootstrap intervals with adaptation-only k refitting are now in the [uncertainty update](sc-finite-n-uncertainty-2026-10-24.md); it uses a separately identified Monte Carlo reanalysis point. Adjustment distributions and a separately labelled whole-target transductive reference follow below. No k-adjusted conformal claim is made.
+[Limitation] SC coefficients here were already estimated from the full target pool, including evaluation-patient audio without labels. Only k estimation is patient-disjoint and finite-N. These tables cannot establish performance of an entirely patient-disjoint or N-total-cycle SC+k pipeline. Joint finite-N SC remains pending. Patient/seed bootstrap intervals with adaptation-only k refitting are now in the [uncertainty update](2026-10-24-sc-finite-n-uncertainty.md); it uses a separately identified Monte Carlo reanalysis point. Adjustment distributions and a separately labelled whole-target transductive reference follow below. No k-adjusted conformal claim is made.
 
 ### Replayed adjustment diagnostics
 

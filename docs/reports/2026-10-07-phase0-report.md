@@ -1,11 +1,15 @@
 # AuscultTrust: consolidated results report
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-07 | archived (Phase 0) |
+
 | | |
 |---|---|
 | Report version | 2.0 (supersedes `docs/report_archive_2026-10-05.md`, the 17-section report of 2026-10-05, kept for the full detail of the v4-era experiments) |
 | Datetime | 2026-10-07 11:52 (+07) |
 | Repo state | branch `report-update`, HEAD `9e156d8`, in sync with `origin/main` |
-| Proposal / prereg | v9 (`docs/research-proposal-v9-en.md`) over v8 (`docs/research-proposal-v8-en.md`); `docs/prereg-v8.md` (2026-10-06), `docs/prereg-v9-amendment.md` (2026-10-07) |
+| Proposal / prereg | v9 (`docs/research-proposal-v9-en.md`) over v8 (`docs/research-proposal-v8-en.md`); `docs/prereg-v8.md` (2026-10-06), `docs/prereg-v9-amendment-1.md` (2026-10-07) |
 | Sources | `outputs/`, `baselines/patchmix_cl/save/results.json` and `logs/`, `git log`, the work sessions of 2026-10-02 to 2026-10-07 |
 
 Tags: [Fact] measured in the repo, [Interpretation] reasoned, [Assumption], [Pending] not run. Score = (Sp + Se) / 2 on ICBHI, 4-class, official split unless stated.
@@ -30,7 +34,7 @@ Commits from `git log`; the v8 migration (6 commits) was done in this session, t
 | `30c5bee` | 10-06 | Patch-Mix Stage 1: `baselines/patchmix_cl/main.py` (patient-level val set, `--selection cv\|test`, three reported epochs, per-device metrics, flags for P1-P8), `util/stage1.py`, `util/icbhi_dataset.py`, `models/ast.py` (P6 affine layer), `export_probs.py` (softmax + embedding export with weight hash), `src/conformal/export.py` (E1 from export), A2 wired in `src/features.py` via `Encoder.logmel` (AST, OPERA), `configs/stage1_variants/`, `docs/prereg-v8.md`, `tests/test_stage1.py`, `tests/test_handcrafted.py` |
 | `9bccec8` | 10-06 | HTS-AT (AudioSet) encoder, extract and ladder configs |
 | `e42a105`, `aeedd4e` | 10-06 | Screening runner (3-fold patient CV, no test access), grouped-CV folds in `main.py` (`--cv_folds`, `--cv_fold`), fixed-refit mode, `stage1_summary.py`, extra P4 configs (p = 0.25, 0.75) |
-| `761cc53`, `24840c9`, `25ff50b`, `d9c9419` | 10-06/07 | Proposal v9 (single spectrum-correction chain G, H1-H3), `docs/prereg-v9-amendment.md`, `sc_mode` (dynamic dB clip vs static band bound), `configs/stage1_variants/P1P3_sc_gain.json`, CLAUDE.md rewrite, `docs/v9-change-list-vi.md`; PR #3 |
+| `761cc53`, `24840c9`, `25ff50b`, `d9c9419` | 10-06/07 | Proposal v9 (single spectrum-correction chain G, H1-H3), `docs/prereg-v9-amendment-1.md`, `sc_mode` (dynamic dB clip vs static band bound), `configs/stage1_variants/P1P3_sc_gain.json`, CLAUDE.md rewrite, `docs/v9-change-list-vi.md`; PR #3 |
 | this report | 10-07 | old `report.md` moved to `docs/report_archive_2026-10-05.md` |
 
 Tests: 67 passed on the committed tree (2026-10-06 run, before the v9 commits).
@@ -114,7 +118,7 @@ Validation-selected epoch on held-out training patients, mean over 3 folds:
 
 ## 5. Caveats and open issues
 
-- **Prereg timing.** `prereg-v9-amendment.md` (registered 2026-10-07) states that no Stage-1 run had started. File timestamps of the screening runs (local +07: P0 fold 0 01:23, P1 03:24, P2 06:29, P3 08:31 on 2026-10-07) are earlier than or close to the commit of the amendment (`d9c9419`, 04:24 UTC = 11:24 +07), so P0-P3 started before the amendment was committed. The primary hypotheses are unaffected by P0-P3 (no test access), but the amendment sentence should be corrected or the runs declared exploratory. [Assumption] The timestamps are in one timezone; check `logs/screening_driver.log`.
+- **Prereg timing.** `prereg-v9-amendment-1.md` (registered 2026-10-07) states that no Stage-1 run had started. File timestamps of the screening runs (local +07: P0 fold 0 01:23, P1 03:24, P2 06:29, P3 08:31 on 2026-10-07) are earlier than or close to the commit of the amendment (`d9c9419`, 04:24 UTC = 11:24 +07), so P0-P3 started before the amendment was committed. The primary hypotheses are unaffected by P0-P3 (no test access), but the amendment sentence should be corrected or the runs declared exploratory. [Assumption] The timestamps are in one timezone; check `logs/screening_driver.log`.
 - **HTS-AT** (committed `9bccec8`) is not in the v8/v9 variant pool; its numbers above come from `outputs/ladder_htsat/ladder-htsat-v1`.
 - **A1/A2 in extraction** are tested on stubs only; no corrected feature cache exists, so H3 (correction closes the deficit) is untested.
 - **ICBHI device is confounded** with class prior and site; E1 deficits are not decomposed.

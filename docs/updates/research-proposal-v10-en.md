@@ -1,15 +1,88 @@
 # Improving the Reliability of Lung-Sound Classification under Device Shift with Spectrum Correction and Conformal Prediction, for Respiratory Screening Support
 
+| Type | Date | Status |
+| --- | --- | --- |
+| proposal | 2026-10-23 | current |
+
 **Registered title (fixed):** *Nghiên cứu giải pháp cải thiện độ tin cậy của mô hình phân loại âm thanh phổi dưới sự dịch chuyển thiết bị bằng hiệu chỉnh phổ và dự đoán Conformal cho hỗ trợ sàng lọc bệnh đường hô hấp*
 
 > Proposal v10, 23/10/2026. KHKT 2026–2027, THPT chuyên Chu Văn An. Replaces v9 (07/10/2026; decision log v9 → v10: Appendix D; v8 → v9: Appendix C).
 > v10 keeps the research question, the hypotheses H1–H3, gate G, the positive controls and every registered criterion of v9 and its pre-registration amendments 1–5. It changes the model (encoder and recipe chosen by the encoder x method grid and LODO, disclosed as a post-registration selection), records the evidence of the v9 execution (§3a) and updates the milestones (§7).
 > Tags: **[Fact]** cited and checked, or measured in our repo · **[Interpretation]** reasoned from facts · **[Hypothesis]** testable, not shown · **[Assumption]** planning choice, to confirm · **[Pending]** blocked on hardware.
-> Repo facts: `auscult-trust` `report.md` (v5, 23/10/2026) and the decision log `docs/decision_logs/2026-10-23-final-model.md`. Open items: *[to verify]*.
+> Repo facts: `auscult-trust` `report.md` (v5, 23/10/2026) and the decision log `docs/decision-logs/2026-10-23-final-model.md`. Open items: *[to verify]*.
 
 ---
 
 ## 0. Summary
+
+**Evidence update, 27/10/2026 (supersedes earlier campaign-status statements below).** The frozen primary study remains BEATs + PAFA with trained static SC and split conformal prediction. Its five-seed ICBHI official Score is 62.3 ± 0.9 versus 61.7 ± 0.7 without SC; four-device LODO macro Score is 60.3 ± 0.8 versus 58.8 ± 1.4. On paired KAUH software-filter views, static SC reduced four-class flip rate by 0.236 (95% CI [0.177, 0.305]). No LODO-v1 fold passed the registered H2 coverage-error null gate, and physical phantom tests remain pending. These post-selection model results are exploratory; software filters do not establish physical-device robustness. See the [dated findings](../reports/2026-10-27-findings.md) and [complete result tables](../reports/2026-10-27-improvement-results.md).
+
+The later candidate search completed **150 source-CV fits**: six arms (anchor, SWA, LoRA, multi-scale, class-aware light, LoRA + class-aware) × five patient folds × five seeds. Against the matched static-SC/gain6 anchor, source-CV Score changes were +0.076, +0.607, −0.321, +1.458, and +0.695 respectively. These are source-validation results with source-selected epochs. Class-aware light also changes PCSL weight from 50 to 5, so its mechanism is not isolated. For **each of the five candidates**, the following evaluations are still unrun:
+
+| Endpoint | Required experiment | Status |
+| --- | --- | --- |
+| ICBHI official | Retrain using the frozen source-selected recipe and epoch; evaluate the official test split with paired seeds. | Pending |
+| Four-device LODO | Retrain separately while holding out each device; evaluate only that device, using paired seeds and patient-disjoint calibration. | Pending |
+| KAUH | Freeze the completed candidate checkpoints and perform recording/filter inference without target-label tuning. | Pending |
+
+Thus class-aware light is a secondary candidate, not an official, cross-device, or deployment gain. The registered v9 H1–H3, gate G, and frozen primary-model decision are unchanged. The exploratory research question is whether lower-weight class-aware alignment improves beyond source patients; a non-class-aware PCSL=5 control must first separate alignment from loss-weight effects.
+
+**Revised scope:** the user's hardware window is now four RTX 5090s for 48 h and one RTX 6000 PRO for 24 h.
+The 48-hour sprint supersedes the larger future programme for execution,
+retaining only token-attention PAFA and spectral-gain augmentation against the current static-SC control.
+The wider method search is deferred. No new results or registered-criterion changes are claimed.
+
+**Future programme, proposed 24/10.** The full improvement plan and
+implementation work packages cover classifier objectives,
+event/recording pooling, optimization, simulated device variation, source-only validation, lung-audio pretraining,
+distillation/fusion and separately reported adaptation. It includes explicit hardware/time estimates and full
+candidate evaluation. This plan has not been launched and does not amend registered hypotheses or claim gains.
+
+**Exploratory execution update, 24/10/2026.** The broader optimization objective is to improve official-split
+classification, test the frozen recipe under LODO, then assess SC and conformal reliability. SOTA remains an
+objective, not an achieved result. Additional candidates require a protocol-matched literature comparison and
+source training-patient CV; new selection after inspecting existing official-test/LODO results is exploratory.
+The registered hypotheses and selected serving model remain unchanged. Existing ensemble and finite-N evidence,
+including negative results and patient/seed uncertainty, is recorded in
+[the dated evidence report](../reports/2026-10-24-ensemble-finite-n.md). Complete the scheduled dynamic-SC and
+bounded distillation comparisons before expanding training. Do not infer device robustness from classification
+Score or from adding a conformal layer: assess coverage and set size, apply the null gate, and retain the pending
+physical tests. The finite-N study so far limits only k estimation; its full-pool SC does not establish joint
+small-batch adaptation.
+
+The [benchmark protocol audit](../reports/2026-10-24-benchmark-protocol-audit.md) separates published
+test-selected results from fixed-epoch evaluation and adds an unseen-patient official-test view excluding
+patients 156 and 218. Its proposed five-epoch warm-up comparison is a bounded source-patient-CV successor,
+not a launched campaign or an improved model claim. Existing dynamic-SC and distillation work remains first.
+
+The [SC/finite-N uncertainty analysis](../reports/2026-10-24-sc-finite-n-uncertainty.md) now includes
+adaptation-only refitting in patient/seed bootstrap draws. It supports exploratory larger-batch k-rate gains
+without establishing preserved specificity. The existing source-device-robust threshold improves macro coverage
+by increasing set size, but still undercovers AKGC417L. Device-shift reliability therefore remains an open
+research question; this comparator is not a replacement H2 success criterion. Completed results synced to A now support a
+preliminary campaign update: five official AST dynamic-SC
+seeds and one KD student seed. Additional seeds/LODO folds and full checkpoint/target certification remain
+pending; these results do not change the selected model or registered hypotheses. The later three-seed/LODO snapshot
+now includes all three official student seeds and two completed five-seed dynamic folds. The student does not
+establish superiority/equivalence, and opposite-direction fold effects prevent a universal dynamic-SC claim.
+The bounded warm-up CV experiment passed source-data/schedule preflight
+and remains unlaunched behind the current campaigns. A [post hoc source class-conditional comparator](../reports/2026-10-24-class-conditional-conformal.md)
+partly repairs the pooled coverage failure at the cost of larger sets, but does not establish every-device
+coverage or change H2. It diagnoses class-mix effects without changing classifier predictions or using target
+labels for calibration.
+
+The 15:00 Litt3200 KD snapshot adds the first shift-fold seed:
+student Score 54.14, matched control 54.16 and teacher 49.73, with patient intervals spanning zero for both
+Score contrasts. Student coverage 0.990 requires mean set size 3.389 and yields only 0.008 singletons.
+The other two shift-fold seeds and measured runtime/VRAM remain pending; this is no pilot or robustness verdict.
+
+The [BEATs PAFA pooling audit](../reports/2026-10-24-pafa-pooling-audit.md) identifies the selected local recipe
+as a variant of released PAFA: its alignment branch uses mean pooling rather than learned token attention.
+Source hashes and synthetic gradient checks verify this distinction, without proving a quality effect. After
+the active queues, prioritize a separate source-patient-CV pooling comparison before the prepared warm-up study.
+Historical predictions, frozen pilot implementations and the selected serving model remain unchanged.
+The separate token-attention method is implemented and passes the real-source CPU preflight and 123 research
+tests. Its six source-CV jobs remain unlaunched; no new classification result is available.
 
 **Core problem.** A conformal lung-sound classifier promises that its prediction set contains the true class with a chosen probability. The promise holds only for data like the calibration data. When the stethoscope changes, predictions change and the promise breaks without warning.
 

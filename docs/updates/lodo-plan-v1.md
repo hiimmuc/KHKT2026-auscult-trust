@@ -1,6 +1,10 @@
 # LODO plan v1 and ensemble plan (written 19/10/2026)
 
-Input: grid v1 results (`docs/reports/grid-v1-results.md`). Cells chosen by the user on 19/10/2026.
+| Type | Date | Status |
+| --- | --- | --- |
+| plan | 2026-10-19 | executed |
+
+Input: grid v1 results (`docs/reports/2026-10-19-grid-v1-results.md`). Cells chosen by the user on 19/10/2026.
 
 ## Cells (11)
 
@@ -36,7 +40,7 @@ Input: grid v1 results (`docs/reports/grid-v1-results.md`). Cells chosen by the 
 | L0 | Job lists (`grid.py`-style, balanced on both machines, `RUN_ID=lodo-v1`); smoke 1 epoch of one unit per encoder x fold (PAFA patient ids, SG-SCL with 3 source devices, QLung quality on the LODO split, 5 s cycles); GPU logger | 2-3 h | lists in `logs/campaigns/lodo-v1-{A,B}.txt` |
 | L1 | Train the 220 units, no SC | about 49 h | `outputs/train/lodo-v1/<cell>+lodo_<dev>/seed<s>/` with `cal_preds.npz`, `test_preds.npz`, `report.json` |
 | L2 | Inference arms on every L1 unit (`src.evaluation.lodo_ttsc`): test-time SC (held-out device corrected, static and dynamic bound), A2, TTA-EQ (8 views) | a few hours | extra arm units |
-| L3 | Analysis: per fold and macro Sp, Se, Score, HS, 2c, worst fold; method effects vs controls; H2 with `src.evaluation.lodo` (prior-matched coverage, null gate over 200 re-splits, two-level bootstrap) for each inference arm vs the same cell without it | 1 day | `docs/reports/lodo-v1-results.md` |
+| L3 | Analysis: per fold and macro Sp, Se, Score, HS, 2c, worst fold; method effects vs controls; H2 with `src.evaluation.lodo` (prior-matched coverage, null gate over 200 re-splits, two-level bootstrap) for each inference arm vs the same cell without it | 1 day | `docs/reports/2026-10-21-lodo-v1-results.md` |
 | L4 | Trained SC arms (`sc_mode` dynamic and static) on the cells chosen from L3 (about 3): official split 5 seeds (gate G) + LODO 20 units, per mode. SC turns the spectrogram cache off (slower loading) | about 50-70 h for 3 cells | arms `sc`, `sc+sc_static` |
 | L5 | Ensembles (below) on L1, L2 and L4 outputs | inference only | ensemble arms |
 | L6 | Distillation of the primary ensemble into one BEATs model | about 10 h | student arm |

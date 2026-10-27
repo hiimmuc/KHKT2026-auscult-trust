@@ -1,6 +1,10 @@
 # Frozen PAFA/static-SC evaluation execution log
 
-Date: 23 October 2026 (+07). Decision: `docs/decision_logs/2026-10-23-final-model.md`.
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-23 | current |
+
+Date: 23 October 2026 (+07). Decision: `docs/decision-logs/2026-10-23-final-model.md`.
 
 ## Scope and fixed choices
 

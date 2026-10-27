@@ -1,5 +1,9 @@
 # Improving the Reliability of Lung-Sound Classification under Device Shift with Spectrum Correction and Conformal Prediction, for Respiratory Screening Support
 
+| Type | Date | Status |
+| --- | --- | --- |
+| proposal | 2026-10-07 | registered study |
+
 **Registered title (fixed):** *Nghiên cứu giải pháp cải thiện độ tin cậy của mô hình phân loại âm thanh phổi dưới sự dịch chuyển thiết bị bằng hiệu chỉnh phổ và dự đoán Conformal cho hỗ trợ sàng lọc bệnh đường hô hấp*
 
 > **Superseded by v10** (`research-proposal-v10-en.md`, 23/10/2026) for the model and the evidence; this file stays the registered study.

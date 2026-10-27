@@ -1,5 +1,9 @@
 # Amendment 2 to `prereg-v8.md` (proposal v9): exploratory arms and controls after the 2026-10-09 report
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-14 | registered |
+
 **Status: registered 14/10/2026, committed before the first run of every arm listed in section 3.** Runs that started earlier on this day are listed in section 1 with their status.
 
 Nothing here changes a registered rule of Amendment 1. Gate G, H1, H2, H3 and the positive controls keep their registered arms, recipe, epochs and statistics. Every item below is **exploratory: reported with the same statistics, no verdict**, unless it is called a sensitivity analysis of a registered result, in which case it is reported next to that result and does not replace it.
@@ -8,7 +12,7 @@ Nothing here changes a registered rule of Amendment 1. Gate G, H1, H2, H3 and th
 
 | Campaign | RUN_ID / cell | Started | Status |
 |---|---|---|---|
-| `sc_gain` rerun after the `db_scale` fix (`docs/decision_logs/2026-10-14-db-scale.md`) | `screen-ast-c0` / `sc_gain`, `sc_gain+sc_static` | 14/10 03:35 (+0700), commit `a442947` | 3-fold screen, registered rule (both bounds, higher mean CV Score, tie dynamic); refit seeds 0-4 at the chosen epoch follows |
+| `sc_gain` rerun after the `db_scale` fix (`docs/decision-logs/2026-10-14-db-scale.md`) | `screen-ast-c0` / `sc_gain`, `sc_gain+sc_static` | 14/10 03:35 (+0700), commit `a442947` | 3-fold screen, registered rule (both bounds, higher mean CV Score, tie dynamic); refit seeds 0-4 at the chosen epoch follows |
 | Epoch control, official split | `screen-ast` / `baseline_e14` | 14/10 04:00, commit `cc56136` | baseline recipe, seeds 0-9, scored at epoch 14 (the AuscultTrust CV epoch) |
 | Epoch control, LODO | `lodo-ast` / `baseline_e14+lodo_<dev>` | 14/10 04:01, commit `cc56136` | 4 devices x seeds 0-4 at epoch 14 |
 

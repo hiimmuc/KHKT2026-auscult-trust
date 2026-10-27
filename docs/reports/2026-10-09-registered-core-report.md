@@ -1,5 +1,9 @@
 # Results report, 2026-10-09
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-09 | final (registered study) |
+
 **Topic.** Reliability of respiratory-sound classifiers under stethoscope (device) shift: encoder comparison, spectrum correction (SC) and split-conformal prediction on ICBHI, with KAUH positive controls.
 **Language and format.** English, Markdown only. Claims carry the tags [Fact] (measured here), [Interpretation], [Hypothesis], [Assumption], [Pending] (not done).
 
@@ -360,4 +364,4 @@ Phantom-transducer recordings (needs hardware): H1 primary, H3, co-primary H2 an
 
 - Code: `auscult-trust/` (git, branch `main`); configs in `experiments/train/`; entry points `scripts/run.sh` (`screen`, `summary`, `final`, `report`, `reproduce`, `resume`), `scripts/run_kauh.sh`, `python -m src.evaluation.lodo --run lodo-ast`, `python -m src.evaluation.fm_diagnose --run repro-wave1 --cells freeze_encoder`.
 - Results: `outputs/train/repro-wave1/` (Part 1), `outputs/train/screen-ast/` (screening and refit), `outputs/train/lodo-ast/` (LODO), `outputs/kauh/final/` (KAUH). Each run's `report.json` holds the per-epoch history with Sp, Se, Score and HS (from 2026-10-09), per-device metrics and per-class recall. SC runs save `sc_state.npz` (reference spectrum, coefficients, bound) and its SHA-256.
-- Decision log: `docs/decision_logs/2026-10-07-training-sweep.md`. Earlier status report: `docs/report_2026-10-08.md`.
+- Decision log: `docs/decision-logs/2026-10-07-training-sweep.md`. The earlier 08/10 status report was removed on 27/10 (`docs/README.md`).

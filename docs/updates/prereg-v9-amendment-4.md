@@ -1,5 +1,9 @@
 # Amendment 4 to `prereg-v8.md` (proposal v9): LODO and SC across encoders and methods (LODO v1)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-19 | registered |
+
 **Status: registered 19/10/2026, committed before the first training unit of run `lodo-v1` (the smoke run
 `smoke-lodo-v1` is not a training unit of the run).**
 
@@ -10,7 +14,7 @@ statistics, no verdict**.
 
 ## 1. Why
 
-The method x encoder grid (`docs/reports/grid-v1-results.md`, official split) found BEATs ahead of every other encoder
+The method x encoder grid (`docs/reports/2026-10-19-grid-v1-results.md`, official split) found BEATs ahead of every other encoder
 and the worst device to be Littmann 3200 in 343 of 350 units. The registered LODO (AST only) tested H2 on one fold
 (Littmann 3200). This amendment asks whether the coverage effect of spectrum correction (SC) and the device-shift
 robustness hold across encoders and methods, and selects the final AuscultTrust configuration from these runs.

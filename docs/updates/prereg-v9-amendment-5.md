@@ -1,5 +1,9 @@
 # Amendment 5 to `prereg-v8.md` (proposal v9): PC-MCL and PAFA + PC-MCL on BEATs
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-19 | registered |
+
 **Status: registered 19/10/2026, before the first training unit of run `pcmcl-v1` (machine D; the user moved it ahead
 of the end of LODO v1).** Exploratory: reported with the same statistics, no verdict.
 

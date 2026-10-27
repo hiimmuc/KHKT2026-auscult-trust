@@ -1,5 +1,9 @@
 # Pre-registration, proposal v8
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-14 | registered (amended) |
+
 Date: 2026-10-06. Written and committed before any Stage-1 screening run (no variant P1-P9 has been trained at this date; P0 is the existing Patch-Mix CL reproduction, 5 seeds, report.md). Source: `../docs/research-proposal-v8-en.md` sections 4.1, 5.2, 5.6. Any change after the first screening run is a dated amendment at the end of this file, never an edit of this text.
 
 ## 1. Metrics
@@ -174,4 +178,4 @@ The registered title (fixed) commits the study to spectrum correction (SC) and c
 
 F1–F5 as in proposal v9 §4.3.
 
-*Correction 14/10/2026: see the correction note at the end of `prereg-v9-amendment.md` (earlier v8 screening runs existed; paths; deviations).*
+*Correction 14/10/2026: see the correction note at the end of `prereg-v9-amendment-1.md` (earlier v8 screening runs existed; paths; deviations).*

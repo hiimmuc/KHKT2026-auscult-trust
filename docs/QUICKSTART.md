@@ -1,5 +1,9 @@
 # Quick start: train and compare the classifier arms
 
+| Type | Date | Status |
+| --- | --- | --- |
+| reference | 2026-10-23 | current |
+
 Prerequisite: [SETUP.md](SETUP.md) done (envs, data, tests pass). Run everything from the repo root.
 
 Sections 1-6 describe the registered AST workflow (`scripts/run.sh`). Section 7 reproduces the final model chosen on
@@ -52,18 +56,18 @@ Cell name = config stems joined by `+`, without `base`. Details: `experiments/tr
 
 ```bash
 # CV fold
-PYTHONPATH=. .venv-train/bin/python -m src.training.patchmix_cl.main \
+PYTHONPATH=. .venv-train/bin/python -m src.training.main \
   --config experiments/train/base.yaml,experiments/train/sc.yaml --cv_folds 3 --cv_fold 0 --seed 0
 
 # final refit at a fixed epoch
-PYTHONPATH=. .venv-train/bin/python -m src.training.patchmix_cl.main \
+PYTHONPATH=. .venv-train/bin/python -m src.training.main \
   --config experiments/train/base.yaml,experiments/train/sc.yaml --selection fixed --report_epochs E --seed 0
 ```
 
 ## 4. Freeze a model for the conformal evaluation
 
 ```text
-PYTHONPATH=. .venv-train/bin/python -m src.training.patchmix_cl.export_probs \
+PYTHONPATH=. .venv-train/bin/python -m src.training.export_probs \
   outputs/train/$RUN_ID/<cell>/seed0 --ckpt report_epoch_<E>.pth
 ```
 
@@ -96,11 +100,11 @@ Configs compose left to right; the cell name is the stems joined by `+`. Fixed e
 ```bash
 C=experiments/train
 # baseline (official split): cell beats+ft+pafa
-PYTHONPATH=. .venv-train/bin/python -m src.training.patchmix_cl.main \
+PYTHONPATH=. .venv-train/bin/python -m src.training.main \
   --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
   --cell beats+ft+pafa --selection fixed --report_epochs 100 --seed 0
 # AuscultTrust (official split): cell beats+ft+pafa+sc+sc_static
-PYTHONPATH=. .venv-train/bin/python -m src.training.patchmix_cl.main \
+PYTHONPATH=. .venv-train/bin/python -m src.training.main \
   --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/sc.yaml,$C/sc_static.yaml \
   --cell beats+ft+pafa+sc+sc_static --selection fixed --report_epochs 100 --seed 0
 # leave-one-device-out: append $C/lodo_<device>.yaml and +lodo_<device> to the cell (meditron, littc2se, litt3200, akgc417l)
@@ -121,5 +125,5 @@ OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 PYTHONPATH=. .venv-train/bin/python -u 
 OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 PYTHONPATH=. .venv-train/bin/python -u scripts/final_ensembles.py   # E1 and E1+E3 on KAUH and screening
 ```
 
-Results: `report.md`; frozen evaluation: `docs/reports/final-pafa-static-execution.md`; decision:
-`docs/decision_logs/2026-10-23-final-model.md`.
+Results: `report.md`; frozen evaluation: `docs/reports/2026-10-23-final-pafa-static-execution.md`; decision:
+`docs/decision-logs/2026-10-23-final-model.md`.

@@ -1,5 +1,9 @@
 # Exploratory source class-conditional conformal comparison
 
+| Type | Date | Status |
+| --- | --- | --- |
+| report | 2026-10-24 | current |
+
 24 October 2026. Fixed classifier predictions; no new training or target-label fitting. The selected model and serving thresholds remain unchanged. This post hoc comparator addresses the observed class-mix/coverage failure and is separate from the registered SC-only H2 analysis.
 
 ## Rule and validation

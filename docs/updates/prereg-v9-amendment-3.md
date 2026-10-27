@@ -1,5 +1,9 @@
 # Amendment 3 to `prereg-v8.md` (proposal v9): Lung-SRAD reproduction and SC on DASS
 
+| Type | Date | Status |
+| --- | --- | --- |
+| registered | 2026-10-14 | registered |
+
 **Status: registered 14/10/2026, committed before the first run (smoke or training) of either arm below.**
 
 Nothing here changes a registered rule of Amendment 1 or Amendment 2. Both arms are **exploratory: reported with the same statistics, no verdict**. They do not enter Gate G, H1, H2 or H3.

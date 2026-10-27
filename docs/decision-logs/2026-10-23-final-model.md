@@ -1,5 +1,9 @@
 # Final model and evaluation decision (23 October 2026)
 
+| Type | Date | Status |
+| --- | --- | --- |
+| decision | 2026-10-23 | final; provisional project definition kept 2026-10-27 |
+
 [Fact] The user selected the following configuration after reviewing report v5.0:
 
 | Role | Configuration | Fixed epoch |

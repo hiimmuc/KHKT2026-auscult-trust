@@ -8,9 +8,11 @@ Two parts that deploy independently:
 ```
 browser ─► web app on Cloudflare Pages (static, https://auscult-trust.pages.dev)
    │  fetch, configured API origin, CORS allowlist
-   ├─► primary API: this machine (GPU), public through Tailscale Funnel (current hostname: `vmo-namdp15-d.tail09c58b.ts.net` → 127.0.0.1:8000)
+   ├─► /api on the same Pages origin → Pages gateway → Tailscale Funnel (`vmo-namdp15-d.tail09c58b.ts.net`) → this machine (GPU, 127.0.0.1:8000)
    └─► fallback API: Hugging Face Space (Docker, CPU), tried when the primary does not answer or has no model
 ```
+
+The production API address is `https://auscult-trust.pages.dev/api`. Browsers call the Pages gateway at the same origin; clients do not need Tailscale, and clients with Tailscale avoid browser local-network restrictions on direct tunnel requests. Only the API host needs Tailscale and Funnel. The gateway forwards to one inference backend; it does not load models. `public/_worker.js` and `_routes.json` deploy with the web build. Saved connections to the app's old direct Tailscale hostnames migrate automatically to the build's `/api` URL; custom API addresses remain configurable.
 
 The page tries the API address from its connection dialog (or `VITE_API_BASE`), then `VITE_API_FALLBACK`. The status chip says "Fallback API ready" when the fallback is in use. The connection dialog stores its API URL and optional token in browser local storage.
 
@@ -25,6 +27,12 @@ PYTHONPATH=. .venv-train/bin/python -m api.bundle                          # wri
 ```
 
 ## Run locally
+
+Microphone recordings are automatically archived when **Stop and review** keeps a live take or a speaker → microphone demo finishes. The original mono 16-bit PCM WAV is saved before preprocessing, alignment, or inference, including silent or short takes that inference may reject. Discarded/cancelled takes and ordinary uploaded files are not archived. The UI shows the saved filename, a **Download WAV** link, and **Retry saving** if storage/network access fails; a failed inference does not remove the WAV.
+
+Storage defaults to ignored `outputs/app/recordings/YYYY-MM-DD/`; override with `AT_APP_RECORDINGS` (use an absolute persistent path in deployments). Filenames are `<client-IP>_<YYYYMMDD_HHMMSS_microseconds+0700>_<unique-suffix>.wav`, with `:` replaced by `-` for IPv6. The date/time uses `Asia/Ho_Chi_Minh`. A private JSON sidecar records mode (`real`/`demo`), IP, time, sample rate, duration and SHA-256. These files are separate from research datasets and are not exposed through a public listing/download API. File permissions are 0600.
+
+The IP comes from the API connection or the authenticated Pages gateway, not a browser-provided filename. Configure the same random value in the API's `AT_APP_PROXY_TOKEN` and the Pages production secret `API_PROXY_TOKEN` (`wrangler pages secret put API_PROXY_TOKEN --project-name auscult-trust`, enter it through stdin). The gateway overwrites client-IP headers using Cloudflare's `CF-Connecting-IP`; the API accepts that IP only with the matching proxy secret. Without the secret it uses the connection address. Devices behind NAT may share a public IP. The endpoint `POST /v1/recordings` uses the API's authentication and rate limit and works even when model loading fails.
 
 ```bash
 PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000   # API
@@ -110,7 +118,7 @@ Notes:
 Pages serves from the site root, from direct upload, and is free. (GitHub Pages serves a project site under `/<repo>/`, which needs Vite's `base` changed, and a free account needs a public repo.)
 
 ```bash
-(cd app/web && VITE_API_BASE=https://vmo-namdp15-d.tail09c58b.ts.net npm run build) # replace with current Tailscale DNSName if it changes
+(cd app/web && VITE_API_BASE=https://auscult-trust.pages.dev/api npm run build)
 npx wrangler@4.60.0 login                                                          # once, opens a browser
 npx wrangler@4.60.0 pages project create auscult-trust --production-branch main    # once
 npx wrangler@4.60.0 pages deploy app/web/dist --project-name auscult-trust --branch main
@@ -120,7 +128,7 @@ The site is `https://auscult-trust.pages.dev`; individual deployment URLs are ve
 
 ### 5. Fallback API: Hugging Face Space (CPU)
 
-The Space runs the same `api.main:app` on CPU (`api/engine.py` turns the training code's `.cuda()` calls into no-ops when there is no GPU). Historical check on the earlier bundle, not a fresh CPU benchmark of the final PAFA model: building the image and running it locally with `--cpus 2 --memory 16g` gave argmax agrees with the GPU on all 14 windows (max |Δp| 0.0008), memory 1.7 GiB, a 20 s recording takes 30 to 50 s (GPU: 0.4 s), so recordings near the 90 s limit can hit the 120 s timeout there. The Space has not been created on Hugging Face.
+The Space runs the same `api.main:app` on CPU. The shared frozen-model loader selects CPU when CUDA is unavailable; it does not patch PyTorch globally or construct training losses/optimizers. Historical check on the earlier bundle, not a fresh CPU benchmark of the final PAFA model: building the image and running it locally with `--cpus 2 --memory 16g` gave argmax agrees with the GPU on all 14 windows (max |Δp| 0.0008), memory 1.7 GiB, a 20 s recording takes 30 to 50 s (GPU: 0.4 s), so recordings near the 90 s limit can hit the 120 s timeout there. The Space has not been created on Hugging Face.
 
 ```bash
 PYTHONPATH=. .venv-train/bin/python scripts/stage_space.py      # writes build/space (public, 13 MB) and build/weights (private, 1.1 GB); build/ is git-ignored
@@ -201,11 +209,11 @@ Inference response (abridged):
 }
 ```
 
-`cached` is true when the answer came from the API's result cache (same file and settings); `alignment` appears only with `reference_sample`; `truth4`/`truth2` only when the cycles carry labels (demo samples, annotation upload). Times are seconds on the input recording (after alignment for microphone takes).
+`cached` is true when the answer came from the API's result cache (same file and settings); `alignment` appears only with `reference_sample`; `truth4`/`truth2` only when the cycles carry labels (demo samples, annotation upload). `timing_ms` is server route time after multipart parsing, and `timing_stages_ms` breaks an uncached request into queue, audio preparation, and per-pipeline preprocessing/model time (empty for a cache hit). Browser network and upload time are additional. Times on the input recording are seconds (after alignment for microphone takes).
 
 Validation (server; the web app checks the same limits before upload): RIFF/WAVE header, decodable by libsndfile, 1-2 channels, 4-48 kHz, 2-90 s, at most 40 MB, finite samples, not silent (peak above -80 dBFS). Every route except health answers 503 `model_unavailable` while the status is `unavailable`; no prediction is ever produced without the model. Error codes: `model_unavailable` (503), `rate_limited` (429), `internal` (500, inference crashed; details only in the server log), `not_wav`, `unreadable`, `channels`, `sample_rate`, `duration`, `non_finite`, `silent`, `too_large`, `bad_device`, `bad_cycles`, `bad_annotation`, `bad_window`, `unknown_sample`, `unauthorized`, `busy` (more than 4 requests waiting, 429), `timeout` (120 s, 504).
 
-Inference runs in a worker thread behind one lock (one GPU, shared with training jobs), so the event loop keeps answering. Results are cached by audio SHA-256 and parameters (last 64).
+Inference runs in a worker thread behind one model queue, so the event loop keeps answering. A disconnected request waiting in the queue is dropped before it runs; a model call already running finishes. Results are cached by audio SHA-256 and parameters (last 64), and cache hits bypass the model queue.
 
 What is not exposed: checkpoint paths, training arguments, unit directories (`/v1/model` returns hashes and thresholds only). The token is typed by the user in the browser; it is not built into the web bundle.
 
@@ -238,14 +246,30 @@ was activated in `app/bundle/`; the candidate remains in `app/bundle-final-pafa-
 retained under `app/bundle-backup-*/`. The running local API checkpoint hashes were checked against the selected manifest.
 `AT_APP_BUNDLE` selects which bundle the API loads.
 
+Refactor validation, 24/10/2026: `app/bundle-refactor-20261024/` is a schema-2 candidate, validated with the
+real-checkpoint GPU API test. For each seed-0 pipeline, all 2,756 cycle predictions and 742 screening-window predictions
+match the previous exports exactly, including row metadata. Checkpoint hashes are unchanged. Cycle thresholds now use
+verified float32 exports instead of float16 training-history predictions; the maximum threshold change is 0.0000506.
+Screening thresholds are unchanged. Previous cycle exports are retained in each unit's
+`export-pre-refactor-20261024/`; screening outputs and logs use run `refactor-validation-20261024`.
+The candidate was tested independently of the API on port 8000, which was running from the separate
+`api-recovery-20261024` worktree; this validation does not switch that service.
+
+```bash
+AT_APP_BUNDLE=app/bundle-refactor-20261024 AT_APP_AUTH=off AT_APP_SAMPLES=on AT_APP_RATE_LIMIT=0 \
+  OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 PYTHONPATH=. .venv-train/bin/python -m pytest -q api/test_api.py
+```
+
 | Name | Unit | Epoch | SC |
 | --- | --- | --- | --- |
 | `auscult` = AuscultTrust (BEATs + PAFA) | `outputs/train/lodo-v1/beats+ft+pafa+sc+sc_static/seed0` | 100 | yes, static mode |
 | `baseline` = BEATs + PAFA (no SC) | `outputs/train/grid-v1/beats+ft+pafa/seed0` | 100 | no |
 
-The reproducible evaluation and candidate bundle build are documented in `docs/decision_logs/2026-10-23-final-model.md` and `report.md`. The campaign freezes five paired seeds, exports predictions, and builds the candidate bundle; thresholds are generated from the selected seed's saved predictions and screening export. To change the served model, update `PIPELINES` in `api/bundle.py`, rebuild, then validate the bundle before pointing `AT_APP_BUNDLE` at it.
+The reproducible evaluation and candidate bundle build are documented in `docs/decision-logs/2026-10-23-final-model.md` and `report.md`. The campaign freezes five paired seeds, exports predictions, and builds the candidate bundle; thresholds are generated from the selected seed's saved predictions and screening export. To change the served model, update `PIPELINES` in `api/bundle.py`, rebuild, then validate the bundle before pointing `AT_APP_BUNDLE` at it.
 
-Thresholds are calibrated on split 0 of `calibration_eval_splits` over official-test patients, excluding patients present on both sides of the official split. The cycle softmax comes from the unit's saved `test_preds.npz`; the recording-level softmax comes from the matching screening export, whose checkpoint hash is checked during bundle construction.
+Thresholds are calibrated on split 0 of `calibration_eval_splits` over official-test patients, excluding patients present on both sides of the official split. Cycle probabilities come from the unit's verified `export/test.npz`; recording-level probabilities come from its matching screening export. Both require provenance sidecars matching the current data, configuration, checkpoint, correction state, code, and environment. Re-export explicitly when those inputs change.
+
+Schema-2 bundles record hashes for checkpoints, training arguments, SC state, runtime source, reference code and BEATs pretrained weights. The API verifies these before loading and reports unavailable on mismatch. Rebuild legacy bundles before restarting with this version. Building a candidate does not activate it; select the validated path with `AT_APP_BUNDLE` and restart the API deliberately.
 
 Segments: an uploaded ICBHI annotation `.txt` (or `cycles` JSON) gives breathing cycles, which is the unit the model was trained on. Without one, the API scores sliding windows (default 8 s, step 4 s). The screening decision always uses the registered windows (max(1, floor(duration / 8)) windows evenly spread).
 

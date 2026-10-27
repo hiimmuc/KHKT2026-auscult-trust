@@ -40,6 +40,7 @@ export interface InferResult {
   pipelines: Record<string, PipelineResult>;
   cached: boolean; // served from the API's result cache (same file, same settings)
   timing_ms: number;
+  timing_stages_ms?: Record<string, number | Record<string, Record<string, number>>>;
 }
 
 export interface ModelInfo {
@@ -79,13 +80,20 @@ export class ApiError extends Error {
 }
 
 const KEY = "auscult-trust.connection";
+const DEFAULT_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 export function connection(): { base: string; token: string } {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    // Move saved connections from the app's former direct tunnel to its web gateway.
+    if (saved?.base && DEFAULT_BASE.endsWith("/api") &&
+        ["vmo-namdp15-d.tail09c58b.ts.net", "auscult.tail09c58b.ts.net", "auscult-1.tail09c58b.ts.net"].includes(new URL(saved.base).hostname)) {
+      saved.base = DEFAULT_BASE;
+      localStorage.setItem(KEY, JSON.stringify(saved));
+    }
     if (saved?.base) return saved;
   } catch { /* storage blocked: fall back to the build default */ }
-  return { base: import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000", token: "" };
+  return { base: DEFAULT_BASE, token: "" };
 }
 
 export function saveConnection(c: { base: string; token: string }) {
@@ -129,6 +137,12 @@ async function call(path: string, init: RequestInit = {}, timeoutMs = 30000, sig
 }
 
 export const api = {
+  saveRecording: async (file: Blob, mode: "real" | "demo") => {
+    const fd = new FormData();
+    fd.append("file", file, "recording.wav");
+    fd.append("mode", mode);
+    return (await call("/v1/recordings", { method: "POST", body: fd })).json() as Promise<{ filename: string; saved_at: string; sha256: string }>;
+  },
   // 60 s: a free host sleeping after idle needs about a minute to wake
   health: async (base?: string) => (await call("/v1/health", {}, 60000, undefined, base)).json() as Promise<{ status: "ok" | "unavailable"; pipelines: string[]; gpu: boolean; reason?: string }>,
   model: async () => (await call("/v1/model")).json() as Promise<ModelInfo>,

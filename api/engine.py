@@ -13,18 +13,18 @@ official-test cycles, train cycles for LittC2SE); otherwise it is the mean spect
 
 import io
 import threading
+import time
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 import torch
-from torchaudio import transforms as T
 
 from src.evaluation.conformal import predict_sets
-from src.evaluation.kauh_infer import images_of, load_frozen, predict_images
-from src.evaluation.lodo_ttsc import load_args
+from src.inference.model import images_of, load_frozen, predict_images
+from src.training.config import load_args
 from src.processing.correction import apply_spectrum_correction, mean_spectrum, spectrum_coefficients
-from src.training.patchmix_cl.cycles import FADE_RATIO, cut_pad
+from src.processing.cycles import cut_pad, prepare_recording
 from src.artifacts import verify_file
 from src.paths import REPO, REPOS, DATA
 
@@ -66,19 +66,10 @@ def read_wav(data):
     meta.update(peak_dbfs=round(20 * np.log10(peak), 1), clipped_share=round(float((np.abs(x) > 0.999).mean()), 5))
     return x, meta
 
-if not torch.cuda.is_available():
-    # ponytail: the training code moves models and tensors with .cuda(); on a CPU host that becomes a no-op. Slower (about 20x), same maths.
-    torch.nn.Module.cuda = lambda self, *a, **k: self
-    torch.Tensor.cuda = lambda self, *a, **k: self
-
-
 def to_model_rate(x, sr):
     """Resampled and faded (1, n) tensor at 16 kHz, as in training."""
     t = torch.from_numpy(np.ascontiguousarray(x))[None]
-    if sr != SR:
-        t = T.Resample(sr, SR)(t)
-    fade = int(SR / FADE_RATIO)
-    return T.Fade(fade_in_len=fade, fade_out_len=fade, fade_shape="linear")(t)
+    return prepare_recording(t, sr, SR)
 
 
 def windows(duration, win, hop):
@@ -163,6 +154,8 @@ class Pipeline:
         return coef, "estimated:recording"
 
     def run(self, segs8, screen8, device, devices):
+        timings = {}
+        started = time.perf_counter()
         out = {"label": self.entry["label"], "sc": {"applied": False}}
         if self.sc is not None:
             coef, source = self.coefficient(device, segs8, devices)
@@ -170,9 +163,21 @@ class Pipeline:
             screen8 = [apply_spectrum_correction(w, coef).astype(np.float32) for w in screen8]
             out["sc"] = {"applied": True, "mode": str(self.sc["sc_mode"]), "coefficient_source": source,
                          "gain_db": np.round(20 * np.log10(np.maximum(coef, 1e-8)), 2).tolist()}
+        timings["spectrum_correction"] = round(1000 * (time.perf_counter() - started))
         # Annotated cycles follow the training length; screening keeps its calibrated 8 s windows.
-        p = predict_images(images_of(segs8, self.args), self.model, self.classifier).astype(np.float64)
-        ps = predict_images(images_of(screen8, self.args), self.model, self.classifier).astype(np.float64)
+        started = time.perf_counter()
+        seg_images = images_of(segs8, self.args)
+        timings["segments_preprocess"] = round(1000 * (time.perf_counter() - started))
+        started = time.perf_counter()
+        p = predict_images(seg_images, self.model, self.classifier, method=self.args.method).astype(np.float64)
+        timings["segments_model"] = round(1000 * (time.perf_counter() - started))
+        started = time.perf_counter()
+        screen_images = images_of(screen8, self.args)
+        timings["screen_preprocess"] = round(1000 * (time.perf_counter() - started))
+        started = time.perf_counter()
+        ps = predict_images(screen_images, self.model, self.classifier, method=self.args.method).astype(np.float64)
+        timings["screen_model"] = round(1000 * (time.perf_counter() - started))
+        out["_timing_ms"] = timings
         return out, p, ps
 
 
@@ -228,12 +233,15 @@ class Engine:
             raise AudioError("no_segments", "No segment falls inside the recording.")
         wins = screen_windows(duration)
         length = int(self.m["preprocessing"]["segment_sec"]) if mode == "cycles" else SEG_SEC
+        started = time.perf_counter()
         segs8, screen8 = cut(x16, segs, length), cut(x16, wins)
         res = {"segmentation": {"mode": mode, **({"window_sec": window_sec, "hop_sec": hop_sec} if mode == "windows" else {})},
-               "pipelines": {}}
+               "pipelines": {}, "timing_stages_ms": {"segments_cut": round(1000 * (time.perf_counter() - started)), "pipelines": {}}}
         with self.lock, torch.no_grad():
             for name, pl in self.pipelines.items():
+                started = time.perf_counter()
                 out, p4, ps = pl.run(segs8, screen8, device, self.m["devices"])
+                res["timing_stages_ms"]["pipelines"][name] = out.pop("_timing_ms", {"total": round(1000 * (time.perf_counter() - started))})
                 out["segments"] = serialise_segments(segs, p4, pl.thr["cycle4"], pl.thr["cycle2"], self.m["classes"],
                                                      self.m["classes2"], truth)
                 out["recording"] = serialise_screen(wins, ps, pl.thr["screen"])

@@ -8,6 +8,7 @@ import { Siri } from "./siri";
 import { attachAudio, bindTable, bindTips, conformalToggle, describe, errorBox, esc, legend, panel, pipelineSwitch, proposed, scCurve, segSwitch, segmentTable, truthOf, verdictStrip } from "./ui";
 import { encodeWav, readWavHeader } from "./wav";
 import { TimeView } from "./wave";
+import { recordingArchive } from "./recording";
 
 /** One analysable take: a decoded upload or a live recording, as mono samples. */
 interface Source { name: string; note: string; pcm: Float32Array; sr: number; file?: File; rows: [string, string][] }
@@ -42,6 +43,7 @@ export function mountReal(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
         <div class="mic-block" hidden>
           ${MIC_HTML}
           <button type="button" class="btn primary" id="real-rec">Record</button>
+          <span class="hint">Kept recordings are automatically saved as WAV on the server.</span>
           <span class="hint">Raw signal, up to ${L.max_sec} s <span class="info" tabindex="0" role="img" aria-label="More"
             data-tip="Echo cancellation, noise suppression and automatic gain are switched off so the model hears the unprocessed signal.">i</span></span>
         </div>
@@ -75,6 +77,7 @@ export function mountReal(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
           <button class="btn ghost" id="real-cancel" hidden>Cancel</button>
         </div>
         <div class="msg" aria-live="polite"></div>
+        <div class="recording-archive"></div>
       </aside>
       <div class="main-col">
         <div class="empty" id="real-empty">
@@ -113,6 +116,7 @@ export function mountReal(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
   const results = $(".results"), verdict = $(".verdict"), live = $(".live"), noise = $<HTMLInputElement>("#real-noise"), trim = $<HTMLInputElement>("#real-trim");
   const siri = new Siri($(".siri"));
   const mic = micPanel($(".mic-block"), ctx, msg);
+  const archive = recordingArchive($(".recording-archive"), "real");
   const P = panel($(".panels"), view, "Recording", "", "plain", (s) => describe(s, m.pipelines[shown].label, m), (i) => highlight(i));
   pipelineSwitch($(".toolbar"), m, shown, (v) => { shown = v; paint(); });
   conformalToggle($(".toolbar"));
@@ -198,6 +202,7 @@ export function mountReal(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
 
   /** One or several files: the .wav, and optionally its ICBHI .txt (same name), as when picking both from the dataset folder. */
   async function choose(files: File[]) {
+    archive.clear();
     const f = files.find((x) => /\.wav$/i.test(x.name)), txt = files.find((x) => /\.txt$/i.test(x.name));
     reset();
     if (!f) return txt ? setAnnotation(txt) : fail("Only .wav files are accepted.");
@@ -279,6 +284,7 @@ export function mountReal(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
       for (const d of chunks) { pcm.set(d, o); o += d.length; }
       const dur = n / c.sampleRate;
       reset(); setAnnotation(null);
+      archive.save(encodeWav(pcm, c.sampleRate));
       if (dur < L.min_sec) return fail(`The recording is ${dur.toFixed(1)} s; at least ${L.min_sec} s is needed.`);
       const stamp = new Date().toTimeString().slice(0, 8).replaceAll(":", "-");
       use({ name: `microphone-${stamp}.wav`, note: "recorded live", pcm, sr: c.sampleRate, rows: [

@@ -5,6 +5,8 @@
 
 import io
 import json
+import asyncio
+import threading
 
 import numpy as np
 import pytest
@@ -33,8 +35,10 @@ def test_annotated_cycles_use_training_length_screening_stays_eight_seconds():
     e.pipelines, e.lock = {"capture": Capture()}, threading.Lock()
     x = torch.ones(1, 10 * engine.SR)
     e.infer(x, 10, cycles=[(0, 2)])
-    e.infer(x, 10)
+    timed = e.infer(x, 10)
     assert lengths == [(5 * engine.SR, 8 * engine.SR), (8 * engine.SR, 8 * engine.SR)]
+    assert timed["timing_stages_ms"]["segments_cut"] >= 0
+    assert timed["timing_stages_ms"]["pipelines"]["capture"]["total"] >= 0
 
 
 class Stub:
@@ -132,7 +136,116 @@ def test_upload_response_shape_and_cache(stub_client):
     j = a.json()
     assert j["source"] == {"kind": "upload"} and j["audio"]["duration_sec"] == 3.0 and j["device"] == {"declared": "Meditron"}
     assert j["pipelines"]["stub"]["device"] == "Meditron" and j["cached"] is False
-    assert upload(c, device="Meditron").json()["cached"] is True
+    assert j["timing_stages_ms"]["resample"] >= 0
+    again = upload(c, device="Meditron").json()
+    assert again["cached"] is True and again["timing_stages_ms"] == {}
+
+
+def test_disconnected_queued_inference_never_runs():
+    main.reset()
+    entered, release = threading.Event(), threading.Event()
+    called = []
+
+    class Request:
+        disconnected = False
+
+        async def is_disconnected(self):
+            return self.disconnected
+
+    async def check():
+        first_request, second_request = Request(), Request()
+        first = asyncio.create_task(main.guarded_cached(first_request, "first", lambda: (entered.set(), release.wait(2))))
+        await asyncio.to_thread(entered.wait, 2)
+        second = asyncio.create_task(main.guarded_cached(second_request, "second", lambda: called.append(True)))
+        while main.state["pending"] < 2:
+            await asyncio.sleep(0.01)
+        second_request.disconnected = True
+        with pytest.raises(asyncio.CancelledError):
+            await second
+        release.set()
+        await first
+        assert not called and main.state["pending"] == 0
+
+    asyncio.run(check())
+
+
+def test_timeout_keeps_model_slot_until_worker_finishes(monkeypatch):
+    main.reset()
+    monkeypatch.setattr(main, "TIMEOUT_SEC", 0.05)
+    release = threading.Event()
+
+    class Request:
+        async def is_disconnected(self):
+            return False
+
+    async def check():
+        with pytest.raises(main.ApiError) as exc:
+            await main.guarded_cached(Request(), "slow", lambda: release.wait(2))
+        assert exc.value.code == "timeout"
+        assert main.state["work_lock"].locked() and main.state["pending"] == 1
+        release.set()
+        while main.state["pending"]:
+            await asyncio.sleep(0.01)
+        assert not main.state["work_lock"].locked()
+
+    asyncio.run(check())
+
+
+def test_recording_keeps_original_bytes_without_a_model(empty_bundle, tmp_path, monkeypatch):
+    root = tmp_path / "recordings"
+    monkeypatch.setattr(main, "RECORDINGS", root)
+    monkeypatch.setattr(main, "AUTH", "off")
+    raw = wav()
+    r = empty_bundle.post("/v1/recordings", files={"file": ("../../unsafe.wav", raw)},
+                          data={"mode": "demo"}, headers={"X-Forwarded-For": "203.0.113.9"})
+    assert r.status_code == 200, r.text
+    saved = r.json()
+    files = list(root.glob("*/*.wav"))
+    assert len(files) == 1 and files[0].read_bytes() == raw
+    assert files[0].name == saved["filename"] and files[0].name.startswith("unknown_")
+    meta = json.loads(files[0].with_suffix(".json").read_text())
+    assert meta["mode"] == "demo" and meta["client_ip"] == "unknown"
+    assert meta["saved_at"].endswith("+07:00") and meta["sha256"] == saved["sha256"]
+    assert files[0].stat().st_mode & 0o777 == 0o600
+    assert empty_bundle.post("/v1/recordings", files={"file": ("x.wav", b"junk")}).status_code == 422
+    assert len(list(root.glob("*/*.wav"))) == 1
+
+
+def test_recording_validation_and_auth(stub_client, tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "RECORDINGS", tmp_path / "takes")
+    c = stub_client
+    assert c.post("/v1/recordings", files={"file": ("x.wav", wav())}, data={"mode": "invalid"}).status_code == 422
+    monkeypatch.setattr(main, "MAX_BYTES", 10)
+    assert c.post("/v1/recordings", files={"file": ("x.wav", wav())}).status_code == 413
+    monkeypatch.setattr(main, "AUTH", "on")
+    monkeypatch.setattr(main, "TOKEN", "recording-test")
+    assert c.post("/v1/recordings", files={"file": ("x.wav", wav())}).status_code == 401
+
+
+def test_recording_client_ip_requires_authenticated_gateway(stub_client, tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "RECORDINGS", tmp_path / "takes")
+    monkeypatch.setattr(main, "PROXY_TOKEN", "gateway-test-token")
+    for token, expected in (("forged", "unknown"), ("gateway-test-token", "203.0.113.12")):
+        r = stub_client.post("/v1/recordings", files={"file": ("mic.wav", wav())}, headers={
+            "X-Auscult-Proxy-Token": token, "X-Auscult-Client-IP": "203.0.113.12"})
+        assert r.status_code == 200
+        assert r.json()["filename"].startswith(expected + "_")
+
+
+def test_recording_ipv6_silence_unique_names_and_storage_failure(tmp_path, monkeypatch, stub_client):
+    from api.recordings import save_recording
+
+    b = io.BytesIO()
+    sf.write(b, np.zeros(16000), 16000, format="WAV", subtype="PCM_16")
+    a = save_recording(b.getvalue(), "2001:db8::1", "real", tmp_path)
+    other = save_recording(b.getvalue(), "2001:db8::1", "real", tmp_path)
+    assert a["filename"].startswith("2001-db8--1_") and a["filename"] != other["filename"]
+    broken = tmp_path / "not-a-directory"
+    broken.write_text("occupied")
+    monkeypatch.setattr(main, "RECORDINGS", broken)
+    r = stub_client.post("/v1/recordings", files={"file": ("x.wav", wav())})
+    assert r.status_code == 503 and r.json()["error"]["code"] == "recording_storage"
+    assert str(tmp_path) not in r.text
 
 
 def test_inference_crash_is_a_500_without_a_result(stub_client, monkeypatch):

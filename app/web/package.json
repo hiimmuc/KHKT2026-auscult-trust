@@ -10,7 +10,7 @@
     "e2e": "node e2e/e2e.mjs"
   },
   "devDependencies": {
-    "puppeteer-core": "24.43.1",
+    "puppeteer-core": "25.16.0",
     "typescript": "7.0.2",
     "vite": "8.3.4"
   }

@@ -23,21 +23,25 @@ devices, and the multi-device patients are on the training side or on both sides
 import argparse
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from src import runs
-from src.artifacts import atomic_json, prediction_inputs, verify_prediction, atomic_npz
+from src import runs, artifacts
+from src.artifacts import atomic_json, atomic_npz
+from src.provenance import prediction_inputs, verify_prediction
 from src.paths import REPO, REPOS, DATA
 from src.evaluation.conformal import lac_scores, split_threshold
-from src.evaluation.lodo_ttsc import load_args, report_epoch
-from src.evaluation.screening import ALPHA, icbhi_recordings
+from src.training.config import load_args
+from src.training.state import report_epoch
+from src.evaluation.calibration import ALPHA
+from src.evaluation.recordings import icbhi_recordings
 from src.processing.icbhi import CLASSES, DEVICES, cycle_table
 from src.processing.splits import calibration_eval_splits
-from src.training.patchmix_cl.summary import both_sides_patients
+from src.processing.splits import both_sides_patients
 
 # (unit, screening export from `src.evaluation.screening infer`, label); BEATs + PAFA with and without static SC.
 # The AST units (screen-ast/sc+sc_static, screen-ast/baseline) fit too once their weights are on disk.
@@ -47,6 +51,9 @@ PIPELINES = {
     "baseline": ("outputs/train/grid-v1/beats+ft+pafa/seed0", "outputs/screening/final-pafa-static/baseline/seed0.npz", "Baseline (BEATs + PAFA, no SC)"),
 }
 PER_CLASS = 3
+if os.environ.get("AT_EVAL_RUN"):
+    PIPELINES = {name: (unit, screen.replace("final-pafa-static", os.environ["AT_EVAL_RUN"]), label)
+                 for name, (unit, screen, label) in PIPELINES.items()}
 
 
 def sha256_bytes(b):
@@ -66,7 +73,7 @@ def pipeline_entry(name, unit, screen_npz, label, split, out):
     args = load_args(unit)
     epoch = report_epoch(unit)
     ckpt = runs.twin_dir(unit, "checkpoints") / "report_epoch_{}.pth".format(epoch)
-    sha = runs.sha256_file(ckpt)
+    sha = artifacts.sha256_file(ckpt)
 
     cycle_export = unit / "export/test.npz"
     verify_prediction(cycle_export, prediction_inputs(unit, ckpt, "cycles", args.spectrum_correction,
@@ -92,7 +99,7 @@ def pipeline_entry(name, unit, screen_npz, label, split, out):
         "unit": str(unit),
         "checkpoint": str(ckpt.resolve()),
         "checkpoint_sha256": sha,
-        "args_sha256": runs.sha256_file(unit / "train_args.json"),
+        "args_sha256": artifacts.sha256_file(unit / "train_args.json"),
         "epoch": epoch,
         "encoder": args.encoder,
         "method": args.method,
@@ -106,7 +113,7 @@ def pipeline_entry(name, unit, screen_npz, label, split, out):
         entry["sc"] = {"mode": str(st["sc_mode"]), "reference": args.sc_reference, "limit_freq_low": args.sc_limit_freq_low,
                        "limit_freq_high": args.sc_limit_freq_high, "limit_freq_diff": args.sc_limit_freq_diff,
                        "s_ref_sha256": sha256_bytes(st["reference"].tobytes()), "state": "sc_{}.npz".format(name),
-                       "sha256": runs.sha256_file(out / "sc_{}.npz".format(name))}
+                       "sha256": artifacts.sha256_file(out / "sc_{}.npz".format(name))}
     return entry, args
 
 
@@ -161,18 +168,18 @@ def main():
             "device": r.device, "chest_location": stem.split("_")[2], "acquisition": stem.split("_")[3],
             "class_share": round(float(r.share), 3), "class_cycles": int(r["count"]), "cycles_total": int(r.n),
             "cycles": [{"start": float(s), "end": float(e), "label": CLASSES[int(l)]} for s, e, l in zip(cyc.start, cyc.end, cyc.label)],
-            "sha256": runs.sha256_file(src),
+            "sha256": artifacts.sha256_file(src),
         })
 
     manifest = {
         "schema": 2,
         "runtime_files": {
-            "repo": {str(p.relative_to(REPO)): runs.sha256_file(p) for p in
-                     [*(REPO / "src").rglob("*.py"), REPO / "api/engine.py"]},
-            "references": {str(p.relative_to(REPOS)): runs.sha256_file(p)
+            "repo": {str(p.relative_to(REPO)): artifacts.sha256_file(p) for p in
+                     [*(REPO / "src").rglob("*.py"), REPO / "api/engine.py", REPO / "api/main.py"]},
+            "references": {str(p.relative_to(REPOS)): artifacts.sha256_file(p)
                            for name in ("PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL")
                            for p in (REPOS / name).rglob("*.py")},
-            "data": {"models/beats/BEATs_iter3_plus_AS2M.pt": runs.sha256_file(DATA / "models/beats/BEATs_iter3_plus_AS2M.pt")},
+            "data": {"models/beats/BEATs_iter3_plus_AS2M.pt": artifacts.sha256_file(DATA / "models/beats/BEATs_iter3_plus_AS2M.pt")},
         },
         "classes": CLASSES,
         "classes2": ["normal", "abnormal"],

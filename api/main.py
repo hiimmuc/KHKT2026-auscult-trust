@@ -27,6 +27,7 @@ import uuid
 from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,10 +35,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from api import engine as E
+from api.recordings import save_recording
 
 log = logging.getLogger("uvicorn.error")
 
 BUNDLE = Path(os.environ.get("AT_APP_BUNDLE", "app/bundle"))
+RECORDINGS = Path(os.environ.get("AT_APP_RECORDINGS", "outputs/app/recordings"))
+PROXY_TOKEN = os.environ.get("AT_APP_PROXY_TOKEN", "")
 TOKEN = os.environ.get("AT_APP_TOKEN", "")
 AUTH = os.environ.get("AT_APP_AUTH", "auto")
 RATE_LIMIT = int(os.environ.get("AT_APP_RATE_LIMIT", "0"))
@@ -56,7 +60,8 @@ state = {}
 
 
 def reset():
-    state.update(engine=None, manifest=None, samples={}, pending=0, cache=OrderedDict(), unavailable="Starting.")
+    state.update(engine=None, manifest=None, samples={}, pending=0, cache=OrderedDict(),
+                 work_lock=asyncio.Lock(), unavailable="Starting.")
 
 
 reset()
@@ -132,13 +137,41 @@ def ready():
         raise ApiError(503, "model_unavailable", state["unavailable"])
 
 
-async def guarded(fn, *args):
-    """Run blocking inference in a worker thread, with a queue bound and a time limit."""
+async def guarded_cached(request, key, fn):
+    """Cache on the event loop; drop disconnected requests while they wait for the model."""
+    cache = state["cache"]
+    if key in cache:
+        cache.move_to_end(key)
+        return cache[key], True
     if state["pending"] >= MAX_PENDING:
         raise ApiError(429, "busy", "The model is busy. Retry in a few seconds.")
     state["pending"] += 1
+    acquired = False
+    worker = None
+    deadline = time.monotonic() + TIMEOUT_SEC
     try:
-        return await asyncio.wait_for(run_in_threadpool(fn, *args), TIMEOUT_SEC)
+        while not acquired:
+            if await request.is_disconnected():
+                raise asyncio.CancelledError()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise asyncio.TimeoutError()
+            try:
+                await asyncio.wait_for(state["work_lock"].acquire(), min(0.1, remaining))
+                acquired = True
+            except asyncio.TimeoutError:
+                continue
+        if await request.is_disconnected():
+            raise asyncio.CancelledError()
+        if key in cache:
+            cache.move_to_end(key)
+            return cache[key], True
+        worker = asyncio.create_task(run_in_threadpool(fn))
+        result = await asyncio.wait_for(asyncio.shield(worker), max(0, deadline - time.monotonic()))
+        cache[key] = result
+        if len(cache) > 64:
+            cache.popitem(last=False)
+        return result, False
     except asyncio.TimeoutError:
         raise ApiError(504, "timeout", "Inference took longer than {} s.".format(TIMEOUT_SEC))
     except (ApiError, E.AudioError):
@@ -147,18 +180,20 @@ async def guarded(fn, *args):
         log.exception("inference failed")
         raise ApiError(500, "internal", "Inference failed. Nothing was computed.")
     finally:
-        state["pending"] -= 1
-
-
-def cached(key, fn):
-    c = state["cache"]
-    if key in c:
-        c.move_to_end(key)
-        return c[key]
-    c[key] = fn()
-    if len(c) > 64:
-        c.popitem(last=False)
-    return c[key]
+        if worker is not None and not worker.done():
+            async def release_when_done():
+                try:
+                    await worker
+                except Exception:
+                    pass
+                finally:
+                    state["work_lock"].release()
+                    state["pending"] -= 1
+            asyncio.create_task(release_when_done())
+        else:
+            if acquired:
+                state["work_lock"].release()
+            state["pending"] -= 1
 
 
 def sample(sid):
@@ -234,18 +269,45 @@ def sample_audio(sid: str):
 @app.get("/v1/samples/{sid}/result", dependencies=[Depends(auth), Depends(rate_limit)])
 async def sample_result(request: Request, sid: str):
     s = sample(sid)
+    queued_at = time.perf_counter()
 
     def run():
+        worker_start = started = time.perf_counter()
         x, meta = E.read_wav((BUNDLE / s["file"]).read_bytes())
+        decode_ms = round(1000 * (time.perf_counter() - started))
+        started = time.perf_counter()
+        x16 = E.to_model_rate(x, meta["sample_rate"])
+        resample_ms = round(1000 * (time.perf_counter() - started))
+        res = state["engine"].infer(x16, meta["duration_sec"], s["device"], sample_cycles(s))
         return {"audio": {**meta, "filename": s["id"] + ".wav", "sha256": s["sha256"]},
                 "device": {"declared": s["device"]},
-                **state["engine"].infer(E.to_model_rate(x, meta["sample_rate"]), meta["duration_sec"], s["device"], sample_cycles(s))}
+                **res, "timing_stages_ms": {"queue": round(1000 * (worker_start - queued_at)),
+                                              "decode": decode_ms, "resample": resample_ms,
+                                              **res.get("timing_stages_ms", {})}}
 
-    t0 = time.perf_counter()
-    hit = ("sample", sid) in state["cache"]
-    res = await guarded(cached, ("sample", sid), run)
+    t0 = queued_at
+    res, hit = await guarded_cached(request, ("sample", sid), run)
     return {"request_id": request.state.rid, "source": {"kind": "sample", "id": sid}, **res,
-            "cached": hit, "timing_ms": round(1000 * (time.perf_counter() - t0))}
+            "cached": hit, "timing_ms": round(1000 * (time.perf_counter() - t0)),
+            "timing_stages_ms": {} if hit else res.get("timing_stages_ms", {})}
+
+
+@app.post("/v1/recordings", dependencies=[Depends(auth), Depends(rate_limit)])
+async def recording(request: Request, file: UploadFile = File(...), mode: Literal["real", "demo"] = Form("real")):
+    data = await file.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise ApiError(413, "too_large", "File is larger than {} MB.".format(MAX_BYTES >> 20))
+    try:
+        client_ip = request.client.host if request.client else "unknown"
+        if PROXY_TOKEN and hmac.compare_digest(request.headers.get("X-Auscult-Proxy-Token", "").encode(), PROXY_TOKEN.encode()):
+            client_ip = request.headers.get("X-Auscult-Client-IP", "unknown")
+        saved = await run_in_threadpool(save_recording, data, client_ip, mode, RECORDINGS)
+    except ValueError as exc:
+        raise ApiError(422, "bad_recording", str(exc)) from exc
+    except OSError as exc:
+        log.exception("recording could not be saved")
+        raise ApiError(503, "recording_storage", "The recording could not be saved. Download the WAV and retry saving.") from exc
+    return {"request_id": request.state.rid, **saved}
 
 
 @app.post("/v1/infer", dependencies=[Depends(auth), Depends(rate_limit)])
@@ -259,8 +321,11 @@ async def infer(
     window_sec: float = Form(8.0),
     hop_sec: float = Form(4.0),
 ):
+    request_t0 = time.perf_counter()
     ready()
+    started = time.perf_counter()
     data = await file.read(MAX_BYTES + 1)
+    upload_read_ms = round(1000 * (time.perf_counter() - started))
     if len(data) > MAX_BYTES:
         raise ApiError(413, "too_large", "File is larger than {} MB.".format(MAX_BYTES >> 20))
     if not 1.0 <= window_sec <= 8.0 or not 0.25 <= hop_sec <= window_sec:
@@ -270,25 +335,35 @@ async def infer(
     ref = sample(reference_sample) if reference_sample else None
     cyc = parse_annotation((await annotation.read(1 << 20)).decode("utf-8", "replace")) if annotation and annotation.filename else (
         parse_cycles(cycles) if cycles else None)
+    started = time.perf_counter()
     x, meta = E.read_wav(data)
     sha = hashlib.sha256(data).hexdigest()
+    decode_ms = round(1000 * (time.perf_counter() - started))
+    queued_at = time.perf_counter()
 
     def run():
+        worker_start = started = time.perf_counter()
         x16 = E.to_model_rate(x, meta["sample_rate"])
+        resample_ms = round(1000 * (time.perf_counter() - started))
         out = {"audio": {**meta, "filename": file.filename, "sha256": sha}, "device": {"declared": device or None}}
         segs = cyc
+        started = time.perf_counter()
         if ref is not None:  # demo: align the microphone take to the reference, reuse the reference cycles
             r, rmeta = E.read_wav((BUNDLE / ref["file"]).read_bytes())
             x16, lag, score = E.align(E.to_model_rate(r, rmeta["sample_rate"]), x16)
             out["alignment"] = {"reference_sample": ref["id"], "lag_sec": round(lag, 4), "peak_score": round(score, 2),
                                 "reliable": score >= ALIGN_MIN_SCORE, "trimmed_to_sec": rmeta["duration_sec"]}
             segs = sample_cycles(ref)
+        align_ms = round(1000 * (time.perf_counter() - started))
         duration = x16.shape[1] / E.SR
-        return {**out, **state["engine"].infer(x16, duration, device or None, segs, window_sec, hop_sec)}
+        res = state["engine"].infer(x16, duration, device or None, segs, window_sec, hop_sec)
+        return {**out, **res, "timing_stages_ms": {"upload_read": upload_read_ms, "decode": decode_ms,
+                "queue": round(1000 * (worker_start - queued_at)),
+                "resample": resample_ms, "alignment": align_ms, **res.get("timing_stages_ms", {})}}
 
-    t0 = time.perf_counter()
+    t0 = request_t0
     key = (sha, device, cycles, json.dumps(cyc), reference_sample, window_sec, hop_sec)
-    hit = key in state["cache"]
-    res = await guarded(cached, key, run)
+    res, hit = await guarded_cached(request, key, run)
     return {"request_id": request.state.rid, "source": {"kind": "upload"}, **res, "cached": hit,
-            "timing_ms": round(1000 * (time.perf_counter() - t0))}
+            "timing_ms": round(1000 * (time.perf_counter() - t0)),
+            "timing_stages_ms": {} if hit else res.get("timing_stages_ms", {})}

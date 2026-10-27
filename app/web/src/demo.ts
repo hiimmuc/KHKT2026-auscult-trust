@@ -7,6 +7,7 @@ import { onConformal } from "./prefs";
 import { attachAudio, bindTable, CLASS_LABEL, comparison, conformalToggle, describe, errorBox, esc, legend, panel, pipelineSwitch, pipelineTag, truthOf } from "./ui";
 import { encodeWav } from "./wav";
 import { TimeView } from "./wave";
+import { recordingArchive } from "./recording";
 
 const LEAD = 0.4; // s between arming the recorder and starting playback
 const TAIL = 1.2; // s recorded after the reference ends (speaker-to-mic latency, room decay)
@@ -43,6 +44,8 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
           <button class="btn ghost" id="demo-cancel" hidden>Cancel</button>
         </div>
         <ol class="steps"></ol>
+        <p class="hint">Completed microphone takes are automatically saved as WAV on the server.</p>
+        <div class="recording-archive"></div>
         <div class="msg" aria-live="polite"></div>
         <details class="advanced"><summary>Room tips</summary>
           <ul class="tips"><li>Use loudspeakers, not headphones: the microphone must hear the sound.</li>
@@ -61,6 +64,7 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
   const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
   const msg = $(".msg"), start = $<HTMLButtonElement>("#demo-start"), cancel = $<HTMLButtonElement>("#demo-cancel");
   const mic = micPanel(root, ctx, msg);
+  const archive = recordingArchive($(".recording-archive"), "demo");
   const desc = (who: string) => (s: any) => describe(s, `${who} · ${m.pipelines[shown].label}`, m);
   const refP = panel($(".panels"), view, "Reference", "Choose a recording", "ref", desc("Reference"), (i) => select(i));
   const micP = panel($(".panels"), view, "Microphone take", "Not recorded yet", "mic", desc("Microphone"), (i) => select(i));
@@ -145,7 +149,12 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
   }
 
   let loadSeq = 0;
+  let loadAbort: AbortController | null = null;
+  const audioCache = new Map<string, AudioBuffer>();
   async function load(id: string) {
+    loadAbort?.abort();
+    const ctl = new AbortController();
+    loadAbort = ctl;
     const seq = ++loadSeq;
     sample = samples.find((s) => s.id === id)!;
     refAudio = null; refResult = micResult = null;
@@ -156,17 +165,32 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
     refP.status.textContent = "Loading";
     msg.innerHTML = "";
     try {
-      const [buf, res] = await Promise.all([api.sampleAudio(id), api.sampleResult(id)]);
+      let audio = audioCache.get(id);
+      if (audio) {
+        audioCache.delete(id);
+        audioCache.set(id, audio);
+      } else {
+        const buf = await api.sampleAudio(id, ctl.signal);
+        if (seq !== loadSeq) return;
+        audio = await ctx().decodeAudioData(buf);
+        audioCache.set(id, audio);
+        if (audioCache.size > 3) audioCache.delete(audioCache.keys().next().value!);
+      }
       if (seq !== loadSeq) return;
-      refAudio = await ctx().decodeAudioData(buf);
-      refResult = res;
+      refAudio = audio;
       view.setDuration(refAudio.duration);
       attachAudio(refP, ctx(), refAudio);
       paint(); scale();
       setStage("ready");
+      refP.status.textContent = "Classifying reference";
+      const result = await api.sampleResult(id, ctl.signal);
+      if (seq !== loadSeq) return;
+      refResult = result;
+      paint();
     } catch (e) {
       if (seq !== loadSeq) return;
-      msg.innerHTML = errorBox(e); setStage("error");
+      msg.innerHTML = errorBox(e);
+      if (!refAudio) setStage("error");
     } finally {
       if (seq === loadSeq) refP.status.textContent = "";
     }
@@ -230,6 +254,8 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
     cleanup.forEach((f) => f());
     refP.status.textContent = ""; micP.status.textContent = "";
     if (!done) { micP.root.querySelector(".sub")!.textContent = "Cancelled"; msg.innerHTML = `<p class="muted">Cancelled. Nothing was sent.</p>`; return setStage("ready"); }
+    const wav = encodeWav(cap.subarray(0, filled), sr);
+    archive.save(wav);
 
     let pk = 0, clip = 0;
     for (let i = 0; i < filled; i++) { const v = Math.abs(cap[i]); if (v > pk) pk = v; if (v > 0.999) clip++; }
@@ -243,7 +269,7 @@ export function mountDemo(root: HTMLElement, m: ModelInfo, ctx: () => AudioConte
     const ctl = new AbortController();
     abort = () => ctl.abort();
     try {
-      micResult = await api.infer({ file: encodeWav(cap.subarray(0, filled), sr), reference_sample: sample.id }, ctl.signal);
+      micResult = await api.infer({ file: wav, reference_sample: sample.id }, ctl.signal);
     } catch (e: any) {
       micP.status.textContent = "";
       msg.innerHTML = e.code === "cancelled" ? `<p class="muted">Cancelled.</p>` : errorBox(e);

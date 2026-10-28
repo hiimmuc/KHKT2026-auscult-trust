@@ -48,8 +48,9 @@ contain the uncommitted tree (open issue 1), so edit the main checkout until it 
 
 ## 1. State
 
-- [Fact] Project definition (provisional, user 27/10): AuscultTrust = BEATs + PAFA + trained static SC + split conformal;
-  baseline = the same without SC. Frozen evaluation and serving bundle unchanged since 23/10.
+- [Fact] Project definition (user, 29/10): AuscultTrust = distilled student `kd_g4_k1` (BEATs + PAFA + trained static SC, gain6, epoch 66, soft targets from the G4 teacher ensemble)
+  + split conformal; previous definition (BEATs + PAFA + static SC, epoch 100) is a reference row; baseline for the SC contrast = same without SC [Assumption]. See
+  `docs/decision-logs/2026-10-29-final-model-distilled.md`. [Pending] frozen final evaluation of the student; the serving bundle is still the 23/10 model.
 - [Fact] No process of ours runs on A, B, D or E except the demo API on A (port 8000, since 27/10 10:51). The stage-12
   campaigns are finished: 150 five-fold source-CV fits (6 arms x 5 folds x 5 seeds), 25 anchor finals (`gain6-cv66`),
   3-fold screens of event heads and of the five recipes + refined KD.

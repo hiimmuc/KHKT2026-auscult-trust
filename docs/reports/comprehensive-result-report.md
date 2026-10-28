@@ -17,9 +17,10 @@
 
 ### 1.1 Trạng thái
 
-[Fact] Mọi lần train của nghiên cứu chính và của stage 12 đã xong (campaign cuối `combo-20261028` xong 29/10). Mô hình định nghĩa tạm là
-**AuscultTrust = BEATs + PAFA (fine-tune) + SC tĩnh đã train + split conformal**; baseline = cùng cấu hình bỏ SC (quyết định 23/10, tạm giữ 27/10).
-Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
+[Fact] Mọi lần train của nghiên cứu chính và của stage 12 đã xong (campaign cuối `combo-20261028` xong 29/10).
+**Quyết định 29/10 (người dùng): AuscultTrust = student distill `kd_g4_k1`** = BEATs + PAFA + SC tĩnh đã train, recipe gain6, epoch 66, train bằng soft target (K1) từ ensemble G4 (anchor, control PCSL-5, class-aware light, multi-scale), cộng split conformal; một mô hình khi phục vụ. Official 64.15 (+1.02 so với anchor 63.13), LODO macro 61.72 trên 3 seed (anchor 61.22 cùng seed). Chi tiết và giới hạn: `docs/decision-logs/2026-10-29-final-model-distilled.md`.
+Định nghĩa trước (quyết định 23/10) là BEATs + PAFA + SC tĩnh đã train, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8; giữ làm hàng tham chiếu. Baseline cho phép so SC giữ BEATs + PAFA không SC [Assumption: chờ người dùng xác nhận].
+Chưa chạy đánh giá đóng băng cuối cho mô hình mới và bundle phục vụ chưa đổi. Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
 
 ### 1.2 Kết luận theo thứ tự thời gian
 

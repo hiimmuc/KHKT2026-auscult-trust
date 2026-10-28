@@ -20,7 +20,7 @@
 [Fact] Mọi lần train của nghiên cứu chính và của stage 12 đã xong (campaign cuối `combo-20261028` xong 29/10).
 **Quyết định 29/10 (người dùng): AuscultTrust = student distill `kd_g4_k1`** = BEATs + PAFA + SC tĩnh đã train, recipe gain6, epoch 66, train bằng soft target (K1) từ ensemble G4 (anchor, control PCSL-5, class-aware light, multi-scale), cộng split conformal; một mô hình khi phục vụ. Official 64.15 (+1.02 so với anchor 63.13), LODO macro 61.72 trên 3 seed (anchor 61.22 cùng seed). Chi tiết và giới hạn: `docs/decision-logs/2026-10-29-final-model-distilled.md`.
 Định nghĩa trước (quyết định 23/10) là BEATs + PAFA + SC tĩnh đã train, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8; giữ làm hàng tham chiếu. Baseline cho phép so SC giữ BEATs + PAFA không SC [Assumption: chờ người dùng xác nhận].
-Chưa chạy đánh giá đóng băng cuối cho mô hình mới và bundle phục vụ chưa đổi. Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
+Đánh giá đóng băng cuối cho mô hình mới đã chạy phần split chính thức, KAUH A/B2 và sàng lọc (mục 17.9); bản sinh đôi không SC, LODO 5 seed và H2 từng fold đang chạy; bundle phục vụ chưa đổi. Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
 
 ### 1.2 Kết luận theo thứ tự thời gian
 
@@ -35,7 +35,8 @@ Chưa chạy đánh giá đóng băng cuối cho mô hình mới và bundle ph�
 9. [Fact] Stage 12, CV nguồn: class-aware light +1.458, LoRA +0.607 trên 5 fold x 5 seed (mục 17.5). **Đánh giá đích (mục 17.7) không xác nhận**: class-aware light 58.66 official (anchor 63.13), LoRA 57.05, LoRA + class-aware 54.84. Lợi ích CV nguồn không chuyển sang split chính thức hay LODO.
 10. [Fact] Stage 12, ensemble và distillation: ensemble G4 64.11 official / 62.22 LODO macro; student distill K1 đạt 64.15 official (+1.02 so với anchor) và giữ khoảng một nửa lợi ích LODO (+0.50 trên 3 seed) (mục 17.7).
 11. [Fact] Mô hình ghép `class_aware_multiscale` (29/10): CV nguồn +0.378 so với anchor, thấp hơn class-aware light riêng (+1.458); hai cải tiến không cộng dồn; chưa đánh giá đích (mục 17.8).
-12. [Pending] Phổi giả: H1, H3, H2 đồng chính. Tiêu chí đăng ký v9 không đổi.
+12. [Fact] Đánh giá đóng băng cuối cho student (29/10, mục 17.9): flip KAUH-A 0.228 (giảm +0.217 so với baseline) không hơn AuscultTrust cũ (0.209) hay anchor (0.204); tỷ lệ uncertain giảm (ICBHI 0.525 so với 0.603) với độ phủ KAUH thấp hơn một chút. Bản sinh đôi không SC, LODO 5 seed, H2 từng fold chưa xong (đang chạy).
+13. [Pending] Phổi giả: H1, H3, H2 đồng chính. Tiêu chí đăng ký v9 không đổi.
 
 ### 1.3 Bảng xếp hạng: mọi mô hình chính, hai điểm cuối và giao thức
 
@@ -1328,6 +1329,51 @@ Chạy trên B, D, E và F (F là máy dùng chung, giới hạn 30 GB). 25/25 f
 - Điểm yếu của so sánh: lợi ích của class-aware light trộn lẫn hai thay đổi (căn chỉnh theo (bệnh nhân, lớp) và PCSL giảm từ 50 xuống 5); control PCSL-5 (official 62.16, LODO macro 60.72, mục 17.7) là phép tách duy nhất; chỉ hạ PCSL không nâng điểm ở split chính thức (-0.97 so với anchor 63.13).
 - Sự cố khi chạy: fit cuối chuyển sang F khiến 3 job trùng chạy trên B, D, E (sweep chỉ đọc danh sách job một lần), controller crash-loop ở bước thu kết quả; xử lý bằng gán lại job đúng máy chứa checkpoint, và thêm tên campaign vào danh sách cho phép giải phóng đĩa của F. Mã huấn luyện không đổi (`programme.json` ghi `amendments`).
 - Nguồn: `build/campaigns/combo-20261028/outputs/evaluation/combo-20261028/{summary.json,report.md}` trên B; script `scripts/combo_campaign.py` (worktree `worktree-combo-campaign`).
+
+### 17.9 Đánh giá đóng băng cuối cho student `kd_g4_k1` (run `final-kd-g4-k1`, 29/10)
+
+[Fact] Thực hiện bằng `scripts/final_evaluation_student.py` (bản tham số hóa của `final_evaluation.py`; script 23/10 không bị sửa), 5 seed ghép cặp (0-4), mã và môi trường hiện tại.
+Bốn điều kiện: **baseline** (BEATs + PAFA không SC, epoch 100), **previous** (AuscultTrust cũ: BEATs + PAFA + SC tĩnh, epoch 100), **anchor** (`gain6-cv66`, epoch 66), **student** (`kd_g4_k1`, epoch 66).
+Đóng băng và chứng nhận: hash trọng số đối chiếu với biên nhận của campaign (`collected-checkpoint.json`, `completion.json`), hash `s_ref` của SC tĩnh, serving seed = 0 ghi trước khi đọc kết quả từng seed
+(`outputs/train/final-kd-g4-k1/<điều kiện>/seed<s>/freeze.json`). Không có bundle phục vụ nào được tạo hay kích hoạt. Bootstrap hai tầng (theo bệnh nhân và seed), 1.000 lần, 200 lần chia null.
+Export 23/10 của baseline và previous không còn chứng nhận provenance khớp với mã hiện tại (mã `src/` đã đổi sau refactor 27/10), nên được tính lại; các export 23/10 không bị ghi đè.
+
+**Kiểm tra chéo (đạt).** Baseline tái tạo flip 0.445 ± 0.047 và previous 0.209 ± 0.027, bằng số của lần 23/10; sàng lọc bản ghi của previous (độ phủ 0.900, cỡ tập 1.603, uncertain 0.603) cũng khớp lần 23/10.
+
+KAUH-A, tỷ lệ đổi kết luận giữa ba bộ lọc (cửa sổ, 5 seed):
+
+| Điều kiện | Flip rate | TV distance | Giảm flip so với baseline [KTC95%, bootstrap bệnh nhân và seed] |
+| --- | ---: | ---: | --- |
+| baseline | 0.445 ± 0.047 | 0.437 ± 0.043 | |
+| previous | 0.209 ± 0.027 | 0.206 ± 0.025 | +0.236 [+0.177, +0.305] |
+| anchor | 0.204 ± 0.037 | 0.205 ± 0.036 | +0.240 [+0.196, +0.285] |
+| **student** | 0.228 ± 0.056 | 0.191 ± 0.040 | **+0.217** [+0.166, +0.266] |
+
+KAUH-B2 (hiệu chuẩn trên một bộ lọc, kiểm thử trên bộ lọc khác; |Δ| trung bình, null p95): 2/6 cặp vượt null gate (cả hai đích Bell).
+
+| Cặp | baseline | previous | anchor | student | null p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Diaphragm → Bell | 0.219 | 0.095 | 0.098 | 0.109 | 0.124 |
+| Extended → Bell | 0.205 | 0.103 | 0.100 | 0.115 | 0.126 |
+
+D (giảm sai số độ phủ so với baseline, 2 cặp được kiểm): previous +0.1130 [+0.0724, +0.1532]; anchor +0.1129 [+0.0698, +0.1455]; **student +0.1000 [+0.0585, +0.1299]**.
+
+Sàng lọc bản ghi (hiệu chuẩn ICBHI, nửa đánh giá ICBHI và KAUH, gộp theo trung bình cửa sổ; 20 lần chia hiệu chuẩn):
+
+| Điều kiện | ICBHI: độ phủ / cỡ tập / uncertain | argmax Se / Sp | KAUH Bell: độ phủ / uncertain | Diaphragm | Extended |
+| --- | --- | --- | --- | --- | --- |
+| baseline | 0.898 / 1.570 / 0.570 | 0.703 / 0.621 | 0.803 / 0.524 | 0.960 / 0.625 | 0.950 / 0.560 |
+| previous | 0.900 / 1.603 / 0.603 | 0.642 / 0.677 | 0.831 / 0.464 | 0.861 / 0.512 | 0.879 / 0.522 |
+| anchor | 0.902 / 1.559 / 0.559 | 0.624 / 0.720 | 0.805 / 0.471 | 0.847 / 0.512 | 0.868 / 0.529 |
+| **student** | 0.902 / 1.525 / 0.525 | 0.692 / 0.676 | 0.790 / 0.311 | 0.846 / 0.357 | 0.875 / 0.391 |
+
+- [Fact] Student **không cải thiện** tính bất biến theo bộ lọc so với mô hình cũ và anchor: flip 0.228 so với 0.209 và 0.204; giảm so với baseline +0.217, trong khoảng tin cậy của hai mô hình kia. D thấp hơn một chút (+0.100 so với +0.113).
+- [Fact] Student giảm tỷ lệ "uncertain" (ICBHI 0.525 so với 0.603; KAUH Bell 0.311 so với 0.464) với độ phủ KAUH thấp hơn một chút (Bell 0.790 so với 0.831). Độ phủ trên ICBHI giữ ở 0.902 (mức danh nghĩa 0.90).
+- [Interpretation] Lợi ích của student nằm ở điểm Score trên split chính thức (mục 17.7), không ở độ bất biến theo bộ lọc hay độ phủ; không có tuyên bố phần cứng hay H2 nào đi kèm (KAUH là bộ lọc phần mềm).
+
+**Chưa xong ở thời điểm ghi (29/10 06:15), đang chạy trong campaign `student-final-20261029`:** LODO seed 3-4 của student (8 fit), bản sinh đôi không SC của student (cùng soft target G4; split chính thức và bốn thiết bị, 5 seed, 25 fit), 26 trên 33 fit đã xong.
+Khi đủ, các script sau sẽ tạo: bảng LODO 5 seed, null gate và H2 từng fold, unseen-patient view và best-on-test (`scripts/student_final_report.py --h2`); KAUH ghép cặp student so với bản sinh đôi và nhánh SC chỉ lúc kiểm thử (`scripts/final_evaluation_twin.py`).
+Cho đến lúc đó: mọi tuyên bố "SC giúp mô hình student" **không có cơ sở trực tiếp**; chỉ dựa được vào cặp BEATs PAFA epoch 100 (62.3 so với 61.7 official, 60.3 so với 58.8 LODO macro).
 
 ## 18. Caveats
 

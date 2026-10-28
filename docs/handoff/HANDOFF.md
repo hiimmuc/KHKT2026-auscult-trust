@@ -40,6 +40,10 @@ contain the uncommitted tree (open issue 1), so edit the main checkout until it 
   Fixed by `canonical_path` in `scripts/improvement_campaign.py` (commit 916d5d2); snapshot file and manifest updated on all machines with a
   `recovery_amendments` entry. While pushing files I overwrote the remote copies with empty ones (`ssh -n` plus a redirect: never combine them);
   files and manifest were restored (manifest from the 20:52 copy on A, commands verified against all `jobs.txt`). After the repair the first tick showed 44/150 complete (22:47).
+- 28/10 09:20: F (shared, slow: 18/38 after 15 h) was stopped; its scheduler was killed by PID with its two running jobs left alone
+  (`lora+lodo_meditron/seed1`, `swa/seed0`). The 18 unstarted F jobs were reassigned to A 2, B 5, D 6, E 5 (manifest `recovery_amendments` lists
+  them; job lists on all machines rewritten; backups `programme.pre-f-move.json` on B and `*.jobs.old.txt` not kept). F's two jobs are still collected from F.
+  The F service is stopped on purpose; do not restart it until its two jobs finish.
 - If a service crash-loops: read its journal first; a hash mismatch on a snapshot file means someone edited the snapshot.
 
 ## 1. State

@@ -27,7 +27,8 @@ their content is in `report.md`.
 - Current proposal: `updates/research-proposal-v10-en.md`. Plans: `updates/stage-plan-v1.md`, `updates/lodo-plan-v1.md`,
   `updates/2026-10-27-target-evaluation-plan.md` (proposed).
 - Decisions: `decision-logs/2026-10-23-final-model.md` (final model), `2026-10-07-*`, `2026-10-14-db-scale.md`.
-- Reports: see the table in `../report.md` header.
+- Reports: see the table in `../report.md` header. Latest: `reports/2026-10-28-target-distillation-results.md`, `reports/2026-10-29-replay-phone-electret.md`.
+- Analysis notebooks: `../notebooks/README.md`.
 
 ## Removed on 2026-10-27 (content folded into `../report.md`)
 

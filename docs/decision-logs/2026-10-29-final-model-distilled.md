@@ -42,11 +42,11 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
 
 ## Required before the new definition is final
 
-1. [Pending] Frozen final evaluation (`scripts/final_evaluation.py`) for the student: five paired seeds, official, LODO, KAUH, screening, with weights and
-   `s_ref` frozen and hashed before any phantom recording.
+1. [Done 29/10] Frozen final evaluation (`scripts/final_evaluation_student.py`, `final_evaluation_twin.py`, `student_final_report.py`) for the student: five paired seeds, official, LODO, KAUH, screening, with weights and
+   `s_ref` frozen and hashed before any phantom recording (runs `final-kd-g4-k1`, `final-kd-g4-k1-twin`, `student-final-20261029`).
 2. [Pending] Serving bundle: `app/` still serves the previous model (`app/bundle-final-pafa-static`). Student checkpoints exist in the `distill-20261028` units on
    the training machines (epoch 66); activate only after bundle validation (hash, health check).
-3. [Pending] Whether the ensemble extensions E1 and E1+E3 of the 23/10 log are replaced by G4; whether the 5-seed student ensemble used in the 29/10 replay report is only an exploratory variant.
+3. [Decided 29/10, user] The 5-seed student ensemble of the 29/10 replay report is a deployment variant; AuscultTrust is the single student `kd_g4_k1`. G4 replaces E1 and E1+E3 as the ensemble extension.
 4. [Pending] Phantom H1, H3, co-primary H2 on the frozen student.
 
 ## Frozen evaluation, first part (29/10, run `final-kd-g4-k1`)
@@ -62,5 +62,19 @@ reproduce their 23/10 KAUH flip rates (0.445, 0.209) and screening, so the infer
 | **student** | 0.228 | +0.217 [+0.166, +0.266] | +0.100 [+0.059, +0.130] | 0.525 |
 
 [Fact] The student is not more invariant across filters than the previous model; its gain is in Score (section 17.7 of the comprehensive report) and in fewer "uncertain"
-recordings with slightly lower KAUH coverage. Still running: the no-SC twin (official split and four held-out devices, 5 seeds), LODO seeds 3-4 of the student, and the
-analysis (LODO five-seed table, null gate and H2 per fold, unseen-patient view, best-on-test). Until the twin is evaluated, no "SC helps the student" claim stands.
+recordings with slightly lower KAUH coverage. The no-SC twin, LODO seeds 0-4 and the analysis are in the second part below.
+
+## Frozen evaluation, second part (29/10, runs `final-kd-g4-k1-twin` and the five-seed tables)
+
+[Fact] Student against its no-SC twin (same recipe and G4 soft targets, SC off), five seeds, current code:
+
+| Contrast | Result |
+| --- | --- |
+| Official Score, student - twin | +0.2 ± 0.8 (3 of 5 seeds): SC adds nothing measurable on the official split; the gain over the baseline (+2.4 ± 0.7) is also in the twin (+2.2 ± 1.2) |
+| LODO macro, student - twin | +1.8 ± 1.2 (positive in all 5 seeds): gains on LittC2SE, Litt3200, Meditron; AKGC417L lower (55.2 vs 56.8) |
+| KAUH-A flip, twin - student | +0.061 [+0.029, +0.093] (twin 0.289, student 0.228); test-time-only SC on the twin: +0.083 [+0.043, +0.118] |
+| KAUH-B2 D, twin vs student | +0.018 [-0.013, +0.041] over 2 tested pairs: no coverage difference |
+| LODO H2 | no fold passes the null gate (closest LittC2SE 0.118 vs p95 0.150): not testable |
+
+[Interpretation] The named SC component is supported on device-shift endpoints (LODO macro, filter invariance) but not on the official split. The baseline-vs-student gain on the official split
+is a recipe effect (gain6 + distillation). The decision to define AuscultTrust as the student is unchanged: it is above the previous model and the baseline on both Score endpoints.

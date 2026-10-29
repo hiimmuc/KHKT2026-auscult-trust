@@ -2,12 +2,12 @@
 
 | | |
 | --- | --- |
-| Report version | 6.0 (27/10/2026): restructured by plan stage; adds stage 12 "Additional improvement trials" |
-| Project definition (provisional) | **AuscultTrust = BEATs + PAFA, fine-tuned, trained static spectrum correction (SC) + split conformal layer.** Baseline = the same BEATs + PAFA recipe without SC. Exploratory extensions: equal-weight ensembles E1 and E1+E3. Decision log: `docs/decision-logs/2026-10-23-final-model.md` |
-| Evidence cut-off | 27/10/2026 16:30 (+07). Nothing from stage 12 changes the deployed model or the registered criteria |
+| Report version | 7.0 (cut-off 28/10/2026): stage 12 extended with the target evaluation of the five recipes and the distillation of the teacher ensembles (section 17.7) |
+| Project definition (user, 29/10/2026) | **AuscultTrust = the distilled student `kd_g4_k1`**: BEATs + PAFA, fine-tuned, trained static spectrum correction (SC), gain6 recipe at epoch 66, trained with soft targets from the equal-weight G4 teacher ensemble, + split conformal layer (official 64.15, LODO macro 61.72 over 3 seeds; exploratory, G4 chosen on test; frozen final evaluation and serving bundle [Pending]). Previous definition (23/10): BEATs + PAFA + trained static SC, epoch 100 (62.3 / 60.3), kept as a reference row. Baseline for the SC contrast = BEATs + PAFA without SC [Assumption, to confirm]. Decision logs: `docs/decision-logs/2026-10-29-final-model-distilled.md`, `docs/decision-logs/2026-10-23-final-model.md` |
+| Evidence cut-off | 28/10/2026 23:18 (+07). Nothing from stage 12 changes the deployed model or the registered criteria |
 | Proposal / prereg | v10 (`docs/updates/research-proposal-v10-en.md`, 23/10; model and evidence updated, registered criteria of v9 unchanged); registered study v9 (`docs/updates/research-proposal-v9-en.md`) with `docs/updates/prereg-v8.md` and Amendments 1-5 (`docs/updates/prereg-v9-amendment*.md`) |
-| Plans | `docs/updates/stage-plan-v1.md` (grid), `docs/updates/lodo-plan-v1.md` (LODO, ensembles; Amendment 4 wins where they differ), `docs/updates/2026-10-27-target-evaluation-plan.md` (official / LODO / KAUH for the five stage-12 recipes; proposed, not launched) |
-| Detailed sources | `docs/reports/` (date-first names): `2026-10-09-registered-core-report`, `2026-10-19-grid-v1-results`, `2026-10-20-pcmcl-v1-results`, `2026-10-21-lodo-v1-results`, `2026-10-22-ensemble-v1-results`, `2026-10-23-final-pafa-static-execution` (frozen final evaluation), 24/10 audits (`benchmark-protocol-audit`, `ensemble-finite-n`, `sc-finite-n-uncertainty`, `class-conditional-conformal`, `pafa-pooling-audit`), `2026-10-27-improvement-results`, `2026-10-27-findings` |
+| Plans | `docs/updates/stage-plan-v1.md` (grid), `docs/updates/lodo-plan-v1.md` (LODO, ensembles; Amendment 4 wins where they differ), `docs/updates/2026-10-27-target-evaluation-plan.md` (official / LODO / KAUH for the stage-12 recipes; executed as `target-20261027`), `docs/updates/2026-10-28-distillation-plan.md` (executed as `distill-20261028`) |
+| Detailed sources | `docs/reports/` (date-first names): `2026-10-09-registered-core-report`, `2026-10-19-grid-v1-results`, `2026-10-20-pcmcl-v1-results`, `2026-10-21-lodo-v1-results`, `2026-10-22-ensemble-v1-results`, `2026-10-23-final-pafa-static-execution` (frozen final evaluation), 24/10 audits (`benchmark-protocol-audit`, `ensemble-finite-n`, `sc-finite-n-uncertainty`, `class-conditional-conformal`, `pafa-pooling-audit`), `2026-10-27-improvement-results`, `2026-10-27-findings`, `2026-10-28-target-distillation-results`, `2026-10-29-replay-phone-electret` (lung-phantom replay of 20 ICBHI recordings: speaker in phantom -> electret / phone, and signal-processing variants); notebooks: `notebooks/README.md` |
 | Document index and conventions | `docs/README.md` (naming, template, list of removed interim documents) |
 | State and commands | `docs/handoff/HANDOFF.md`, `docs/QUICKSTART.md`, `docs/SETUP.md`, `app/README.md` |
 
@@ -851,6 +851,29 @@ At epoch 4, class-aware light scores 62.045 and the anchor 55.802 on the same 25
   boundaries, 0 confirmed label errors, 50 recordings or cycles waiting for human listening
   (`outputs/evaluation/source-audio-audit-20261026/review.csv`). Source audio and annotations were not modified.
 
+### 17.7 Target evaluation (target-20261027) and distillation (distill-20261028), 27-28/10
+
+Detailed numbers: `docs/reports/2026-10-28-target-distillation-results.md`. Exploratory: teacher and ensemble subsets were
+chosen on the same test scores.
+
+- [Fact] Official (5 seeds): anchor 63.13; SWA 63.32; multi-scale 62.45; PCSL-5 control 62.16; class-aware light 58.66;
+  LoRA 57.05; LoRA + class-aware 54.84. LODO macro (4 devices): 61.62, 61.77, 61.41, 60.72, 60.07, 57.81, 55.11.
+  Source-CV gains of class-aware light and LoRA did not transfer.
+- [Fact] Equal-weight ensembles of the target arms: all seven 64.21 official / 62.09 LODO macro; G4 (anchor, control,
+  class-aware light, multi-scale) 64.11 / 62.22. Subset selection on seeds 0-1 holds on seeds 2-4 (G4: 64.15 / 62.60 vs
+  anchor 63.56 / 62.45), a small gain.
+- [Fact] KAUH: LoRA and LoRA + class-aware flip rates 0.040 and 0.072 vs frozen 0.209, with intervals above zero; no SC or
+  distilled arm survives the flip-reduction bootstrap. B2: no pair passes the null gate.
+- [Fact] Distillation (student at epoch 66, soft targets from the G4 or G7 teacher ensemble; gate fixed before results):
+  kd_g4_k1 official 64.15 (+1.02 vs anchor, 4 of 5 seeds above), kd_g4_k2 63.47 (+0.33), kd_g7_k2 62.75 (-0.38, stopped).
+- [Fact] Distilled G4 LODO macro (seeds 0-2): kd_g4_k1 61.72, kd_g4_k2 61.77 vs anchor 61.22 and teacher ensemble 62.26.
+  The student keeps about half the ensemble LODO gain; K2 does not beat K1.
+- [Interpretation] Teacher targets are in-sample on training cycles, so close to one-hot; this limits the gain.
+- [Fact] Recording screening (mean aggregation, Bell): kd_g4_k1 uncertain rate 0.31 vs anchor 0.47; coverage 0.79 vs 0.81.
+- [Pending] Not run: KAUH and screening on LODO units, patient-level bootstrap, out-of-fold or augmented-view teacher targets.
+- Incident (28/10 20:50): LODO workers on A, C, D and E failed at start (teacher member files only on B). Files were synced
+  from B and the four services restarted; the controller reran the jobs.
+
 ## 18. Caveats
 
 - One split and 5 seeds: a 1-point difference is within seed noise for most cells. The last epoch is the reference
@@ -876,7 +899,7 @@ At epoch 4, class-aware light scores 62.045 and the anchor 55.802 on the same 25
 
 State on 27/10: all registered and exploratory training of the main study is finished; stage 12 source CV is finished.
 
-1. **Target evaluation of the stage-12 recipes** on A, B, D, E: official, four-device LODO and KAUH (with recording
+1. [Done 28/10, section 17.7] **Target evaluation of the stage-12 recipes** on A, B, D, E: official, four-device LODO and KAUH (with recording
    screening) for 5 seeds, from the frozen `fivefold-20261026` snapshot, with a PCSL-5 non-class-aware control and the
    anchor as paired references. Tiers, GPU-hour estimate, preflight checks and stop rules:
    `docs/updates/2026-10-27-target-evaluation-plan.md`. [Running since 27/10 18:12 as campaign `target-20261027`; see `docs/handoff/HANDOFF.md` section 0.]

@@ -21,7 +21,7 @@ from src.training.reporting import cv_epoch
 NAME = 'improvements-20261026'
 ARMS = ['llrd', 'patient_cap', 'class_topk', 'class_attention', 'class_aware', 'recording_head', 'band_noise', 'band_noise_consistency']
 RECORDING_ARMS = {'recording_head', 'recording_head_pcsl0'}
-GPU_BUDGETS = {'A': 28, 'B': 28, 'D': 28, 'E': 28, 'F': 32}
+GPU_BUDGETS = {'A': 28, 'B': 28, 'C': 28, 'D': 28, 'E': 28, 'F': 32}
 DEVICES = ['AKGC417L', 'Litt3200', 'LittC2SE', 'Meditron']
 BASE = ['base', 'encoder_beats', 'grid/pafa_beats', 'sc', 'sc_static', 'sc_gain']
 

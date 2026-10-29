@@ -1,16 +1,18 @@
-# Replay study: ICBHI recordings re-recorded by a phone and an electret microphone
+# Lung-phantom replay: ICBHI audio -> speaker in the phantom -> electret / phone recording
 
 | Type | Date | Status |
 | --- | --- | --- |
 | report | 2026-10-29 | current (exploratory; no registered criterion changed) |
 
-Question: when ICBHI recordings are played through a speaker and re-recorded by a phone or an electret microphone, how far do the
-frozen AuscultTrust predictions move from the predictions on the original audio, and which automatic signal-processing steps
+Setup: each ICBHI recording is played by a speaker placed inside a lung phantom and recorded at the phantom surface by two
+capture devices, an electret microphone and a phone microphone (chain: ICBHI audio -> speaker -> phantom -> electret / phone).
+Question: how far do the frozen AuscultTrust predictions move from the predictions on the original audio, and which automatic signal-processing steps
 bring them back? Evidence cut-off: 29/10/2026 05:15 (+07).
 
-Data: Drive folder `1hyR7WLlpzxCkyaBDQtcPkvW8NaMS0E_S`, subfolders `phone` and `electret`: 20 ICBHI recordings each (patients 101-107,
+Data (tier 1 phantom data: evaluate only, weights frozen): Drive folder `1hyR7WLlpzxCkyaBDQtcPkvW8NaMS0E_S`, subfolders `phone` and `electret`: 20 ICBHI recordings each (patients 101-107,
 four ICBHI devices, 20 takes per capture device, 48 kHz mono, 17-37 s). Stored in `../data/raw/phantom_replay/`. The `pipeline test`
-folder (serving-app screenshots) is not used. The takes were provided already recorded; no new playback was done in this session.
+folder (serving-app screenshots) is not used. The takes were provided already recorded; no new playback was done in this session. Phantom geometry, speaker and microphone
+placement are not described in the data: treated as given [Assumption].
 
 Code: `scripts/replay_analysis.py`; results `outputs/replay/phantom-replay-20261028/` (`takes.csv`, `summary.csv`, `cycles.csv.gz`,
 `selection.json`, `transfer_functions.npz`, processed audio in `audio/<capture>/<variant>/`); notebook `notebooks/04_replay_phantom.ipynb`;
@@ -30,10 +32,11 @@ Every take is aligned to its original (band-limited GCC-PHAT over the whole take
 | Log-spectral distance to original (dB, level-free) | 5.3 | 6.6 |
 
 [Fact] Alignment is reliable (no drift, sub-millisecond per-cycle residual), so the low coherence is not an alignment error: the
-acoustic path (speaker, room, microphone) removes most of the waveform-level agreement. [Fact] The transfer function relative to the
+playback path (speaker, phantom, capture device) removes most of the waveform-level agreement. [Fact] The transfer function relative to the
 200-1000 Hz level (`transfer_functions.npz`, figure `transfer_functions.png`) shows +10 to +15 dB below 100 Hz, a roll-off above
 4 kHz, and for the phone a +10 to +20 dB rise at 1-4 kHz with narrow lines. [Fact] Spectrograms (`spectrogram_*.png`) show stationary
-narrow-band lines (phone) and strong periodic low-frequency clicks (electret) that are absent from the original.
+narrow-band lines (phone) and strong periodic low-frequency clicks (electret) that are absent from the original; their source
+(electronics, mains, the speaker) is not identified [Pending].
 
 ## 2. Processing variants (automatic, no labels)
 
@@ -78,7 +81,7 @@ capture-device SC reduce it further, to 0.41 (electret) and 0.36-0.38 (phone): a
 [Fact] The leave-one-out equaliser (`eq`, `tdn_eq`) is no better than the label-free `tdn_sc`; it needs paired originals and gives
 no extra gain at this sample size. [Fact] `dn_eq` and `dn_eq12` are identical: the equaliser boost never exceeds 12 dB.
 [Fact] TTA-EQ on top of `dn_sc` changes nothing (flip 0.42-0.52 either way).
-[Interpretation] What remains (flip about 0.4, flip2 about 0.3) comes from content the acoustic path destroys (coherence 0.02-0.15,
+[Interpretation] What remains (flip about 0.4, flip2 about 0.3) comes from content the playback path destroys (coherence 0.02-0.15,
 phone SNR 8 dB), not from spectrum shape; spectrum correction and denoising cannot restore it.
 
 ## 4. Automatic choice and its limit
@@ -92,8 +95,10 @@ so it carries little signal. [Recommendation] Use the fixed label-free chain `ba
 ## 5. Caveats
 
 - 20 takes per capture device, 9 per device on the test split (182 cycles); differences of 0.03 in flip rate are inside the noise.
-- One speaker and room; the transfer function is a property of this playback chain, not of a phone or electret microphone in contact
-  with skin. This is a replay study, not a transducer study.
-- The processing variants were tuned on these takes (tone threshold 6 dB, Wiener over-subtraction 1.5, noise floor at the 15th
-  percentile); the numbers are optimistic for new takes.
+- One phantom, one speaker position per take set; the transfer functions describe this chain (speaker -> phantom -> capture device),
+  not a stethoscope on a patient. The phantom is a replay of recorded sound, so it carries no new physiology.
+- [Deviation from the tier-1 rule "evaluate only, no model selection"] The signal-processing chain was chosen on these takes (tone
+  threshold 6 dB, Wiener over-subtraction 1.5, noise floor at the 15th percentile, variant ranking). The model weights, the SC
+  reference and the coefficients' bounds were not touched, but the processing numbers are optimistic for new phantom takes and
+  must be frozen and re-tested on a new capture before any claim.
 - Variant selection and Score use the same takes. No labels were used by the label-free variants; labels only score them.

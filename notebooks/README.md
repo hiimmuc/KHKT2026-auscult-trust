@@ -10,7 +10,7 @@ Read-only analysis of finished artefacts. Run from `notebooks/` with the analysi
 | `01_official_split.ipynb` | train / validation (source CV) / test on the official split: scores per arm, paired deltas, curves, confusion, per-class and per-device, reliability | `official` |
 | `02_lodo.ipynb` | four-device LODO: Score and macro per arm, paired change, Sp/Se, curves, confusion | `lodo` |
 | `03_kauh_screening.ipynb` | KAUH invariance (flip, TV), B2 coverage, window histograms, recording screening | `kauh_screening` |
-| `04_replay_phantom.ipynb` | phone / electret replay: take quality, transfer functions, spectrograms, processing variants, selection | `replay` |
+| `04_replay_phantom.ipynb` | phantom replay: take quality, transfer functions, spectrograms, processing variants, selection | `replay` |
 
 The replay results come from `scripts/replay_analysis.py` (`PYTHONPATH=. .venv-train/bin/python scripts/replay_analysis.py --takes ../data/raw/phantom_replay --out outputs/replay/phantom-replay-20261028`).
 Campaign outputs are read from `build/campaigns/<campaign>/outputs/train/...` (per-unit `report.json` and `test_preds.npz`; copy them

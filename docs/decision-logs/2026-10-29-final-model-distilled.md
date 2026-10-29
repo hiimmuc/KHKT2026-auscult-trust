@@ -47,3 +47,19 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
    the training machines (epoch 66); activate only after bundle validation (hash, health check).
 3. [Pending] Confirm the baseline definition above, and whether the ensemble extensions E1 and E1+E3 of the 23/10 log are replaced by G4.
 4. [Pending] Phantom H1, H3, co-primary H2 on the frozen student.
+
+## Frozen evaluation, first part (29/10, run `final-kd-g4-k1`)
+
+[Fact] Five paired seeds, current code, hashes of weights and `s_ref` frozen with serving seed 0; no bundle built or activated. Baseline and previous AuscultTrust
+reproduce their 23/10 KAUH flip rates (0.445, 0.209) and screening, so the inference path is unchanged.
+
+| Condition | KAUH-A flip | Reduction vs baseline [95% CI] | B2 D vs baseline (2 tested pairs) | ICBHI screening uncertain |
+| --- | ---: | --- | --- | ---: |
+| baseline | 0.445 | | | 0.570 |
+| previous AuscultTrust | 0.209 | +0.236 [+0.177, +0.305] | +0.113 [+0.072, +0.153] | 0.603 |
+| anchor | 0.204 | +0.240 [+0.196, +0.285] | +0.113 [+0.070, +0.146] | 0.559 |
+| **student** | 0.228 | +0.217 [+0.166, +0.266] | +0.100 [+0.059, +0.130] | 0.525 |
+
+[Fact] The student is not more invariant across filters than the previous model; its gain is in Score (section 17.7 of the comprehensive report) and in fewer "uncertain"
+recordings with slightly lower KAUH coverage. Still running: the no-SC twin (official split and four held-out devices, 5 seeds), LODO seeds 3-4 of the student, and the
+analysis (LODO five-seed table, null gate and H2 per fold, unseen-patient view, best-on-test). Until the twin is evaluated, no "SC helps the student" claim stands.

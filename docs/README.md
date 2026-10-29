@@ -25,7 +25,7 @@ their content is in `report.md`.
 
 - Registered: `updates/prereg-v8.md`, `updates/prereg-v9-amendment-1.md` to `-5.md`, `updates/research-proposal-v9-en.md`.
 - Current proposal: `updates/research-proposal-v10-en.md`. Plans: `updates/stage-plan-v1.md`, `updates/lodo-plan-v1.md`,
-  `updates/2026-10-27-target-evaluation-plan.md` (proposed).
+  `updates/2026-10-27-target-evaluation-plan.md` (executed 27-28/10).
 - Decisions: `decision-logs/2026-10-23-final-model.md` (final model), `2026-10-07-*`, `2026-10-14-db-scale.md`.
 - Reports: see the table in `../report.md` header. Latest: `reports/2026-10-28-target-distillation-results.md`, `reports/2026-10-29-replay-phone-electret.md`.
 - Analysis notebooks: `../notebooks/README.md`.

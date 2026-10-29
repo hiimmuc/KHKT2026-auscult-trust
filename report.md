@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Report version | 7.0 (cut-off 28/10/2026): stage 12 extended with the target evaluation of the five recipes and the distillation of the teacher ensembles (section 17.7) |
-| Project definition (user, 29/10/2026) | **AuscultTrust = the distilled student `kd_g4_k1`**: BEATs + PAFA, fine-tuned, trained static spectrum correction (SC), gain6 recipe at epoch 66, trained with soft targets from the equal-weight G4 teacher ensemble, + split conformal layer (official 64.15, LODO macro 61.72 over 3 seeds; exploratory, G4 chosen on test; frozen final evaluation and serving bundle [Pending]). Previous definition (23/10): BEATs + PAFA + trained static SC, epoch 100 (62.3 / 60.3), kept as a reference row. Baseline for the SC contrast = BEATs + PAFA without SC [Assumption, to confirm]. Decision logs: `docs/decision-logs/2026-10-29-final-model-distilled.md`, `docs/decision-logs/2026-10-23-final-model.md` |
+| Project definition (user, 29/10/2026) | **AuscultTrust = the distilled student `kd_g4_k1`**: BEATs + PAFA, fine-tuned, trained static spectrum correction (SC), gain6 recipe at epoch 66, trained with soft targets from the equal-weight G4 teacher ensemble, + split conformal layer (official 64.15, LODO macro 61.72 over 3 seeds; exploratory, G4 chosen on test; frozen final evaluation and serving bundle [Pending]). Previous definition (23/10): BEATs + PAFA + trained static SC, epoch 100 (62.3 / 60.3), kept as a reference row. Project baseline (23/10 decision, unchanged) = BEATs + PAFA without SC; the SC contrast of the student uses its no-SC twin (done 29/10: official +0.2 ± 0.8, LODO macro +1.8 ± 1.2; `docs/reports/comprehensive-result-report.md` 17.10). Decision logs: `docs/decision-logs/2026-10-29-final-model-distilled.md`, `docs/decision-logs/2026-10-23-final-model.md` |
 | Evidence cut-off | 28/10/2026 23:18 (+07). Nothing from stage 12 changes the deployed model or the registered criteria |
 | Proposal / prereg | v10 (`docs/updates/research-proposal-v10-en.md`, 23/10; model and evidence updated, registered criteria of v9 unchanged); registered study v9 (`docs/updates/research-proposal-v9-en.md`) with `docs/updates/prereg-v8.md` and Amendments 1-5 (`docs/updates/prereg-v9-amendment*.md`) |
 | Plans | `docs/updates/stage-plan-v1.md` (grid), `docs/updates/lodo-plan-v1.md` (LODO, ensembles; Amendment 4 wins where they differ), `docs/updates/2026-10-27-target-evaluation-plan.md` (official / LODO / KAUH for the stage-12 recipes; executed as `target-20261027`), `docs/updates/2026-10-28-distillation-plan.md` (executed as `distill-20261028`) |
@@ -47,7 +47,7 @@ Key findings, in the order of the plan stages:
 9. [Fact] Stage 12, source CV only: a lighter class-aware PAFA (PCSL 5) gained +1.46 Score points over a matched anchor
    in 5 folds x 5 seeds, LoRA +0.61, LoRA + class-aware +0.70, SWA +0.08, multi-scale -0.32. The same recipes failed the
    source gate in an earlier 3-fold screen (section 17.5), the selected epoch of class-aware light is 4 of 100, and its
-   PCSL change is confounded with the pairing change. [Pending] official, LODO and KAUH for all five.
+   PCSL change is confounded with the pairing change. [Done 28/10, section 17.7] The source-CV gains of class-aware light and LoRA did not transfer to the official split or LODO.
 10. [Fact] Stage 12 negatives: LLRD (official 62.31 vs 62.42 for gain6), patient cap, class top-k/attention, band noise,
     recording head, event heads (-1.64 source Score) and the refined hard + soft KD (+0.01, 3-fold) did not pass the
     source gate; target-spectrum adaptation moved KAUH Score by +3.38 / -0.74 / -0.56 with intervals crossing zero.
@@ -862,8 +862,9 @@ chosen on the same test scores.
 - [Fact] Equal-weight ensembles of the target arms: all seven 64.21 official / 62.09 LODO macro; G4 (anchor, control,
   class-aware light, multi-scale) 64.11 / 62.22. Subset selection on seeds 0-1 holds on seeds 2-4 (G4: 64.15 / 62.60 vs
   anchor 63.56 / 62.45), a small gain.
-- [Fact] KAUH: LoRA and LoRA + class-aware flip rates 0.040 and 0.072 vs frozen 0.209, with intervals above zero; no SC or
-  distilled arm survives the flip-reduction bootstrap. B2: no pair passes the null gate.
+- [Fact] KAUH: LoRA and LoRA + class-aware flip rates 0.040 and 0.072 vs 0.209 for the 23/10 AuscultTrust (BEATs + PAFA + static SC; labelled "frozen" in
+  the 28/10 report, not a no-SC base), with intervals above zero; no SC or distilled arm survives the flip-reduction bootstrap. B2: no pair is tested when
+  that SC model is the base (2 of 6 with the no-SC baseline).
 - [Fact] Distillation (student at epoch 66, soft targets from the G4 or G7 teacher ensemble; gate fixed before results):
   kd_g4_k1 official 64.15 (+1.02 vs anchor, 4 of 5 seeds above), kd_g4_k2 63.47 (+0.33), kd_g7_k2 62.75 (-0.38, stopped).
 - [Fact] Distilled G4 LODO macro (seeds 0-2): kd_g4_k1 61.72, kd_g4_k2 61.77 vs anchor 61.22 and teacher ensemble 62.26.

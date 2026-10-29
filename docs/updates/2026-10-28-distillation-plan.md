@@ -2,7 +2,7 @@
 
 | Type | Date | Status |
 | --- | --- | --- |
-| plan | 2026-10-28 | proposed, not launched |
+| plan | 2026-10-28 | executed 28/10 as `distill-20261028` (results: `reports/2026-10-28-target-distillation-results.md`) |
 
 Question: can a single BEATs + PAFA + static-SC + gain6 student recover the +1.0 official and +0.5 LODO-macro gain of the equal-weight
 ensembles of the target-evaluation arms? Evidence cut-off: 28/10/2026, campaign `target-20261027` (175 fits complete).

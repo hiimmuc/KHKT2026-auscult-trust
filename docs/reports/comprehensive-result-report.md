@@ -36,7 +36,8 @@
 10. [Fact] Stage 12, ensemble và distillation: ensemble G4 64.11 official / 62.22 LODO macro; student distill K1 đạt 64.15 official (+1.02 so với anchor) và giữ khoảng một nửa lợi ích LODO (+0.50 trên 3 seed) (mục 17.7).
 11. [Fact] Mô hình ghép `class_aware_multiscale` (29/10): CV nguồn +0.378 so với anchor, thấp hơn class-aware light riêng (+1.458); hai cải tiến không cộng dồn; chưa đánh giá đích (mục 17.8).
 12. [Fact] Đánh giá đóng băng cuối cho student (29/10, mục 17.9): flip KAUH-A 0.228 (giảm +0.217 so với baseline) không hơn AuscultTrust cũ (0.209) hay anchor (0.204); tỷ lệ uncertain giảm (ICBHI 0.525 so với 0.603) với độ phủ KAUH thấp hơn một chút. Bản sinh đôi không SC, KAUH ghép cặp (mục 17.11: SC lúc huấn luyện giảm flip +0.061 [+0.029, +0.093]; D độ phủ +0.018 [-0.013, +0.041]) và LODO 5 seed (mục 17.10): SC không đóng góp ở split chính thức cho student (+0.2 ± 0.8; twin 64.0) nhưng nâng LODO macro (+1.8 ± 1.2, 5/5 seed); lợi ích so với baseline đến từ công thức huấn luyện. H2 vẫn không kiểm định được (không fold nào qua null gate).
-13. [Pending] Phổi giả: H1, H3, H2 đồng chính. Tiêu chí đăng ký v9 không đổi.
+13. [Fact] Phát lại qua phổi giả tier 1 (29/10, mục 17.12): phát lại không xử lý làm đổi hơn nửa dự đoán (flip 0.55-0.58); chuỗi không nhãn `tdn_sc` đưa về 0.38-0.41; chỉ để đánh giá, mô hình là ensemble 5 seed của student, chuỗi xử lý chọn trên chính các bản thu.
+14. [Pending] Phổi giả đăng ký: H1, H3, H2 đồng chính. Tiêu chí đăng ký v9 không đổi.
 
 ### 1.3 Bảng xếp hạng: mọi mô hình chính, hai điểm cuối và giao thức
 
@@ -1496,6 +1497,47 @@ Sàng lọc bản ghi (hiệu chuẩn ICBHI, trung bình cửa sổ): uncertain 
 - [Fact] Về độ phủ conformal (B2), student không khác twin có ý nghĩa (D +0.018, khoảng chứa 0); chỉ SC chỉ lúc kiểm thử có D dương có ý nghĩa (+0.034). Không có tuyên bố phần cứng: KAUH là bộ lọc phần mềm trên cùng bản ghi.
 - [Interpretation] Kết hợp với mục 17.10: SC của student cho lợi ích đo được ở bất biến bộ lọc (+0.061) và LODO macro (+1.8), không phải ở điểm Score trên split chính thức (+0.2). Bằng chứng vật lý (phổi giả đăng ký) vẫn [Pending].
 <!-- end 17.11 -->
+
+<!-- begin 17.12 -->
+### 17.12 Phát lại qua phổi giả tier 1: âm ICBHI → loa trong phổi giả → micro điện cực / điện thoại (29/10)
+
+[Fact] Nguồn: `docs/reports/2026-10-29-replay-phone-electret.md` (đối chiếu nguyên văn, không tính lại). Mỗi bản ghi ICBHI được loa trong phổi giả phát ra và thu tại bề mặt phổi giả bằng hai thiết bị thu (micro điện cực và micro điện thoại);
+20 bản ghi mỗi thiết bị (bệnh nhân 101-107, bốn thiết bị ICBHI), 48 kHz đơn kênh. Dữ liệu tier 1: **chỉ đánh giá, trọng số đóng băng**; các bản thu được cung cấp sẵn, không phát lại mới trong phiên đó.
+Mô hình đánh giá là biến thể triển khai của student: ensemble softmax 5 seed của `kd_g4_k1` (`kd_g4_k1_ens5`); AuscultTrust được định nghĩa là student đơn (quyết định 29/10).
+
+So sánh với âm gốc (trung vị trên 20 bản thu):
+
+| Measure (median over 20 takes) | electret | phone |
+| --- | ---: | ---: |
+| Playback SNR (dB) | 16.7 | 8.2 |
+| Alignment peak (SD above other lags) | 41 | 11 |
+| Clock drift (ppm) | -4 | 2 |
+| Per-cycle residual delay SD (ms) | 0.55 | 0.19 |
+| Magnitude-squared coherence, 50-2000 Hz, PSD-weighted | 0.15 | 0.02 |
+| Log-spectral distance to original (dB, level-free) | 5.3 | 6.6 |
+
+Kết quả: tỷ lệ chu kỳ đổi dự đoán bốn lớp so với dự đoán của chính mô hình trên âm gốc (flip), flip hai lớp (bình thường so với bất thường) và Score bốn lớp theo nhãn chu kỳ (20 bản thu, mọi chu kỳ):
+
+| Variant | Flip electret | Flip phone | flip2 electret | flip2 phone | Score electret | Score phone |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| raw | 0.547 | 0.581 | 0.436 | 0.441 | 45.2 | 43.6 |
+| raw_sc | 0.503 | 0.430 | 0.402 | 0.352 | 49.2 | 53.6 |
+| raw_sc_rec | 0.492 | 0.458 | 0.385 | 0.385 | 52.4 | 48.5 |
+| dn_sc | 0.413 | 0.458 | 0.313 | 0.341 | 55.6 | 53.9 |
+| dn_scd | 0.430 | 0.374 | 0.324 | 0.302 | 54.8 | 58.5 |
+| **tdn_sc** | **0.408** | 0.380 | **0.313** | 0.291 | **55.8** | 58.6 |
+| tdn_scd | 0.436 | **0.358** | 0.324 | **0.285** | 54.1 | **60.9** |
+| eq | 0.480 | 0.402 | 0.363 | 0.291 | 52.7 | 57.7 |
+| dn_eq | 0.436 | 0.363 | 0.335 | 0.302 | 55.7 | 60.7 |
+| tdn_eq | 0.436 | 0.346 | 0.341 | 0.296 | 55.1 | 60.6 |
+
+- [Fact] Phát lại không xử lý làm đổi hơn nửa số dự đoán (flip 0.55 điện cực, 0.58 điện thoại) và giảm 27-38 điểm Score trên các bản thu thuộc tập kiểm thử (một seed: 26-37 so với 63.8 trên âm gốc).
+- [Fact] SC một mình giảm flip 0.04 (điện cực) và 0.15 (điện thoại). Chuỗi không nhãn `band-pass → bỏ tone → khử nhiễu → SC tĩnh của thiết bị thu` (`tdn_sc`) đưa flip về 0.41 (điện cực) và 0.38 (điện thoại), Score 56-59 so với 44-45 khi để nguyên.
+- [Fact] Bộ cân bằng đáp ứng bằng bản gốc ghép cặp (`eq`, `tdn_eq`) không hơn `tdn_sc` không nhãn; TTA-EQ không thay đổi gì.
+- [Interpretation] Phần còn lại (flip khoảng 0.4) đến từ nội dung bị chuỗi phát lại phá hủy (coherence 0.02-0.15, SNR điện thoại 8 dB), không phải hình dạng phổ; hiệu chỉnh phổ và khử nhiễu không khôi phục được.
+- [Deviation] Chuỗi xử lý tín hiệu được chọn trên chính các bản thu này (ngưỡng tone 6 dB, Wiener 1.5, sàn nhiễu phân vị 15, xếp hạng biến thể), vì vậy các số xử lý là lạc quan cho bản thu mới; chỉ 20 bản thu mỗi thiết bị, 9 bản/thiết bị thuộc tập kiểm thử (182 chu kỳ); chênh lệch flip 0.03 nằm trong nhiễu. Đây là một phổi giả, một vị trí loa, và là phát lại âm đã ghi (không có sinh lý mới), không phải ống nghe trên người.
+- [Pending] H1, H3 và H2 đồng chính của nghiên cứu đăng ký (phổi giả với ít nhất ba đầu thu khác nhau về phần cứng, đo lặp lại) vẫn chưa thực hiện; tiêu chí đăng ký không đổi. Nguồn của các đường nhiễu băng hẹp và tiếng lách cách tần thấp chưa xác định.
+<!-- end 17.12 -->
 
 ## 18. Caveats
 

@@ -52,7 +52,7 @@ Adding the weak LoRA arms does not help the official score and lowers the LODO m
 
 ## 3. KAUH (frozen models, seeds 0-4)
 
-Base for paired contrasts: `frozen` (no SC). Flip rate and TV distance across the three vendor filters (windows).
+Base for paired contrasts: `frozen` is the 23/10 AuscultTrust: BEATs + PAFA with trained static SC, epoch 100 (its `sc` flag is true and its checkpoint hashes equal `final-pafa-static/auscult`). [Correction 29/10] Earlier text called it "no SC"; the no-SC baseline of the 23/10 decision (KAUH flip 0.445) is `final-pafa-static/baseline`, so every "vs frozen" contrast in this section is against an SC model. Flip rate and TV distance across the three vendor filters (windows).
 Full table: `outputs/kauh/target-20261027/kauh_summary.md`, `outputs/kauh/distill-20261028/kauh_summary.md`.
 
 | Condition | Flip rate | TV distance | Flip reduction vs frozen [95% bootstrap] |
@@ -74,8 +74,8 @@ worst of the set.
 
 [Interpretation] The flip reduction is more likely a sign of low-confidence collapse than of robustness; not tested.
 
-[Fact] B2 (conformal coverage across filter pairs): 0 of 6 ordered pairs passes the null p95 gate for the frozen base and for
-every arm, so no D statistic is tested. Same result as the registered core.
+[Fact] B2 (conformal coverage across filter pairs): 0 of 6 ordered pairs passes the null p95 gate for the frozen base (an SC model, whose |Delta| is already below the gate) and for
+every arm, so no D statistic is tested. [Correction 29/10] With the no-SC baseline as base, 2 of 6 pairs are tested (23/10 and 29/10 frozen evaluations); the 0 of 6 here follows from using an SC model as base.
 
 ## 4. Recording screening (ICBHI calibration, applied to KAUH)
 
@@ -83,7 +83,7 @@ Summary: `outputs/screening/target-20261027/screening_summary.md`, `outputs/scre
 Columns: coverage, Δ, size, refer, uncertain, rerecord, screen_se/sp, argmax_se/sp, abnormal share; aggregation mean or max over
 cycles of a recording; 20 calibration splits; 5 seeds.
 
-[Fact] With mean aggregation, KAUH Bell coverage for the anchor is 0.805 (uncertain 0.471), against the frozen base 0.831
+[Fact] With mean aggregation, KAUH Bell coverage for the anchor is 0.805 (uncertain 0.471), against the frozen base (the 23/10 AuscultTrust with SC) 0.831
 (uncertain 0.464). Distilled kd_g4_k1 gives 0.790 with uncertain 0.311; kd_g4_k2 0.800 / 0.327; kd_g7_k2 0.813 / 0.350.
 Differences are small and not paired-tested.
 
@@ -143,7 +143,7 @@ no patient-level bootstrap; no distillation with out-of-fold or augmented-view t
 
 ## 7. Caveats
 
-- One split, 5 seeds (official), 3 seeds (LODO); bootstrap over seeds only, no patient-level bootstrap.
+- One split, 5 seeds (official), 3 seeds (LODO); bootstrap over seeds only for Score differences (no patient-level bootstrap); the KAUH and B2 intervals are bootstrapped over patients and seeds.
 - G4 selection and the ensemble subset choice used the same test scores; the seed-split check (section 2) is the only held-out
   check and it is on the same split.
 - The LODO students used only the teacher members trained without that device; the teacher LODO files for four devices were

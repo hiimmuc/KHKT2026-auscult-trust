@@ -5,7 +5,7 @@
 | handoff | 2026-10-27 | current |
 
 For the next session. Read this file, then `CLAUDE.md` (repo rules), `report.md` v6 (results by plan stage; stage 12 =
-section 17), `docs/updates/2026-10-27-target-evaluation-plan.md` (proposed next run) and
+section 17), `docs/updates/2026-10-27-target-evaluation-plan.md` (executed 27-28/10) and
 `docs/decision-logs/2026-10-23-final-model.md` (final decision). The proposal is v10
 (`docs/updates/research-proposal-v10-en.md`); the registered study is v9 with amendments 1-5. Archived handoffs:
 older handoffs were folded into `report.md` (sections 4 and 17) and removed on 27/10 (`docs/README.md`); the follow-up campaign note is
@@ -49,16 +49,17 @@ contain the uncommitted tree (open issue 1), so edit the main checkout until it 
 ## 1. State
 
 - [Fact] Project definition (user, 29/10): AuscultTrust = distilled student `kd_g4_k1` (BEATs + PAFA + trained static SC, gain6, epoch 66, soft targets from the G4 teacher ensemble)
-  + split conformal; previous definition (BEATs + PAFA + static SC, epoch 100) is a reference row; baseline for the SC contrast = same without SC [Assumption]. See
-  `docs/decision-logs/2026-10-29-final-model-distilled.md`. [Pending] frozen final evaluation of the student; the serving bundle is still the 23/10 model.
+  + split conformal; previous definition (BEATs + PAFA + static SC, epoch 100) is a reference row; project baseline (23/10) = same without SC; the student's SC contrast uses its no-SC twin. See
+  `docs/decision-logs/2026-10-29-final-model-distilled.md`. Frozen evaluation of the student done 29/10 (`final-kd-g4-k1`, `final-kd-g4-k1-twin`, `student-final-20261029`; results in
+  `docs/reports/comprehensive-result-report.md` 17.9-17.11); the serving bundle is still the 23/10 model.
 - [Fact] No process of ours runs on A, B, D or E except the demo API on A (port 8000, since 27/10 10:51). The stage-12
   campaigns are finished: 150 five-fold source-CV fits (6 arms x 5 folds x 5 seeds), 25 anchor finals (`gain6-cv66`),
   3-fold screens of event heads and of the five recipes + refined KD.
 - [Fact] Stage-12 results are source-CV only. Class-aware light +1.458 (selected epoch 4), LoRA + class-aware +0.695, LoRA
   +0.607, SWA +0.076, multi-scale -0.321 against the epoch-66 anchor; the 3-fold screens passed none. Event heads (-1.637)
   and refined KD (+0.009) failed their source gates (gates recomputed on 27/10; the controllers had not recorded them).
-- [Pending] Official, LODO and KAUH for the five recipes, and a PCSL-5 non-class-aware control. Plan, cost
-  (about 54 slot-hours for tiers 0 + 1) and decisions: `docs/updates/2026-10-27-target-evaluation-plan.md`.
+- [Done 28/10] Official, LODO and KAUH for the five recipes and the PCSL-5 control (`target-20261027`, 175 fits) and ensemble distillation (`distill-20261028`):
+  `docs/reports/2026-10-28-target-distillation-results.md` (its "frozen" row is the SC model, see the correction there).
 
 ## 2. Where things are
 

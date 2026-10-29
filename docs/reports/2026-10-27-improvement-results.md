@@ -2,7 +2,9 @@
 
 | Type | Date | Status |
 | --- | --- | --- |
-| report | 2026-10-27 | current |
+| report | 2026-10-27 | current as of 27/10; target results superseded by 2026-10-28 |
+
+> Update 28/10: the five recipes were evaluated on the official split, LODO and KAUH (`target-20261027`): class-aware light 58.66 official, LoRA 57.05 (anchor 63.13); the source-CV gains did not transfer (`2026-10-28-target-distillation-results.md`). Statements below that call these endpoints unrun describe the 27/10 state.
 
 ## Phạm vi và trạng thái
 

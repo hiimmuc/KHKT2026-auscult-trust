@@ -1,0 +1,2 @@
+# Twin of the distilled student with spectrum correction off; the random per-bin gain of sc_gain.yaml stays.
+spectrum_correction: false

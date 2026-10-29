@@ -23,7 +23,7 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
 | Endpoint | kd_g4_k1 | Anchor | Previous AuscultTrust | G4 ensemble |
 | --- | ---: | ---: | ---: | ---: |
 | Official Score, seeds 0-4 | 64.15 | 63.13 (+1.02; 4 of 5 seeds above) | 62.3 ± 0.9 | 64.11 |
-| LODO macro, seeds 0-2 | 61.72 | 61.22 on the same seeds | 60.3 ± 0.8 (seeds 0-4) | 62.26 on the same seeds |
+| LODO macro, seeds 0-4 | 62.2 ± 2.0 | 61.6 ± 1.4 | 60.3 ± 0.8 | 62.26 (seeds 0-2 only) |
 | KAUH flip rate (Bell, Diaphragm, Extended) | 0.228 | 0.204 | 0.209 (frozen model, 23/10) | not run |
 | KAUH flip reduction vs the 23/10 AuscultTrust (SC) [95% bootstrap over patients and seeds; the 28/10 report calls that model "frozen"] | -0.019 [-0.082, +0.038] | +0.004 [-0.040, +0.045] | 0 | |
 | Recording screening, Bell, mean aggregation | coverage 0.790, uncertain 0.311 | 0.805, 0.471 | 0.831, 0.464 | |
@@ -31,7 +31,7 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
 
 ## What the decision does not claim
 
-- [Fact] The 1.02-point gain over the anchor and the LODO gain (+0.50 over three seeds, seed 1 +2.1, seeds 0 and 2 negative) depend on the seed:
+- [Fact] The 1.02-point gain over the anchor and the LODO gain (LODO macro +0.6 ± 1.0 over five seeds, 3 of 5 positive) depend on the seed:
   per-seed official deltas are +0.8, +1.8, -0.5, +1.5, +1.4. The student keeps about half of the ensemble's LODO gain.
 - [Fact] The teacher group G4 was chosen on the same test scores it is evaluated on. The seed-split check (chosen on seeds 0-1, scored on 2-4) gives 64.15 / 62.60
   against the anchor's 63.56 / 62.45, a small gain on the same split.

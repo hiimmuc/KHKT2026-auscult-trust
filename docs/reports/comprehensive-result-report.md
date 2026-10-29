@@ -18,7 +18,7 @@
 ### 1.1 Trạng thái
 
 [Fact] Mọi lần train của nghiên cứu chính và của stage 12 đã xong (campaign cuối `combo-20261028` xong 29/10).
-**Quyết định 29/10 (người dùng): AuscultTrust = student distill `kd_g4_k1`** = BEATs + PAFA + SC tĩnh đã train, recipe gain6, epoch 66, train bằng soft target (K1) từ ensemble G4 (anchor, control PCSL-5, class-aware light, multi-scale), cộng split conformal; một mô hình khi phục vụ. Official 64.15 (+1.02 so với anchor 63.13), LODO macro 61.72 trên 3 seed (anchor 61.22 cùng seed). Chi tiết và giới hạn: `docs/decision-logs/2026-10-29-final-model-distilled.md`.
+**Quyết định 29/10 (người dùng): AuscultTrust = student distill `kd_g4_k1`** = BEATs + PAFA + SC tĩnh đã train, recipe gain6, epoch 66, train bằng soft target (K1) từ ensemble G4 (anchor, control PCSL-5, class-aware light, multi-scale), cộng split conformal; một mô hình khi phục vụ. Official 64.2 ± 0.4 (+1.0 so với anchor 63.1), LODO macro 62.2 ± 2.0 trên 5 seed (anchor 61.6 ± 1.4; mô hình cũ 60.3 ± 0.8). Chi tiết và giới hạn: `docs/decision-logs/2026-10-29-final-model-distilled.md`.
 Định nghĩa trước (quyết định 23/10) là BEATs + PAFA + SC tĩnh đã train, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8; giữ làm hàng tham chiếu. Baseline của dự án (quyết định 23/10, không đổi) = BEATs + PAFA không SC, epoch 100. Tương phản SC của student dùng bản sinh đôi không SC của nó (đang huấn luyện và đánh giá); chưa có thì chưa tuyên bố "SC giúp student" (xem Phụ lục B, mục 3).
 Đánh giá đóng băng cuối cho mô hình mới đã chạy phần split chính thức, KAUH A/B2 và sàng lọc (mục 17.9); bản sinh đôi không SC, LODO 5 seed và H2 từng fold đang chạy; bundle phục vụ chưa đổi. Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
 
@@ -35,7 +35,7 @@
 9. [Fact] Stage 12, CV nguồn: class-aware light +1.458, LoRA +0.607 trên 5 fold x 5 seed (mục 17.5). **Đánh giá đích (mục 17.7) không xác nhận**: class-aware light 58.66 official (anchor 63.13), LoRA 57.05, LoRA + class-aware 54.84. Lợi ích CV nguồn không chuyển sang split chính thức hay LODO.
 10. [Fact] Stage 12, ensemble và distillation: ensemble G4 64.11 official / 62.22 LODO macro; student distill K1 đạt 64.15 official (+1.02 so với anchor) và giữ khoảng một nửa lợi ích LODO (+0.50 trên 3 seed) (mục 17.7).
 11. [Fact] Mô hình ghép `class_aware_multiscale` (29/10): CV nguồn +0.378 so với anchor, thấp hơn class-aware light riêng (+1.458); hai cải tiến không cộng dồn; chưa đánh giá đích (mục 17.8).
-12. [Fact] Đánh giá đóng băng cuối cho student (29/10, mục 17.9): flip KAUH-A 0.228 (giảm +0.217 so với baseline) không hơn AuscultTrust cũ (0.209) hay anchor (0.204); tỷ lệ uncertain giảm (ICBHI 0.525 so với 0.603) với độ phủ KAUH thấp hơn một chút. Bản sinh đôi không SC, LODO 5 seed, H2 từng fold chưa xong (đang chạy).
+12. [Fact] Đánh giá đóng băng cuối cho student (29/10, mục 17.9): flip KAUH-A 0.228 (giảm +0.217 so với baseline) không hơn AuscultTrust cũ (0.209) hay anchor (0.204); tỷ lệ uncertain giảm (ICBHI 0.525 so với 0.603) với độ phủ KAUH thấp hơn một chút. Bản sinh đôi không SC và LODO 5 seed (mục 17.10): SC không đóng góp ở split chính thức cho student (+0.2 ± 0.8; twin 64.0) nhưng nâng LODO macro (+1.8 ± 1.3 trên 4 seed có đủ); lợi ích so với baseline đến từ công thức huấn luyện. H2 vẫn không kiểm định được (không fold nào qua null gate).
 13. [Pending] Phổi giả: H1, H3, H2 đồng chính. Tiêu chí đăng ký v9 không đổi.
 
 ### 1.3 Bảng xếp hạng: mọi mô hình chính, hai điểm cuối và giao thức
@@ -75,7 +75,8 @@ Các hàng thuộc các giao thức khác nhau (AST epoch 50 / BEATs epoch 100 /
 | Stage 12 (target) | LoRA + class-aware (epoch 43) | 54.84 | 55.11 | CV nguồn | kém nhất |
 | Stage 12 (ensemble) | G7 (bảy arm) | 64.21 ± 0.74 | 62.09 ± 1.36 | cuối | chọn trên test, lạc quan |
 | Stage 12 (ensemble) | G4 (anchor, control, class-aware light, multi-scale) | 64.11 ± 0.65 | 62.22 ± 1.21 | cuối | chọn trên test, lạc quan |
-| Stage 12 (distill) | student kd_g4_k1 | 64.15 | 61.72 (3 seed) | 66 | +1.02 official; qua cổng |
+| Stage 12 (distill) | **student kd_g4_k1 (AuscultTrust, 29/10)** | 64.2 ± 0.4 | 62.2 ± 2.0 (5 seed) | 66 | +1.0 official so với anchor; qua cổng; mục 17.10 |
+| Stage 12 (twin) | kd_g4_k1_nosc (student tắt SC) | 64.0 ± 0.9 | 60.5 ± 3.2 (4 seed; còn LittC2SE seed 3) | 66 | SC cho student: +0.2 official, +1.8 LODO macro; mục 17.10 |
 | Stage 12 (distill) | student kd_g4_k2 | 63.47 | 61.77 (3 seed) | 66 | +0.33; qua cổng |
 | Stage 12 (distill) | student kd_g7_k2 | 62.75 | n/a | 66 | -0.38; không qua cổng |
 | Stage 12 (combo) | class_aware_multiscale | chưa đo | chưa đo | 4 | CV nguồn 60.965, +0.378 so với anchor (mục 17.8) |
@@ -1376,6 +1377,100 @@ Sàng lọc bản ghi (hiệu chuẩn ICBHI, nửa đánh giá ICBHI và KAUH, g
 Khi đủ, các script sau sẽ tạo: bảng LODO 5 seed, null gate và H2 từng fold, unseen-patient view và best-on-test (`scripts/student_final_report.py --h2`); KAUH ghép cặp student so với bản sinh đôi và nhánh SC chỉ lúc kiểm thử (`scripts/final_evaluation_twin.py`).
 Cho đến lúc đó: mọi tuyên bố "SC giúp mô hình student" **không có cơ sở trực tiếp**; chỉ dựa được vào cặp BEATs PAFA epoch 100 (62.3 so với 61.7 official, 60.3 so với 58.8 LODO macro).
 
+<!-- begin 17.10 -->
+### 17.10 Student `kd_g4_k1` so với bản sinh đôi không SC, anchor, AuscultTrust cũ và baseline: split chính thức, unseen-patient, best-on-test và LODO 5 seed (29/10)
+
+[Fact] Năm điều kiện, seed 0-4 ghép cặp, epoch cuối đã ghi: **baseline** (BEATs + PAFA không SC, epoch 100), **previous** (AuscultTrust cũ, BEATs + PAFA + SC tĩnh, epoch 100), **anchor** (`gain6-cv66`, epoch 66),
+**student** (`kd_g4_k1`, epoch 66, SC tĩnh), **twin** (`kd_g4_k1_nosc`: cùng công thức và soft target G4, tắt SC; epoch 66). Tạo bằng `scripts/student_final_report.py --h2` từ `report.json` và `test_preds.npz` của từng unit;
+twin và student seed 3-4 từ campaign `student-final-20261029`, student seed 0-2 từ `distill-20261028`. Dữ liệu chưa đủ: fit twin LittC2SE seed 3 và đánh giá KAUH ghép cặp student - twin còn chạy; các số có twin ở LittC2SE chỉ có 4 seed.
+
+Split chính thức (Sp, Se, Score, HS; worst-dev = thiết bị kém nhất; unseen-patient = bỏ bệnh nhân 156 và 218; best-on-test là **lạc quan**, chọn epoch trên test):
+
+| Condition | Sp | Se | Score | HS | Worst-dev Score | Unseen-patient Score | Best on test [optimistic] |
+|---|---|---|---|---|---|---|---|
+| baseline | 73.2 ± 2.7 | 50.2 ± 2.9 | 61.7 ± 0.7 | 59.5 ± 1.3 | 58.9 ± 0.5 | 61.5 ± 0.6 | 63.2 ± 0.6 |
+| previous | 75.6 ± 3.1 | 48.9 ± 2.9 | 62.3 ± 0.9 | 59.3 ± 1.3 | 58.9 ± 1.4 | 62.0 ± 0.9 | 64.6 ± 0.4 |
+| anchor | 75.3 ± 3.1 | 50.9 ± 1.5 | 63.1 ± 1.2 | 60.7 ± 0.8 | 60.0 ± 2.0 | 63.0 ± 1.2 | 65.0 ± 0.4 |
+| student | 74.5 ± 1.3 | 53.8 ± 0.8 | 64.2 ± 0.4 | 62.5 ± 0.2 | 60.6 ± 0.6 | 64.0 ± 0.4 | 65.2 ± 0.3 |
+| twin | 75.6 ± 3.4 | 52.4 ± 1.7 | 64.0 ± 0.9 | 61.8 ± 0.4 | 60.7 ± 1.4 | 63.9 ± 0.8 | 64.9 ± 0.5 |
+
+Hiệu ghép cặp theo seed (trung bình ± SD; dương = điều kiện đầu cao hơn):
+
+| Contrast | Δ Score | Δ Unseen-patient | Δ Sp | Δ Se | seeds above 0 |
+|---|---|---|---|---|---|
+| student - twin | 0.2 ± 0.8 | 0.1 ± 0.6 | -1.1 ± 3.3 | 1.4 ± 1.8 | 3/5 |
+| student - anchor | 1.0 ± 0.9 | 1.0 ± 0.9 | -0.8 ± 2.2 | 2.8 ± 1.0 | 4/5 |
+| student - previous | 1.9 ± 0.9 | 2.0 ± 0.9 | -1.1 ± 4.2 | 4.9 ± 3.6 | 5/5 |
+| student - baseline | 2.4 ± 0.7 | 2.5 ± 0.8 | 1.3 ± 3.9 | 3.6 ± 3.6 | 5/5 |
+| twin - baseline | 2.2 ± 1.2 | 2.4 ± 1.1 | 2.3 ± 4.3 | 2.1 ± 3.5 | 5/5 |
+| previous - baseline | 0.5 ± 1.5 | 0.5 ± 1.4 | 2.4 ± 1.9 | -1.3 ± 1.3 | 4/5 |
+
+LODO (Score trên thiết bị bị giữ kín; số trong ngoặc vuông = số seed có sẵn; macro chỉ tính các seed đủ cả bốn thiết bị):
+
+| Condition | Meditron | LittC2SE | Litt3200 | AKGC417L | Macro (seeds with all 4 devices) |
+|---|---|---|---|---|---|
+| baseline | 57.2 ± 2.4 [5] | 62.0 ± 1.4 [5] | 59.7 ± 3.3 [5] | 56.4 ± 1.6 [5] | 58.8 ± 1.4 [5] |
+| previous | 57.6 ± 2.8 [5] | 67.5 ± 1.1 [5] | 61.5 ± 6.0 [5] | 54.6 ± 0.5 [5] | 60.3 ± 0.8 [5] |
+| anchor | 60.3 ± 1.6 [5] | 67.2 ± 2.3 [5] | 63.6 ± 7.5 [5] | 55.4 ± 1.5 [5] | 61.6 ± 1.4 [5] |
+| student | 60.1 ± 1.0 [5] | 69.9 ± 1.4 [5] | 63.7 ± 8.6 [5] | 55.2 ± 1.1 [5] | 62.2 ± 2.0 [5] |
+| twin | 57.9 ± 1.8 [5] | 66.5 ± 1.9 [4] | 60.8 ± 8.1 [5] | 56.8 ± 1.4 [5] | 60.5 ± 3.2 [4] |
+
+Hiệu macro ghép cặp theo seed chung:
+
+| Contrast | Δ macro Score | per-seed Δ |
+|---|---|---|
+| student - twin | 1.8 ± 1.3 [4 seeds] | +2.99 / +0.72 / +0.51 / +2.88 |
+| student - anchor | 0.6 ± 1.0 [5 seeds] | -0.41 / +2.12 / -0.21 / +0.51 / +1.04 |
+| student - previous | 1.9 ± 1.6 [5 seeds] | -0.72 / +3.58 / +2.05 / +2.58 / +2.14 |
+| student - baseline | 3.4 ± 0.7 [5 seeds] | +2.43 / +3.57 / +3.83 / +3.23 / +4.12 |
+| twin - baseline | 1.7 ± 1.8 [4 seeds] | -0.56 / +2.85 / +3.32 / +1.23 |
+| previous - baseline | 1.5 ± 1.2 [5 seeds] | +3.15 / -0.00 / +1.78 / +0.64 / +1.97 |
+
+LODO theo thiết bị: Sp, Se, Score, HS, độ phủ conformal 90% (LAC), sai lệch độ phủ đã khớp tỷ lệ lớp (Delta, dương = thiếu phủ), cỡ tập, ngưỡng bền (q_robust):
+
+| Held-out device | Arm | Seeds | Test cycles | Sp | Se | Score | HS | Coverage | Delta (prior-matched) | Set size | Singleton | Empty | q_robust coverage | q_robust Delta | q_robust set size |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Meditron | baseline | 5 | 1370 | 85.6 | 28.7 | 57.2 | 43.0 | 0.918 | +0.033 | 1.94 | 0.35 | 0.000 | 0.939 | -0.007 | 2.24 |
+| Meditron | previous | 5 | 1370 | 78.7 | 36.5 | 57.6 | 49.7 | 0.902 | +0.062 | 1.77 | 0.42 | 0.000 | 0.940 | +0.003 | 2.18 |
+| Meditron | anchor | 5 | 1370 | 80.7 | 39.9 | 60.3 | 53.3 | 0.916 | +0.030 | 1.78 | 0.39 | 0.000 | 0.949 | -0.020 | 2.15 |
+| Meditron | student | 5 | 1370 | 82.1 | 38.0 | 60.1 | 51.7 | 0.913 | +0.040 | 1.69 | 0.39 | 0.000 | 0.938 | +0.005 | 2.01 |
+| Meditron | twin | 5 | 1370 | 83.0 | 32.9 | 57.9 | 47.0 | 0.902 | +0.062 | 1.72 | 0.38 | 0.000 | 0.944 | -0.008 | 2.10 |
+| LittC2SE | baseline | 5 | 594 | 90.8 | 33.2 | 62.0 | 48.5 | 0.857 | +0.118 | 1.95 | 0.49 | 0.000 | 0.912 | +0.032 | 2.41 |
+| LittC2SE | previous | 5 | 594 | 95.3 | 39.7 | 67.5 | 55.9 | 0.880 | +0.109 | 1.86 | 0.54 | 0.000 | 0.906 | +0.072 | 2.15 |
+| LittC2SE | anchor | 5 | 594 | 95.7 | 38.7 | 67.2 | 54.9 | 0.869 | +0.095 | 1.68 | 0.60 | 0.000 | 0.908 | +0.039 | 2.00 |
+| LittC2SE | student | 5 | 594 | 96.8 | 43.0 | 69.9 | 59.5 | 0.908 | +0.050 | 1.60 | 0.54 | 0.000 | 0.957 | -0.034 | 2.04 |
+| LittC2SE | twin | 4 | 594 | 94.3 | 38.7 | 66.5 | 54.6 | 0.895 | +0.059 | 1.74 | 0.40 | 0.000 | 0.926 | +0.021 | 2.02 |
+| Litt3200 | baseline | 5 | 481 | 88.5 | 30.9 | 59.7 | 44.5 | 0.966 | -0.002 | 2.76 | 0.10 | 0.000 | 0.983 | -0.048 | 3.22 |
+| Litt3200 | previous | 5 | 481 | 88.2 | 34.8 | 61.5 | 48.3 | 0.975 | -0.045 | 3.01 | 0.06 | 0.000 | 0.983 | -0.072 | 3.22 |
+| Litt3200 | anchor | 5 | 481 | 80.8 | 46.4 | 63.6 | 58.0 | 0.988 | -0.065 | 3.32 | 0.00 | 0.000 | 0.995 | -0.088 | 3.63 |
+| Litt3200 | student | 5 | 481 | 75.9 | 51.5 | 63.7 | 58.6 | 0.947 | +0.025 | 2.33 | 0.06 | 0.000 | 0.963 | -0.016 | 2.70 |
+| Litt3200 | twin | 5 | 481 | 74.1 | 47.4 | 60.8 | 54.2 | 0.928 | +0.076 | 2.10 | 0.10 | 0.000 | 0.956 | +0.006 | 2.60 |
+| AKGC417L | baseline | 5 | 4216 | 84.7 | 28.0 | 56.4 | 41.8 | 0.809 | +0.002 | 2.26 | 0.35 | 0.000 | 0.888 | -0.039 | 2.68 |
+| AKGC417L | previous | 5 | 4216 | 93.2 | 15.9 | 54.6 | 27.2 | 0.700 | +0.061 | 1.89 | 0.40 | 0.000 | 0.830 | -0.002 | 2.39 |
+| AKGC417L | anchor | 5 | 4216 | 90.6 | 20.2 | 55.4 | 32.8 | 0.660 | +0.082 | 1.67 | 0.56 | 0.000 | 0.755 | +0.029 | 2.20 |
+| AKGC417L | student | 5 | 4216 | 91.6 | 18.9 | 55.2 | 31.0 | 0.648 | +0.098 | 1.36 | 0.70 | 0.000 | 0.706 | +0.066 | 1.54 |
+| AKGC417L | twin | 5 | 4216 | 86.3 | 27.2 | 56.8 | 41.1 | 0.734 | +0.059 | 1.57 | 0.55 | 0.000 | 0.787 | +0.026 | 1.77 |
+
+Null gate (|Delta| của baseline so với phân vị 95 của |Delta| dưới các lần chia lại hoán đổi được của bệnh nhân hiệu chuẩn):
+
+| Device | baseline abs Delta | null p95 | tested |
+|---|---|---|---|
+| Meditron | 0.035 | 0.113 | no |
+| LittC2SE | 0.118 | 0.150 | no |
+| Litt3200 | 0.044 | 0.115 | no |
+| AKGC417L | 0.032 | 0.115 | no |
+
+**Đọc kết quả:**
+
+- [Fact] **SC không đóng góp được ở split chính thức cho student**: student 64.2 ± 0.4 so với twin 64.0 ± 0.9, hiệu +0.2 ± 0.8 (3/5 seed dương); unseen-patient +0.1 ± 0.6. Phần lớn lợi ích của student so với baseline (+2.4 ± 0.7, 5/5 seed) có ở cả twin không SC (+2.2 ± 1.2, 5/5 seed): nguồn của lợi ích là công thức huấn luyện (gain6 cộng distillation từ G4), không phải SC.
+- [Fact] **SC có lợi ở LODO macro**: student 62.2 ± 2.0 so với twin 60.5 ± 3.2, hiệu +1.8 ± 1.3 trên các seed có đủ (dương ở mọi seed đã có). Lợi ích đến từ LittC2SE, Litt3200 và Meditron; AKGC417L giảm (55.2 so với 56.8), giống mô hình cũ (54.6 so với baseline 56.4).
+- [Fact] So với anchor và mô hình cũ: student - anchor +1.0 ± 0.9 official (4/5 seed), LODO macro +0.6 ± 1.0 (3/5 seed dương); student - previous +1.9 ± 0.9 official (5/5), LODO macro +1.9 ± 1.6.
+- [Fact] **H2 vẫn không kiểm định được**: baseline không có thiết bị nào vượt null gate (gần nhất LittC2SE 0.118 so với p95 0.150), nên không tính được thống kê D cho student, twin, anchor hay previous. Với twin làm nền cũng không thiết bị nào được kiểm.
+- [Fact] **Student cho tập dự đoán gọn hơn nhưng thiếu phủ nặng hơn trên AKGC417L**: cỡ tập 1.36 (previous 1.89, twin 1.57), độ phủ thô 0.648 (previous 0.700, twin 0.734, baseline 0.809), Delta đã khớp tỷ lệ lớp +0.098 (lớn nhất trong các điều kiện). Trên Litt3200 student phủ 0.947 với cỡ tập 2.33, thấp hơn previous (0.975, 3.01). Không có kiểm định H2 đi kèm; đây là quan sát mô tả.
+- [Fact] Best-on-test (lạc quan): student 65.2 ± 0.3, twin 64.9 ± 0.5, anchor 65.0 ± 0.4; PAFA công bố 64.84 ± 0.60 và PC-MCL 65.37 ± 0.73 theo cùng quy tắc chọn epoch trên test (mục 7.7).
+- [Interpretation] Tên "hiệu chỉnh phổ" trong AuscultTrust vẫn có lý do ở LODO (+1.8 macro) nhưng không ở split chính thức; kết quả này không thay đổi quyết định chọn student, vì student cao hơn cả mô hình cũ và baseline ở cả hai điểm cuối.
+<!-- end 17.10 -->
+
 ## 18. Caveats
 
 - One split and 5 seeds: a 1-point difference is within seed noise for most cells. The last epoch is the reference
@@ -1437,4 +1532,4 @@ State on 27/10: all registered and exploratory training of the main study is fin
 | 8 | Tái hiện Patch-Mix CL | `report.md` mục 6 ghi 61.49 ± 0.91 (best on test); báo cáo registered-core ghi 61.4 ± 1.3 | Hai bộ chạy khác nhau: Phase 0 (script `patchmix_cl`, 10/05) và `repro-wave1` của nghiên cứu đăng ký. Cả hai nằm trong ngưỡng chấp nhận so với 62.37; mục 6 nêu cả hai |
 | 9 | Mô hình trong báo cáo replay phổi giả 29/10 | `2026-10-29-replay-phone-electret.md` dùng "distilled AuscultTrust, 5-seed softmax ensemble" (`kd_g4_k1_ens5`); định nghĩa 29/10 là một mô hình (phục vụ seed 0) | Không sửa tài liệu của phiên khác. [Pending] quyết định chính thức: ensemble 5 seed của student chỉ là biến thể thăm dò, không phải định nghĩa AuscultTrust |
 | 10 | Trạng thái phổi giả | Các báo cáo khác ghi H1, H3, H2 đồng chính "chờ phần cứng"; báo cáo replay 29/10 đã có 20 take mỗi thiết bị thu (điện cực, điện thoại) | Đó là dữ liệu phát lại tier 1, chỉ để đánh giá (chuỗi phát lại làm mất nội dung: coherence 0.02-0.15) và có sai lệch quy trình ghi trong chính báo cáo đó. Không thay thế phép thử phổi giả đăng ký; tiêu chí H1, H3, H2 không đổi và vẫn [Pending] |
-| 11 | Số seed LODO của student | Bảng 28/10: LODO 3 seed (0-2); kế hoạch cuối: 5 seed | Mục 1.3 ghi "3 seed"; sẽ thay bằng 5 seed khi `student-final-20261029` xong |
+| 11 | Số seed LODO của student | Bảng 28/10: LODO 3 seed (0-2); kế hoạch cuối: 5 seed | Đã thay bằng 5 seed trong mục 1.3 và 17.10 (twin LODO LittC2SE còn 4 seed, seed 3 đang chạy lại sau lỗi hết bộ nhớ GPU) |

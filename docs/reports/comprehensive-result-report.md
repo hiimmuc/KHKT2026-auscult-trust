@@ -19,7 +19,7 @@
 
 [Fact] Mọi lần train của nghiên cứu chính và của stage 12 đã xong (campaign cuối `combo-20261028` xong 29/10).
 **Quyết định 29/10 (người dùng): AuscultTrust = student distill `kd_g4_k1`** = BEATs + PAFA + SC tĩnh đã train, recipe gain6, epoch 66, train bằng soft target (K1) từ ensemble G4 (anchor, control PCSL-5, class-aware light, multi-scale), cộng split conformal; một mô hình khi phục vụ. Official 64.15 (+1.02 so với anchor 63.13), LODO macro 61.72 trên 3 seed (anchor 61.22 cùng seed). Chi tiết và giới hạn: `docs/decision-logs/2026-10-29-final-model-distilled.md`.
-Định nghĩa trước (quyết định 23/10) là BEATs + PAFA + SC tĩnh đã train, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8; giữ làm hàng tham chiếu. Baseline cho phép so SC giữ BEATs + PAFA không SC [Assumption: chờ người dùng xác nhận].
+Định nghĩa trước (quyết định 23/10) là BEATs + PAFA + SC tĩnh đã train, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8; giữ làm hàng tham chiếu. Baseline của dự án (quyết định 23/10, không đổi) = BEATs + PAFA không SC, epoch 100. Tương phản SC của student dùng bản sinh đôi không SC của nó (đang huấn luyện và đánh giá); chưa có thì chưa tuyên bố "SC giúp student" (xem Phụ lục B, mục 3).
 Đánh giá đóng băng cuối cho mô hình mới đã chạy phần split chính thức, KAUH A/B2 và sàng lọc (mục 17.9); bản sinh đôi không SC, LODO 5 seed và H2 từng fold đang chạy; bundle phục vụ chưa đổi. Chưa có dữ liệu phổi giả nên H1, H3 và H2 đồng chính vẫn [Pending].
 
 ### 1.2 Kết luận theo thứ tự thời gian
@@ -320,7 +320,7 @@ LODO bốn thiết bị (baseline, Freq-MixStyle, SC đã train, SC lúc kiểm 
 
 | Item | Result |
 | --- | --- |
-| Patch-Mix CL reproduction (AST, best epoch on test) | 61.49 ± 0.91 vs 62.37 ± 0.61 published; last epoch 59.59 ± 0.47 |
+| Patch-Mix CL reproduction (AST, best epoch on test) | 61.49 ± 0.91 vs 62.37 ± 0.61 published; last epoch 59.59 ± 0.47 (Phase 0 runs; the registered `repro-wave1` runs give 61.4 ± 1.3, section R3.1) |
 | Refit at the CV epoch (seeds 0-4) | AuscultTrust (SC) 58.31 ± 1.08; baseline 56.80 ± 1.49; SC + random gain 59.72 (not selected by the registered rule) |
 | Gate G (10 seeds) | Paired difference +1.91, 95% CI [+0.31, +3.50]: passes (lower bound > -1.5). Superiority not shown (patient bootstrap [-0.83, +4.84]) |
 | LODO on AST (H2) | Only Litt3200 passes the null gate. Prior-matched coverage 0.670 (baseline) vs 0.904 (SC); D = +0.177 [+0.055, +0.326]; set size 1.92 vs 2.67 labels. Freq-MixStyle D = +0.126 [-0.006, +0.269] |
@@ -1268,8 +1268,8 @@ At epoch 4, class-aware light scores 62.045 and the anchor 55.802 on the same 25
 3. By a mean >= +0.5 and positive-majority-of-folds reading, LoRA (3 of 5 folds, one negative seed), class-aware light
    (5 of 5 folds) and LoRA + class-aware (3 of 5 folds) pass here; SWA and multi-scale do not. The earlier 3-fold
    screen passed none.
-4. [Pending] None of the five has an official, LODO or KAUH result. The serving model and the main comparison do not
-   change. The plan to measure them is `docs/updates/2026-10-27-target-evaluation-plan.md`.
+4. [Done 28/10, section 17.7] The five recipes have official, LODO and KAUH results; the source-CV gains of class-aware light and LoRA did not transfer. The serving
+   model and the main comparison did not change at that time. Plan: `docs/updates/2026-10-27-target-evaluation-plan.md`.
 
 ### 17.6 Adaptation, fusion, audits
 
@@ -1295,8 +1295,9 @@ chosen on the same test scores.
 - [Fact] Equal-weight ensembles of the target arms: all seven 64.21 official / 62.09 LODO macro; G4 (anchor, control,
   class-aware light, multi-scale) 64.11 / 62.22. Subset selection on seeds 0-1 holds on seeds 2-4 (G4: 64.15 / 62.60 vs
   anchor 63.56 / 62.45), a small gain.
-- [Fact] KAUH: LoRA and LoRA + class-aware flip rates 0.040 and 0.072 vs frozen 0.209, with intervals above zero; no SC or
-  distilled arm survives the flip-reduction bootstrap. B2: no pair passes the null gate.
+- [Fact] KAUH: LoRA and LoRA + class-aware flip rates 0.040 and 0.072 vs 0.209 for the 23/10 AuscultTrust (BEATs + PAFA + static SC; labelled "frozen" in
+  the 28/10 report, not a no-SC base), with intervals above zero; no SC or distilled arm survives the flip-reduction bootstrap. B2: no pair is tested when
+  that SC model is the base (2 of 6 with the no-SC baseline).
 - [Fact] Distillation (student at epoch 66, soft targets from the G4 or G7 teacher ensemble; gate fixed before results):
   kd_g4_k1 official 64.15 (+1.02 vs anchor, 4 of 5 seeds above), kd_g4_k2 63.47 (+0.33), kd_g7_k2 62.75 (-0.38, stopped).
 - [Fact] Distilled G4 LODO macro (seeds 0-2): kd_g4_k1 61.72, kd_g4_k2 61.77 vs anchor 61.22 and teacher ensemble 62.26.
@@ -1403,7 +1404,7 @@ State on 27/10: all registered and exploratory training of the main study is fin
 1. [Done 28/10, section 17.7] **Target evaluation of the stage-12 recipes** on A, B, D, E: official, four-device LODO and KAUH (with recording
    screening) for 5 seeds, from the frozen `fivefold-20261026` snapshot, with a PCSL-5 non-class-aware control and the
    anchor as paired references. Tiers, GPU-hour estimate, preflight checks and stop rules:
-   `docs/updates/2026-10-27-target-evaluation-plan.md`. [Running since 27/10 18:12 as campaign `target-20261027`; see `docs/handoff/HANDOFF.md` section 0.]
+   `docs/updates/2026-10-27-target-evaluation-plan.md`. [Finished 28/10 as campaign `target-20261027`.]
 2. Human listening of the 50 audio-audit candidates; keep the registered 8-second preprocessing.
 3. Optional before the cut-off (31/01/2027): `k rate` with few target cycles and SC jointly at finite N; distillation of an
    ensemble into one BEATs model. The registered E1-E4 and the AST / HTS-AT dynamic-SC cells are already computed (sections 12.2, 13.2).
@@ -1419,3 +1420,21 @@ State on 27/10: all registered and exploratory training of the main study is fin
 3. **Mục 19 (Next steps) và mục 1 của `report.md` gốc** lỗi thời một phần (viết trước 28/10 và 29/10): bước "target evaluation" đã làm (mục 17.7); campaign `combo-20261028` đã xong (mục 17.8). Phần còn mở: nghe thủ công 50 mẫu audit, phổi giả, distillation bằng teacher out-of-fold, commit working tree.
 4. **Hạn chế bổ sung của bản tổng hợp.** Giao thức khác nhau giữa các nhóm ở bảng 1.3 (AST 50 epoch, BEATs 100 epoch, epoch chọn bằng CV nguồn); số của các nhóm ensemble và distillation là thăm dò, được chọn trên cùng dữ liệu test; student distill có 3 seed ở LODO; mô hình `class_aware_multiscale` chỉ có CV nguồn.
 5. **Nơi lấy lại số liệu.** `outputs/train/<run>/<cell>/seed<s>/` (A, HDD), `build/campaigns/<programme>/` (B chuẩn), `outputs/kauh/`, `outputs/screening/`, `outputs/evaluation/`; lệnh tái tạo bảng trong `docs/QUICKSTART.md` mục 7 và `docs/handoff/HANDOFF.md`.
+
+## Phụ lục B. Kiểm tra nhất quán giữa các báo cáo theo ngày (29/10)
+
+Đối chiếu `docs/reports/`, `docs/decision-logs/`, `docs/updates/`, `docs/handoff/HANDOFF.md`, `report.md` và bản này. Các mâu thuẫn tìm được và cách xử lý:
+
+| # | Chủ đề | Mâu thuẫn | Xử lý |
+| --- | --- | --- | --- |
+| 1 | Nhãn "frozen (no SC)" = 0.209 | Báo cáo 28/10 (mục 3, 4) gọi dòng `frozen` là "no SC". Kiểm tra: cờ `sc` của `outputs/kauh/target-20261027/frozen` là true và hash checkpoint bằng `final-pafa-static/auscult` (seed 0: 02bdb2df, seed 1: 9c27c14a). Mô hình không SC của quyết định 23/10 có flip **0.445**, mô hình có SC **0.209** (đánh giá 23/10 và 29/10 khớp nhau) | Sửa nhãn trong báo cáo 28/10, `report.md` (17.7), `HANDOFF.md`, bản này (17.7): "frozen" = AuscultTrust cũ có SC. Mọi so sánh "vs frozen" trong báo cáo 28/10 là so với mô hình SC, không phải so với baseline không SC |
+| 2 | B2 "0/6 cặp" so với "2/6 cặp" | Báo cáo 28/10: không cặp nào qua null gate; báo cáo 23/10 và 29/10: 2/6 cặp (đích Bell) với baseline không SC | Cùng nguyên nhân với mục 1: null gate dựa vào |Δ| của mô hình nền; nền là mô hình SC (đã nhỏ) nên 0/6. Thêm chú thích đính chính; kết quả đúng với baseline không SC là 2/6 |
+| 3 | "Baseline" có nhiều nghĩa theo thời kỳ | (i) v9 đăng ký: AST Patch-Mix CL không xử lý thiết bị, epoch 2 (mục 6, R2.1); (ii) quyết định 23/10: BEATs + PAFA không SC, epoch 100; (iii) stage 12: anchor `gain6-cv66` (có SC tĩnh + gain ngẫu nhiên) là chuẩn so sánh; (iv) student 29/10: bản sinh đôi không SC | Giữ nguyên từng nghĩa trong ngữ cảnh của nó. Baseline của dự án (quyết định 23/10) = BEATs + PAFA không SC, epoch 100, không còn là "giả định". Tương phản SC cho student dùng bản sinh đôi không SC (đang huấn luyện); chưa có thì không tuyên bố "SC giúp student" |
+| 4 | "[Pending] official/LODO/KAUH cho 5 recipe" | `2026-10-27-findings`, `2026-10-27-improvement-results`, `HANDOFF` mục 1, `report.md` mục 1 (điểm 9) và 17.5 (điểm 4) vẫn ghi chưa chạy; đã chạy xong 28/10 (mục 17.7) | Thêm ghi chú cập nhật ở hai báo cáo 27/10, sửa `HANDOFF`, `report.md`, bản này. Kết luận: lợi ích CV nguồn của class-aware light và LoRA không chuyển sang đánh giá đích |
+| 5 | Trạng thái kế hoạch | `docs/README.md` ghi kế hoạch đánh giá đích "(proposed)"; kế hoạch distillation ghi "proposed, not launched" | Đổi thành "executed" |
+| 6 | Điểm anchor trên split chính thức | 63.143 ± 1.203 (báo cáo 27/10, `report.md` 17.3) so với 63.13 (báo cáo 28/10) so với 63.135 ± 1.190 (tính lại ngày 29/10 từ `report.json` của 5 unit `gain6-cv66`) | Chênh 0.008; chưa tìm ra nguồn của 63.143. Dùng 63.13 (làm tròn 63.135) cho hiệu student - anchor = +1.02 (khớp tính lại: +1.019). [Pending] đối chiếu nguồn của 63.143 |
+| 7 | Phạm vi bootstrap | Báo cáo 28/10 (mục 7): "bootstrap chỉ theo seed"; tóm tắt KAUH: "theo bệnh nhân và seed" | Hai phạm vi khác nhau: hiệu Score (official, LODO) chỉ bootstrap theo seed; flip, B2 và D bootstrap theo bệnh nhân và seed. Đã ghi rõ ở báo cáo 28/10 và log 29/10 |
+| 8 | Tái hiện Patch-Mix CL | `report.md` mục 6 ghi 61.49 ± 0.91 (best on test); báo cáo registered-core ghi 61.4 ± 1.3 | Hai bộ chạy khác nhau: Phase 0 (script `patchmix_cl`, 10/05) và `repro-wave1` của nghiên cứu đăng ký. Cả hai nằm trong ngưỡng chấp nhận so với 62.37; mục 6 nêu cả hai |
+| 9 | Mô hình trong báo cáo replay phổi giả 29/10 | `2026-10-29-replay-phone-electret.md` dùng "distilled AuscultTrust, 5-seed softmax ensemble" (`kd_g4_k1_ens5`); định nghĩa 29/10 là một mô hình (phục vụ seed 0) | Không sửa tài liệu của phiên khác. [Pending] quyết định chính thức: ensemble 5 seed của student chỉ là biến thể thăm dò, không phải định nghĩa AuscultTrust |
+| 10 | Trạng thái phổi giả | Các báo cáo khác ghi H1, H3, H2 đồng chính "chờ phần cứng"; báo cáo replay 29/10 đã có 20 take mỗi thiết bị thu (điện cực, điện thoại) | Đó là dữ liệu phát lại tier 1, chỉ để đánh giá (chuỗi phát lại làm mất nội dung: coherence 0.02-0.15) và có sai lệch quy trình ghi trong chính báo cáo đó. Không thay thế phép thử phổi giả đăng ký; tiêu chí H1, H3, H2 không đổi và vẫn [Pending] |
+| 11 | Số seed LODO của student | Bảng 28/10: LODO 3 seed (0-2); kế hoạch cuối: 5 seed | Mục 1.3 ghi "3 seed"; sẽ thay bằng 5 seed khi `student-final-20261029` xong |

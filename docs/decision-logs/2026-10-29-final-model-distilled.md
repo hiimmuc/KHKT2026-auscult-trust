@@ -12,7 +12,8 @@ student `kd_g4_k1`. This replaces "BEATs + PAFA trained and evaluated with stati
 | **AuscultTrust (new)** | BEATs fine-tuned with PAFA and trained static SC, gain6 recipe, epoch 66, trained with soft targets only (K1: no hard-label term, temperature 1) from the equal-weight softmax of the G4 teacher group (anchor `gain6-cv66`, PCSL-5 control, class-aware light, multi-scale), plus the split conformal layer. One model at serving time |
 | Teacher ensemble G4 | The four members above, equal-weight mean softmax; used for training only and as an exploratory reference (64.11 official, 62.22 LODO macro) |
 | Reference for the distillation gain | Anchor `gain6-cv66` (epoch 66): 63.13 official, 61.62 LODO macro |
-| Baseline for the SC contrast [Assumption] | Unchanged: BEATs + PAFA, fine-tuned, no SC (62.3 → 61.7 contrast of the 23/10 decision). The user did not restate the baseline; confirm before the next report |
+| Project baseline (23/10 decision, not an assumption) | BEATs + PAFA, fine-tuned, no SC, epoch 100 (official 61.7 ± 0.7, KAUH flip 0.445). Unchanged |
+| Baseline for the student's SC contrast | The student's no-SC twin (same recipe and soft targets, SC off); training and evaluation in progress 29/10. The BEATs PAFA pair (61.7 → 62.3 official) is not evidence about the student |
 | Previous AuscultTrust | BEATs + PAFA + trained static SC, epoch 100: official 62.3 ± 0.9, LODO macro 60.3 ± 0.8. Kept as a reference row |
 
 ## Evidence behind the choice (all exploratory)
@@ -24,7 +25,7 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
 | Official Score, seeds 0-4 | 64.15 | 63.13 (+1.02; 4 of 5 seeds above) | 62.3 ± 0.9 | 64.11 |
 | LODO macro, seeds 0-2 | 61.72 | 61.22 on the same seeds | 60.3 ± 0.8 (seeds 0-4) | 62.26 on the same seeds |
 | KAUH flip rate (Bell, Diaphragm, Extended) | 0.228 | 0.204 | 0.209 (frozen model, 23/10) | not run |
-| KAUH flip reduction vs frozen [95% bootstrap over seeds] | -0.019 [-0.082, +0.038] | +0.004 [-0.040, +0.045] | 0 | |
+| KAUH flip reduction vs the 23/10 AuscultTrust (SC) [95% bootstrap over patients and seeds; the 28/10 report calls that model "frozen"] | -0.019 [-0.082, +0.038] | +0.004 [-0.040, +0.045] | 0 | |
 | Recording screening, Bell, mean aggregation | coverage 0.790, uncertain 0.311 | 0.805, 0.471 | 0.831, 0.464 | |
 | KAUH B2 | no pair passes the null gate | same | same | |
 
@@ -45,7 +46,7 @@ Source: `docs/reports/2026-10-28-target-distillation-results.md`, `build/campaig
    `s_ref` frozen and hashed before any phantom recording.
 2. [Pending] Serving bundle: `app/` still serves the previous model (`app/bundle-final-pafa-static`). Student checkpoints exist in the `distill-20261028` units on
    the training machines (epoch 66); activate only after bundle validation (hash, health check).
-3. [Pending] Confirm the baseline definition above, and whether the ensemble extensions E1 and E1+E3 of the 23/10 log are replaced by G4.
+3. [Pending] Whether the ensemble extensions E1 and E1+E3 of the 23/10 log are replaced by G4; whether the 5-seed student ensemble used in the 29/10 replay report is only an exploratory variant.
 4. [Pending] Phantom H1, H3, co-primary H2 on the frozen student.
 
 ## Frozen evaluation, first part (29/10, run `final-kd-g4-k1`)

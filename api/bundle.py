@@ -22,7 +22,6 @@ devices, and the multi-device patients are on the training side or on both sides
 
 import argparse
 import hashlib
-import json
 import os
 import shutil
 from pathlib import Path

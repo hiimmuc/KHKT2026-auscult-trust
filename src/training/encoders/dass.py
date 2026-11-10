@@ -8,31 +8,20 @@ Needs the selective-scan CUDA kernel and runs in the separate `.venv-dass` (CUDA
 Weights: DASS_medium_v2.pth (AudioSet) in `<data>/models/dass/pretrained_models/`.
 """
 
-import contextlib
 import importlib
-import os
 import sys
 import types
 from functools import lru_cache
 
 import torch.nn as nn
 from src.paths import DATA, REPOS
+from src.training.upstream import working_directory
 
 from src.processing.cycles import DB_PER_NAT, FBANK_STD, IMG_MEL, IMG_TIME, generate_fbank
 
 LUNG_SRAD = REPOS / "Lung-SRAD" / "models_DASS"
 WEIGHTS_ROOT = DATA / "models" / "dass"  # holds pretrained_models/DASS_medium_v2.pth
 FEATURE_DIM = 768
-
-
-@contextlib.contextmanager
-def _working_directory(path):
-    previous = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(previous)
 
 
 @lru_cache(maxsize=1)
@@ -48,7 +37,7 @@ class DassEncoder(nn.Module):
 
     def __init__(self, n_cls, mix_beta, gaussian_blur=False):
         super().__init__()
-        with _working_directory(
+        with working_directory(
             WEIGHTS_ROOT
         ):  # the reference reads ./pretrained_models/DASS_medium_v2.pth
             self.dass = _dass_class()(

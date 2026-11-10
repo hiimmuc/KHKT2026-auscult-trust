@@ -4,10 +4,8 @@ Phase `main`: source CV of the control (5 folds x 5 seeds) and the fixed-epoch f
 Phase `control_final`: finals of the control at the epoch chosen from its own source-validation curve.
 """
 import argparse
-import fcntl
 import hashlib
 import json
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -150,18 +148,6 @@ def tick(spec, manifest):
     atomic_json(manifest, spec)
 
 
-def run(manifest):
-    manifest = Path(manifest).resolve()
-    with (manifest.parent / 'controller.lock').open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        while True:
-            spec = core.load(manifest)
-            tick(spec, manifest)
-            if spec['phase'] == 'complete':
-                return
-            time.sleep(60)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=('prepare', 'run'))
@@ -176,4 +162,4 @@ if __name__ == '__main__':
     if args.command == 'prepare':
         prepare(args.snapshot, args.hosts, args.data, args.references, args.reference_snapshot, args.deadline)
     else:
-        run(args.manifest)
+        core.run_controller(args.manifest, tick)

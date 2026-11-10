@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from scripts import distill_campaign as dc
 
@@ -29,7 +28,7 @@ def test_command_exports_members_of_the_same_cohort_and_seed_then_trains(tmp_pat
 
 
 def test_k1_adds_no_loss_options_and_g7_has_all_members(tmp_path):
-    job = dc.student_jobs(['kd_g7_k2'], {'official'}, [0])[0]
+    dc.student_jobs(["kd_g7_k2"], {"official"}, [0])
     assert len(dc.teacher_files('g7', 'official', 0)[0]) == 7
     k1 = dc.student_jobs(['kd_g4_k1'], {'official'}, [0])[0]
     assert dc.command(spec(tmp_path), k1).count('--kd_hard_weight') == 0
@@ -43,6 +42,6 @@ def test_gate_needs_mean_gain_and_seed_majority():
     assert not dc.gate({s: 63.1 for s in range(5)}, ref)['pass']  # below the margin
 
 
-def test_member_paths_do_not_nest_when_run_from_a_snapshot():
-    path = dc.unit_dir('swa', 'official', 0, 'outputs')
-    assert 'campaigns/distill' not in str(path) and path.parts.count('campaigns') == 1
+def test_member_units_live_under_outputs_and_checkpoints():
+    assert dc.unit_dir('swa', 'official', 0, 'outputs').parts[-5:-3] == ('outputs', 'train')
+    assert dc.unit_dir('swa', 'official', 0, 'checkpoints').parts[-5:-3] == ('checkpoints', 'train')

@@ -6,10 +6,7 @@ The student is the reference recipe at its reference epoch; teacher targets are 
 and seed from the members' own units, in the same job chain as the student fit.
 """
 import argparse
-import fcntl
-import json
 import shlex
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -17,13 +14,14 @@ import numpy as np
 
 from scripts import improvement_campaign as core
 from src.artifacts import atomic_json, sha256_file
+from src.paths import CHECKPOINTS, OUTPUTS
 
 NAME = 'distill-20261028'
 STUDENT_EPOCH = 66
 HERE = Path(__file__).resolve().parents[1]
 # run from the repository or from a snapshot under <repository>/build/campaigns
 CAMPAIGNS = HERE.parent if HERE.parent.name == 'campaigns' else HERE / 'build/campaigns'
-# member -> (campaign directory, run, cell, epoch of its final unit)
+# member -> (campaign, run, cell, epoch of its final unit); units live in outputs/train and checkpoints/train
 MEMBERS = {
     'anchor': ('followup-20261026', 'followup-20261026-final', 'gain6-cv66', 66),
     'control': ('target-20261027', 'target-20261027-final', 'pcsl5_control', 78),
@@ -46,7 +44,7 @@ REFERENCE = ('followup-20261026', 'followup-20261026-final', 'gain6-cv66')
 def unit_dir(member, cohort, seed, kind):
     campaign, run, cell, _ = MEMBERS[member]
     suffix = '' if cohort == 'official' else '+lodo_' + cohort.lower()
-    return CAMPAIGNS / campaign / kind / 'train' / run / (cell + suffix) / f'seed{seed}'
+    return (OUTPUTS if kind == 'outputs' else CHECKPOINTS) / 'train' / run / (cell + suffix) / f'seed{seed}'
 
 
 def teacher_files(group, cohort, seed):
@@ -165,18 +163,6 @@ def tick(spec, manifest):
     atomic_json(manifest, spec)
 
 
-def run(manifest):
-    manifest = Path(manifest).resolve()
-    with (manifest.parent / 'controller.lock').open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        while True:
-            spec = core.load(manifest)
-            tick(spec, manifest)
-            if spec['phase'] in ('complete', 'complete_no_survivors'):
-                return
-            time.sleep(60)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=('prepare', 'run'))
@@ -190,4 +176,4 @@ if __name__ == '__main__':
     if args.command == 'prepare':
         prepare(args.snapshot, args.hosts, args.data, args.references, args.deadline)
     else:
-        run(args.manifest)
+        core.run_controller(args.manifest, tick)

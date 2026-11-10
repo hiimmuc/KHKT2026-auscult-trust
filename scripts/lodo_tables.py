@@ -3,7 +3,6 @@
     bash scripts/lodo_h2_all.sh   # null gate and H2 per cell -> outputs/train/lodo-v1/h2_<cell>.{md,json}
     PYTHONPATH=. .venv-train/bin/python scripts/lodo_tables.py > lodo_tables.md
 """
-import json
 import sys
 from pathlib import Path
 

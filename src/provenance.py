@@ -56,7 +56,7 @@ def prediction_inputs(unit, checkpoint, dataset, sc=False, sc_unit=None, options
         files += [p for p in root.rglob("*") if p.is_file()]
     # Constructors can read pretrained files even when checkpoint weights replace them.
     model_root = DATA / "models" / {"beats": "beats", "ast": "ast", "htsat": "htsat",
-                                    "opera_ct": "opera", "clap": "huggingface", "hear": "huggingface"}.get(args.get("encoder"), args.get("encoder", ""))
+                                    "opera_ct": "opera"}.get(args.get("encoder"), args.get("encoder", ""))
     files += [p for p in model_root.rglob("*") if p.is_file()]
     files += list((REPO / "src").rglob("*.py"))
     files += [p for p in REPOS.rglob("*.py") if ".git" not in p.parts]

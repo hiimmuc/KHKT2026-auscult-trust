@@ -1,7 +1,6 @@
 """Run directories: one new directory per run, never overwritten. Everything lives in the repo and is gitignored.
 
     outputs/<exp>/<run_id>/meta.json            once per run: config, command, git commit, hardware
-    outputs/<exp>/<run_id>/summary.txt          what the entry point printed (`start_summary`)
     outputs/<exp>/<run_id>/<cell>/<unit>/       small artefacts of one unit (reports, predictions, config)
     checkpoints/<exp>/<run_id>/<cell>/<unit>/   weights of that unit
     outputs/<exp>/latest -> <run_id>            symlink to the newest run
@@ -152,27 +151,3 @@ def log_run(exp, cell, seed, cfg, metrics, data_hash=None):
         )
     )
     return path
-
-
-class _Tee:
-    def __init__(self, *streams):
-        self.streams = streams
-
-    def write(self, x):
-        for s in self.streams:
-            s.write(x)
-
-    def flush(self):
-        for s in self.streams:
-            s.flush()
-
-    def __getattr__(self, name):  # isatty, encoding, ... from the real stdout
-        return getattr(self.streams[0], name)
-
-
-def start_summary(exp):
-    """From now on, copy stdout of this process to `outputs/<exp>/<run_id>/summary.txt`.
-
-    Call once at the top of an entry point's `__main__` block.
-    """
-    sys.stdout = _Tee(sys.__stdout__, open(run_dir(exp) / "summary.txt", "a"))

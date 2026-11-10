@@ -8,10 +8,7 @@ Cohorts are placed whole on one machine so that the G4 member units and checkpoi
 Subcommands: `prepare` (jobs, placement, manifest), `sync` (copy the members to the other machines; run on B), `run` (controller; run on B).
 """
 import argparse
-import fcntl
-import json
 import subprocess
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -115,18 +112,6 @@ def tick(spec, manifest):
     atomic_json(manifest, spec)
 
 
-def run(manifest):
-    manifest = Path(manifest).resolve()
-    with (manifest.parent / 'controller.lock').open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        while True:
-            spec = core.load(manifest)
-            tick(spec, manifest)
-            if spec['phase'] == 'complete':
-                return
-            time.sleep(60)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=('prepare', 'sync', 'run'))
@@ -142,4 +127,4 @@ if __name__ == '__main__':
     elif args.command == 'sync':
         sync(args.manifest)
     else:
-        run(args.manifest)
+        core.run_controller(args.manifest, tick)

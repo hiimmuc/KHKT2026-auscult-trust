@@ -13,5 +13,4 @@ Read-only analysis of finished artefacts. Run from `notebooks/` with the analysi
 | `04_replay_phantom.ipynb` | phantom replay: take quality, transfer functions, spectrograms, processing variants, selection | `replay` |
 
 The replay results come from `scripts/replay_analysis.py` (`PYTHONPATH=. .venv-train/bin/python scripts/replay_analysis.py --takes ../data/raw/phantom_replay --out outputs/replay/phantom-replay-20261028`).
-Campaign outputs are read from `build/campaigns/<campaign>/outputs/train/...` (per-unit `report.json` and `test_preds.npz`; copy them
-from machine B if absent locally). Final units have no validation split; validation curves are the source-CV runs of `fivefold-20261026`.
+Units are read from `outputs/train/<run>/<cell>/<unit>/` (`report.json`, `test_preds.npz`); `outputs/index.csv` lists them. Final units have no validation split; validation curves are the source-CV runs of `fivefold-20261026`.

@@ -5,15 +5,12 @@ reused only when their full provenance and output hash match. No training or mod
 """
 
 import hashlib
-import json
 import os
 from pathlib import Path
-import shlex
 import subprocess
-import sys
-from datetime import datetime, timezone
 
 import numpy as np
+from scripts.eval_log import logger
 from src.artifacts import sha256_file as sha
 from src.artifacts import immutable_json
 from src.provenance import prediction_inputs, verify_prediction, environment
@@ -24,20 +21,7 @@ BASE = Path("outputs/train/grid-v1/beats+ft+pafa")
 SC = Path("outputs/train/lodo-v1/beats+ft+pafa+sc+sc_static")
 
 
-def event(**data):
-    LOG.mkdir(parents=True, exist_ok=True)
-    data["utc"] = datetime.now(timezone.utc).isoformat()
-    with (LOG / "events.jsonl").open("a") as f:
-        f.write(json.dumps(data) + "\n")
-    print(json.dumps(data), flush=True)
-
-
-def run(args):
-    cmd = [sys.executable, *map(str, args)]
-    event(status="started", command=shlex.join(cmd))
-    result = subprocess.run(cmd)
-    event(status="passed" if result.returncode == 0 else "failed", command=shlex.join(cmd), exit_code=result.returncode)
-    result.check_returncode()
+event, run = logger(LOG)
 
 
 def export_ok(path, checkpoint_sha, sc, *, unit, checkpoint, dataset, sc_unit=None):

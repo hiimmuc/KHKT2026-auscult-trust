@@ -85,12 +85,6 @@ const DEFAULT_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 export function connection(): { base: string; token: string } {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-    // Move saved connections from the app's former direct tunnel to its web gateway.
-    if (saved?.base && DEFAULT_BASE.endsWith("/api") &&
-        ["vmo-namdp15-d.tail09c58b.ts.net", "auscult.tail09c58b.ts.net", "auscult-1.tail09c58b.ts.net"].includes(new URL(saved.base).hostname)) {
-      saved.base = DEFAULT_BASE;
-      localStorage.setItem(KEY, JSON.stringify(saved));
-    }
     if (saved?.base) return saved;
   } catch { /* storage blocked: fall back to the build default */ }
   return { base: DEFAULT_BASE, token: "" };

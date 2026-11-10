@@ -23,10 +23,6 @@
     "url": "https://github.com/evelyn0414/OPERA.git",
     "commit": "3622310e667afb8aa40169050b4dd45de75946a2"
   },
-  "hear": {
-    "url": "git@github.com:Google-Health/hear.git",
-    "commit": "36bbb90879545a2f1106668048b1a12a61ff2a0d"
-  },
   "Lung-SRAD": {
     "url": "git@github.com:RSC-Toolkit/Lung-SRAD.git",
     "commit": "6df75ce07646885c097cec8db7ef834a335fe25d"

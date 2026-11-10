@@ -13,25 +13,24 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 DATA = REPO.parent / "data"
-CAMPAIGNS = REPO / "build" / "campaigns"
 ICBHI = DATA / "processed" / "patchmix_icbhi"
 CLASSES = ["normal", "crackle", "wheeze", "both"]
 DEVICES = ["Meditron", "LittC2SE", "Litt3200", "AKGC417L"]  # device ids 0..3 in exports
 LODO = ["akgc417l", "litt3200", "littc2se", "meditron"]
 LODO_NAME = dict(zip(LODO, ["AKGC417L", "Litt3200", "LittC2SE", "Meditron"]))
 
-# arm -> (campaign, run, cell, fixed epoch). Official and LODO finals; LODO cells append "+lodo_<device>".
+# arm -> (run, cell, fixed epoch) under outputs/train. Official and LODO finals; LODO cells append "+lodo_<device>".
 ARMS = {
-    "anchor": ("followup-20261026", "followup-20261026-final", "gain6-cv66", 66),
-    "swa": ("target-20261027", "target-20261027-final", "swa", 43),
-    "multiscale": ("target-20261027", "target-20261027-final", "multiscale", 68),
-    "pcsl5_control": ("target-20261027", "target-20261027-final", "pcsl5_control", 78),
-    "class_aware_light": ("target-20261027", "target-20261027-final", "class_aware_light", 4),
-    "lora": ("target-20261027", "target-20261027-final", "lora", 83),
-    "lora_class_aware": ("target-20261027", "target-20261027-final", "lora_class_aware", 43),
-    "kd_g4_k1": ("distill-20261028", "distill-20261028-final", "kd_g4_k1", 66),
-    "kd_g4_k2": ("distill-20261028", "distill-20261028-final", "kd_g4_k2", 66),
-    "kd_g7_k2": ("distill-20261028", "distill-20261028-final", "kd_g7_k2", 66),
+    "anchor": ("followup-20261026-final", "gain6-cv66", 66),
+    "swa": ("target-20261027-final", "swa", 43),
+    "multiscale": ("target-20261027-final", "multiscale", 68),
+    "pcsl5_control": ("target-20261027-final", "pcsl5_control", 78),
+    "class_aware_light": ("target-20261027-final", "class_aware_light", 4),
+    "lora": ("target-20261027-final", "lora", 83),
+    "lora_class_aware": ("target-20261027-final", "lora_class_aware", 43),
+    "kd_g4_k1": ("distill-20261028-final", "kd_g4_k1", 66),
+    "kd_g4_k2": ("distill-20261028-final", "kd_g4_k2", 66),
+    "kd_g7_k2": ("distill-20261028-final", "kd_g7_k2", 66),
 }
 G4 = ["anchor", "pcsl5_control", "class_aware_light", "multiscale"]
 PALETTE = {"anchor": "#4C72B0", "kd_g4_k1": "#C44E52", "kd_g4_k2": "#DD8452", "kd_g7_k2": "#937860", "swa": "#55A868",
@@ -51,9 +50,9 @@ def out_dirs(topic):
 
 
 def unit(arm, cohort="official", seed=0):
-    camp, run, cell, _ = ARMS[arm]
+    run, cell, _ = ARMS[arm]
     suffix = "" if cohort == "official" else "+lodo_" + cohort
-    return CAMPAIGNS / camp / "outputs" / "train" / run / (cell + suffix) / f"seed{seed}"
+    return REPO / "outputs" / "train" / run / (cell + suffix) / f"seed{seed}"
 
 
 def exists(arm, cohort="official", seed=0):

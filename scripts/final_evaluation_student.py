@@ -13,14 +13,12 @@ import hashlib
 import json
 import os
 import shutil
-import shlex
 import subprocess
-import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 
+from scripts.eval_log import logger
 from src.artifacts import immutable_json
 from src.artifacts import sha256_file as sha
 from src.provenance import environment, prediction_inputs, verify_prediction
@@ -38,20 +36,7 @@ CONDITIONS = (
 )
 
 
-def event(**data):
-    LOG.mkdir(parents=True, exist_ok=True)
-    data["utc"] = datetime.now(timezone.utc).isoformat()
-    with (LOG / "events.jsonl").open("a") as f:
-        f.write(json.dumps(data) + "\n")
-    print(json.dumps(data), flush=True)
-
-
-def run(args):
-    cmd = [sys.executable, *map(str, args)]
-    event(status="started", command=shlex.join(cmd))
-    result = subprocess.run(cmd)
-    event(status="passed" if result.returncode == 0 else "failed", command=shlex.join(cmd), exit_code=result.returncode)
-    result.check_returncode()
+event, run = logger(LOG)
 
 
 def export_ok(path, checkpoint_sha, sc, *, unit, checkpoint, dataset):

@@ -30,6 +30,19 @@ def programme_name(spec):
     return spec.get('name', NAME)
 
 
+def run_controller(manifest, tick, interval=60):
+    """Lock the manifest and call `tick(spec, manifest)` every `interval` s until its phase is complete."""
+    manifest = Path(manifest).resolve()
+    with (manifest.parent / 'controller.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        while True:
+            spec = load(manifest)
+            tick(spec, manifest)
+            if spec['phase'] == 'complete':
+                return
+            time.sleep(interval)
+
+
 def load(path):
     return json.loads(Path(path).read_text())
 

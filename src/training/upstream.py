@@ -31,7 +31,7 @@ def load_reference(repository, relpath):
 
 
 @contextlib.contextmanager
-def _working_directory(path):
+def working_directory(path):
     previous = os.getcwd()
     os.chdir(path)
     try:
@@ -59,7 +59,7 @@ def build_ast(**kwargs):
     ast = load_reference("patch-mix_contrastive_learning", "models/ast.py")
     timm.models.vision_transformer.Attention.forward = _fused_attention
     (WEIGHTS_ROOT / "pretrained_models").mkdir(parents=True, exist_ok=True)
-    with _working_directory(
+    with working_directory(
         WEIGHTS_ROOT
     ):  # the reference downloads or reads ./pretrained_models/audioset_10_10_0.4593.pth
         return ast.ASTModel(**kwargs)

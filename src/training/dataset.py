@@ -15,12 +15,11 @@ from src.processing.correction import (
     spectrum_coefficients,
 )
 from src.processing.icbhi import DEVICES
-from src.processing.noise import TRAIN_FOLDS, noise_bank
 from src.processing.splits import cv_split, lodo_split, patient_val_split
 from torch.utils.data import DataLoader, Dataset, Sampler, Subset
 from torchvision import transforms
 
-from .augment import SpecAugment, noise_mix_image, random_bin_gain_image
+from .augment import SpecAugment, random_bin_gain_image
 from src.processing.cycles import individual_cycles, read_annotations
 from .methods.pcmcl_data import PCMCLTrain
 from .methods import get_method
@@ -123,9 +122,6 @@ class ICBHIDataset(Dataset):
             rows = training_rows(self)
             self.soft_targets = aligned_targets(args.soft_targets, ids, np.asarray(self.labels), self.patients,
                                                 np.asarray(self.devices), rows)
-        if train_flag and args.noise_train_prob > 0:  # training noise: ESC-50 folds disjoint from the noise-stress test
-            self.noise_images = np.stack([self.encoder.preprocess(torch.from_numpy(w)[None]) for w in noise_bank(TRAIN_FOLDS)])
-            assert self.noise_images.shape[1:] == self.images[0].shape, "training noise needs 8 s cycles"
         if print_flag:
             counts = np.bincount(self.labels, minlength=args.n_cls)
             print(
@@ -272,17 +268,13 @@ class ICBHIDataset(Dataset):
 
     def __getitem__(self, index):
         image = np.array(self.images[index])  # a copy: the cached array is read-only
-        if self.train_flag and self.args.random_gain_db > 0:  # P3
+        if self.train_flag and self.args.random_gain_db > 0:
             image = random_bin_gain_image(
                 image,
                 self.args.random_gain_db,
                 self.encoder.db_scale,
                 np.random.default_rng(random.getrandbits(32)),
             )
-        if self.train_flag and self.args.noise_train_prob > 0 and random.random() < self.args.noise_train_prob:
-            rng = np.random.default_rng(random.getrandbits(32))
-            image = noise_mix_image(image, self.noise_images[rng.integers(len(self.noise_images))],
-                                    rng.uniform(self.args.noise_snr_low, self.args.noise_snr_high), self.encoder.db_scale, rng)
         if self.transform is not None:
             image = self.transform(image)
         values = image, self.labels[index], self.devices[index], int(self.patients[index]), self.quality[index]

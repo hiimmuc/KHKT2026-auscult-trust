@@ -2,7 +2,6 @@
 
 import numpy as np
 from sklearn.metrics import f1_score, recall_score
-from scipy.stats import rankdata
 
 
 def class_report(y, pred, n_classes=4):
@@ -37,26 +36,6 @@ def icbhi_score(y, pred):
     """
     sp, se = sp_se(y, pred)
     return (sp + se) / 2
-
-
-def ece(probs, y, bins=15):
-    """Expected calibration error on top-label confidence.
-
-    Args:
-        probs: (n, K) probabilities.
-        y: (n,) true labels.
-        bins: Number of equal-width bins.
-
-    Returns:
-        Float ECE.
-    """
-    conf, pred = probs.max(1), probs.argmax(1)
-    b = np.minimum((conf * bins).astype(int), bins - 1)
-    return sum(
-        abs((pred[b == i] == y[b == i]).mean() - conf[b == i].mean()) * (b == i).mean()
-        for i in range(bins)
-        if (b == i).any()
-    )
 
 
 def coverage(sets, y):
@@ -156,11 +135,3 @@ def by_device(y, pred, devices, n_classes=4):
             "two_cls_hs": 2 * sp * se2 / (sp + se2) if sp + se2 else 0.0,
         }
     return out
-
-
-def auroc(score, positive):
-    """Rank-based AUROC (ties averaged)."""
-    n1 = int(positive.sum())
-    n0 = len(positive) - n1
-    r = rankdata(score)
-    return float((r[positive].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))

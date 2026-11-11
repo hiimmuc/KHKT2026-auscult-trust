@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | report | 2026-10-19 | final |
 
-Plan: `docs/updates/stage-plan-v1.md`. Next stage: `docs/updates/lodo-plan-v1.md`. Raw tables:
+Plan: `docs/plans/stage-plan-v1.md`. Next stage: `docs/plans/lodo-plan-v1.md`. Raw tables:
 `outputs/train/grid-v1/table_last.md`, `table_best_test.md`.
 
 ## Summary
@@ -337,7 +337,7 @@ were chosen after seeing the test results and are optimistic.
   alone on the worst device.
 - [Fact] Adding weaker encoders does not help (32 cells below 8 BEATs cells). Averaging the last 10 epochs of one model
   changes Score by 0.0-0.2: the gain comes from different models.
-- Use: ensemble plan in `docs/updates/lodo-plan-v1.md` (fixed rule, evaluated in LODO), then distillation into one model.
+- Use: ensemble plan in `docs/plans/lodo-plan-v1.md` (fixed rule, evaluated in LODO), then distillation into one model.
 
 ## Comparison with published numbers (AST, best epoch on test)
 
@@ -400,7 +400,7 @@ cut are cut at 17/10 10:43-20:20. Up to 4 jobs ran at once; the scheduler kept t
 | 18/10 19:00 | 2.1 | 10.4 |
 
 [Interpretation] Both GPUs were busy except during the power cut; parallel jobs averaged about 3. For LODO, log
-`nvidia-smi` every minute (`docs/updates/lodo-plan-v1.md`).
+`nvidia-smi` every minute (`docs/plans/lodo-plan-v1.md`).
 
 ## Incidents
 

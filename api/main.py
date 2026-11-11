@@ -131,6 +131,16 @@ def rate_limit():
     hits.append(now)
 
 
+def ms_since(t0):
+    return round(1000 * (time.perf_counter() - t0))
+
+
+def respond(request, source, res, hit, t0):
+    """Wrap an inference result with request id, cache flag and timings; a cache hit carries no stage timings."""
+    return {"request_id": request.state.rid, "source": source, **res, "cached": hit, "timing_ms": ms_since(t0),
+            "timing_stages_ms": {} if hit else res.get("timing_stages_ms", {})}
+
+
 def ready():
     """503 unless the model is loaded. Never falls back to a made-up answer."""
     if state["engine"] is None:
@@ -274,10 +284,10 @@ async def sample_result(request: Request, sid: str):
     def run():
         worker_start = started = time.perf_counter()
         x, meta = E.read_wav((BUNDLE / s["file"]).read_bytes())
-        decode_ms = round(1000 * (time.perf_counter() - started))
+        decode_ms = ms_since(started)
         started = time.perf_counter()
         x16 = E.to_model_rate(x, meta["sample_rate"])
-        resample_ms = round(1000 * (time.perf_counter() - started))
+        resample_ms = ms_since(started)
         res = state["engine"].infer(x16, meta["duration_sec"], s["device"], sample_cycles(s))
         return {"audio": {**meta, "filename": s["id"] + ".wav", "sha256": s["sha256"]},
                 "device": {"declared": s["device"]},
@@ -285,11 +295,8 @@ async def sample_result(request: Request, sid: str):
                                               "decode": decode_ms, "resample": resample_ms,
                                               **res.get("timing_stages_ms", {})}}
 
-    t0 = queued_at
     res, hit = await guarded_cached(request, ("sample", sid), run)
-    return {"request_id": request.state.rid, "source": {"kind": "sample", "id": sid}, **res,
-            "cached": hit, "timing_ms": round(1000 * (time.perf_counter() - t0)),
-            "timing_stages_ms": {} if hit else res.get("timing_stages_ms", {})}
+    return respond(request, {"kind": "sample", "id": sid}, res, hit, queued_at)
 
 
 @app.post("/v1/recordings", dependencies=[Depends(auth), Depends(rate_limit)])
@@ -325,7 +332,7 @@ async def infer(
     ready()
     started = time.perf_counter()
     data = await file.read(MAX_BYTES + 1)
-    upload_read_ms = round(1000 * (time.perf_counter() - started))
+    upload_read_ms = ms_since(started)
     if len(data) > MAX_BYTES:
         raise ApiError(413, "too_large", "File is larger than {} MB.".format(MAX_BYTES >> 20))
     if not 1.0 <= window_sec <= 8.0 or not 0.25 <= hop_sec <= window_sec:
@@ -338,13 +345,13 @@ async def infer(
     started = time.perf_counter()
     x, meta = E.read_wav(data)
     sha = hashlib.sha256(data).hexdigest()
-    decode_ms = round(1000 * (time.perf_counter() - started))
+    decode_ms = ms_since(started)
     queued_at = time.perf_counter()
 
     def run():
         worker_start = started = time.perf_counter()
         x16 = E.to_model_rate(x, meta["sample_rate"])
-        resample_ms = round(1000 * (time.perf_counter() - started))
+        resample_ms = ms_since(started)
         out = {"audio": {**meta, "filename": file.filename, "sha256": sha}, "device": {"declared": device or None}}
         segs = cyc
         started = time.perf_counter()
@@ -354,16 +361,13 @@ async def infer(
             out["alignment"] = {"reference_sample": ref["id"], "lag_sec": round(lag, 4), "peak_score": round(score, 2),
                                 "reliable": score >= ALIGN_MIN_SCORE, "trimmed_to_sec": rmeta["duration_sec"]}
             segs = sample_cycles(ref)
-        align_ms = round(1000 * (time.perf_counter() - started))
+        align_ms = ms_since(started)
         duration = x16.shape[1] / E.SR
         res = state["engine"].infer(x16, duration, device or None, segs, window_sec, hop_sec)
         return {**out, **res, "timing_stages_ms": {"upload_read": upload_read_ms, "decode": decode_ms,
                 "queue": round(1000 * (worker_start - queued_at)),
                 "resample": resample_ms, "alignment": align_ms, **res.get("timing_stages_ms", {})}}
 
-    t0 = request_t0
     key = (sha, device, cycles, json.dumps(cyc), reference_sample, window_sec, hop_sec)
     res, hit = await guarded_cached(request, key, run)
-    return {"request_id": request.state.rid, "source": {"kind": "upload"}, **res, "cached": hit,
-            "timing_ms": round(1000 * (time.perf_counter() - t0)),
-            "timing_stages_ms": {} if hit else res.get("timing_stages_ms", {})}
+    return respond(request, {"kind": "upload"}, res, hit, request_t0)

@@ -10,9 +10,7 @@
 #       official site https://bhichallenge.med.auth.gr (its certificate has expired, so the zip is verified by md5),
 #       mirror https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HT6PKI (also on Kaggle)
 #   KAUH lung sounds (Fraiwan et al.), Mendeley Data jwyy9np4gv version 3: Audio Files.zip, Data annotation.xlsx
-#   Encoder weights: AST AudioSet (AST authors), OPERA-CT (Hugging Face evelyn0414/OPERA), CLAP (laion/clap-htsat-unfused) and
-#       HeAR (google/hear-pytorch, gated: request access on its Hugging Face page and run `hf auth login` first) into
-#       DATA_DIR/models/huggingface; HTS-AT AudioSet weights are a manual download (Google Drive folder of the HTS-AT authors,
+#   Encoder weights: AST AudioSet (AST authors), OPERA-CT (Hugging Face evelyn0414/OPERA); HTS-AT AudioSet weights are a manual download (Google Drive folder of the HTS-AT authors,
 #       https://drive.google.com/drive/folders/1f5VYMk0uos_YnuBshgmaTVioXbs7Kmz6) to DATA_DIR/models/htsat/AudioSet/
 #   HF_Lung_V1: https://gitlab.com/techsupportHF/HF_Lung_V1 (git clone, then unzip train and test)
 # Then run: python scripts/prepare_data.py
@@ -60,14 +58,9 @@ dass=$DATA_DIR/models/dass/pretrained_models/DASS_medium_v2.pth
 opera=$DATA_DIR/models/opera/encoder-operaCT.ckpt
 [ -f "$opera" ] || fetch "https://huggingface.co/evelyn0414/OPERA/resolve/main/encoder-operaCT.ckpt?download=true" "$opera"
 
-# CLAP and HeAR through the Hugging Face hub (HeAR needs an authorised account; skipped with a message otherwise)
-hub=$DATA_DIR/models/huggingface/hub
-HF=${HF:-hf}
-$HF download laion/clap-htsat-unfused --cache-dir "$hub" > /dev/null || echo "CLAP download failed"
-$HF download google/hear-pytorch --cache-dir "$hub" > /dev/null || echo "HeAR download failed: request access at https://huggingface.co/google/hear-pytorch and run 'hf auth login'"
 [ -f "$DATA_DIR/models/htsat/AudioSet/HTSAT_AudioSet_Saved_1.ckpt" ] || echo "HTS-AT weights missing: download HTSAT_AudioSet_Saved_1.ckpt (link in the header) to DATA_DIR/models/htsat/AudioSet/"
 
-# Reference repositories (read-only): Patch-Mix CL (model, loss, official ICBHI split), OPERA (HTS-AT network), HeAR (preprocessing),
+# Reference repositories (read-only): Patch-Mix CL (model, loss, official ICBHI split), OPERA (HTS-AT network),
 # Lung-SRAD (DASS), RespireNet and SG-SCL (baselines), HTS-AT
 AT_REPOS="$REPOS_DIR" "${PY:-python}" -m src.references --install
 

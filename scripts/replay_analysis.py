@@ -41,7 +41,7 @@ import pandas as pd
 import torch
 from scipy.signal import butter, coherence, sosfiltfilt, welch
 
-from src.paths import DATA
+from src.paths import CHECKPOINTS, DATA, OUTPUTS
 from src.processing.audio import SR, load_wav
 from src.processing.correction import _stft, apply_spectrum_correction, mean_spectrum, spectrum_coefficients
 from src.processing.cycles import cut_pad
@@ -50,10 +50,9 @@ from src.training.config import load_args
 from src.inference.model import images_of, load_frozen, predict_images
 
 ICBHI = DATA / "raw" / "icbhi" / "ICBHI_final_database"
-CAMPAIGNS = Path(__file__).resolve().parents[1] / "build" / "campaigns"
 MODELS = {
-    "kd_g4_k1": (CAMPAIGNS / "distill-20261028", "distill-20261028-final/kd_g4_k1", 66),
-    "anchor": (CAMPAIGNS / "followup-20261026", "followup-20261026-final/gain6-cv66", 66),
+    "kd_g4_k1": ("distill-20261028-final/kd_g4_k1", 66),
+    "anchor": ("followup-20261026-final/gain6-cv66", 66),
 }
 TEST_PATIENTS = {"101", "102", "104"}
 BAND = (50.0, 2000.0)
@@ -211,7 +210,7 @@ def main():
     orig = {s: load_wav(ICBHI / f"{s}.wav", SR) for s in stems}
     ref_rms = float(np.median([np.sqrt(np.mean(v ** 2)) for v in (load_wav(f, SR) for f in sorted(ICBHI.glob("*.wav"))[::8])]))
 
-    # 1. align and measure
+    # Align and measure
     rows, aligned = [], {}
     for c in captures:
         for s in stems:
@@ -226,7 +225,7 @@ def main():
                              rms_ratio_db=20 * np.log10(np.sqrt(np.mean(x ** 2)) / np.sqrt(np.mean(orig[s] ** 2)))))
     takes = pd.DataFrame(rows)
 
-    # 2. capture transfer functions |H| = sqrt(PSD_take / PSD_original) and leave-one-recording-out inverse EQ
+    # Capture transfer functions |H| = sqrt(PSD_take / PSD_original) and leave-one-recording-out inverse EQ
     tf = {(c, s): np.sqrt(psd(bandpass_level(aligned[c, s], 1.0)) / np.maximum(psd(bandpass_level(orig[s], 1.0)), 1e-14))
           for c in captures for s in stems}
     np.savez_compressed(out / "transfer_functions.npz", freqs=FREQS, **{f"{c}__{s}": v for (c, s), v in tf.items()})
@@ -237,7 +236,7 @@ def main():
         g = np.clip(-20 * np.log10(h), -30.0, max_gain_db)
         return np.where((FREQS >= BAND[0]) & (FREQS <= BAND[1]), 10 ** (g / 20), 1.0)
 
-    # 3. variants per take (whole recording, then cycles)
+    # Variants per take (whole recording, then cycles)
     waves = {}
     for c in captures:
         bp = {s: bandpass_level(aligned[c, s], ref_rms) for s in stems}
@@ -254,9 +253,9 @@ def main():
     takes["cycle_offset_ms_sd"] = [1000 * np.std(offsets[r.capture, r.stem]) for r in takes.itertuples()]
 
     records, probs = [], []
-    for model, (camp, cell, ep) in MODELS.items():
+    for model, (cell, ep) in MODELS.items():
         for seed in a.seeds:
-            unit = camp / "outputs/train" / cell / f"seed{seed}"
+            unit = OUTPUTS / "train" / cell / f"seed{seed}"
             args = load_args(unit)
             st = np.load(unit / "sc_state.npz")
             ref_spec = st["reference"]
@@ -268,7 +267,7 @@ def main():
                                              limit_freq_low=args.sc_limit_freq_low, limit_freq_high=args.sc_limit_freq_high,
                                              limit_freq_diff=args.sc_limit_freq_diff, reference_spectra={"ref": ref_spec})["x"]
 
-            model_nn, clf = load_frozen(args, camp / "checkpoints/train" / cell / f"seed{seed}" / f"report_epoch_{ep}.pth")
+            model_nn, clf = load_frozen(args, CHECKPOINTS / "train" / cell / f"seed{seed}" / f"report_epoch_{ep}.pth")
             batch = []  # (capture, variant, stem, cycle waves)
             for s in stems:
                 ann = annotations(s)
@@ -333,7 +332,7 @@ def main():
     cyc = pd.concat([cyc, ens], ignore_index=True)
     cyc["pred"] = cyc[pc].to_numpy().argmax(1)
 
-    # 4. agreement with the original-audio prediction of the same model, seed and cycle; Score against labels
+    # Agreement with the original-audio prediction of the same model, seed and cycle; Score against labels
     key = ["model", "seed", "stem", "cycle"]
     ref = cyc[cyc.variant == "original"].set_index(key)[["pred", "p_normal", "p_crackle", "p_wheeze", "p_both"]]
     j = cyc.join(ref, on=key, rsuffix="_orig")
@@ -355,7 +354,7 @@ def main():
                          **{k + "_mean": df[k].mean() for k in df}, **{k + "_sd": df[k].std(ddof=1) for k in df}))
     summ = pd.DataFrame(summ)
 
-    # 5. automatic variant choice: lowest flip rate on the training-split takes, evaluated on the test-split takes
+    # Automatic variant choice: lowest flip rate on the training-split takes, evaluated on the test-split takes
     choice = {}
     for (m, c), g in summ[(summ.capture != "original") & (summ.split == "train") & ~summ.variant.isin(["raw"])].groupby(["model", "capture"]):
         best = g.sort_values(["flip_mean", "tv_mean"]).iloc[0].variant

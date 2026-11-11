@@ -78,40 +78,17 @@ Restart it after changing `.env`. The API binds to localhost only; the tunnel in
 
 ### 3. Tailscale Funnel (public HTTPS URL for the API)
 
-Funnel gives a fixed `https://<host>.<tailnet>.ts.net` URL with a valid certificate, needs no domain and no open inbound port.
+Funnel gives a stable `https://<host>.<tailnet>.ts.net` URL with a valid certificate; no domain, no inbound port.
 
-1. Install and log in (once). Create a free account at tailscale.com, then:
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up   # once; approve the machine at the printed URL
+sudo tailscale set --operator=$USER && tailscale set --hostname=auscult # once
+tailscale funnel --bg 8000                                              # approve "Funnel is not enabled" in the admin console once
+tailscale funnel status
+curl -s https://<name>.<tailnet>.ts.net/v1/health                       # test from outside the tailnet
+```
 
-   ```bash
-   curl -fsSL https://tailscale.com/install.sh | sh      # installs and starts the tailscaled service
-   sudo tailscale up                                     # prints a login URL: open it and approve this machine
-   ```
-
-2. Name the machine (this becomes the URL's first part; a name already used by another device may get a suffix. Rename it in the Tailscale admin console under **Machines → Edit machine name** if the CLI name does not update):
-
-   ```bash
-   sudo tailscale set --operator=$USER                   # once: lets your user change settings without sudo
-   tailscale set --hostname=auscult
-   tailscale status --self --json | python3 -c "import sys,json; print(json.load(sys.stdin)['Self']['DNSName'])"
-   ```
-
-   The `tail09c58b` part is the tailnet name. Change it only in the admin console (DNS, tailnet name).
-3. Enable Funnel for the tailnet (once): run `tailscale funnel --bg 8000`. If it prints `Funnel is not enabled on your tailnet` with a login.tailscale.com link, open the link and approve. In the admin console (DNS) HTTPS certificates must be on.
-4. Start it (it persists across reboots) and check:
-
-   ```bash
-   tailscale funnel --bg 8000            # use the DNSName printed by tailscale status --self --json
-   tailscale funnel status
-   curl -s https://<current-machine-name>.tail09c58b.ts.net/v1/health  # test from outside the tailnet
-   ```
-
-   Stop it with `tailscale funnel --https=443 off`, or `tailscale funnel reset` to clear everything.
-
-Notes:
-
-- Do not run `tailscale cert` in the repo: it writes a certificate and a private key into the current directory. Funnel needs no manual certificate.
-- A device on your tailnet, including this machine, resolves the name to a tailnet address. From there the public page's request counts as local-network access and Chrome blocks it (`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`), and the host cannot reach its own public Funnel address. Test from an outside device.
-- Funnel listens on ports 443, 8443 and 10000 only, and Tailscale applies non-configurable bandwidth limits ([docs](https://tailscale.com/docs/features/tailscale-funnel)).
+Stop with `tailscale funnel --https=443 off`. Do not run `tailscale cert` in the repo (it writes a private key to the current directory). A device on the tailnet, including this host, resolves the name to a tailnet address, so Chrome blocks the public page's request there (`ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`): test from an outside device. Funnel listens on 443, 8443 and 10000 only.
 
 ### 4. Static web app on Cloudflare Pages
 
@@ -140,20 +117,6 @@ PYTHONPATH=. .venv-train/bin/python scripts/stage_space.py      # writes build/s
 4. `curl https://<user>-auscult-trust-api.hf.space/v1/health` says `"status":"ok"` once the weights are downloaded, `unavailable` until then. Rebuild the web app with `VITE_API_FALLBACK` set to that URL and redeploy (section 4).
 
 Caveats: [Assumption] free CPU Basic Spaces (2 vCPU, 16 GB) per the Hub docs, but a community thread reports Docker Spaces being restricted for unpaid accounts, so confirm your plan allows one. Free Spaces sleep when idle and need a minute or more to wake and download the weights. `stage_space.py` leaves the ICBHI demo WAVs out (dataset-terms TODO below), so Demo mode has no samples on the Space.
-
-### Choosing the tunnel (measured 22/10/2026)
-
-From this host, API without a model so only the tunnel is timed; the client was the host itself, so each request goes out to the edge and back. Health: 30 sequential GETs; upload: 4 POSTs of 8 MB.
-
-| Route | Health median / p95 (ms) | 8 MB upload median (ms) | Stable URL | Needs |
-| --- | --- | --- | --- | --- |
-| direct, no tunnel | 1 / 1 | 12 | n/a | n/a |
-| Cloudflare quick tunnel, QUIC | 186 / 283 | 794 | no | nothing |
-| Cloudflare quick tunnel, `--protocol http2` | 177 / 230 | 758 | no | nothing |
-| ngrok free | 221 / 243 | 2243 | `*.ngrok-free.dev` | ngrok account |
-| Tailscale Funnel | not timed | not timed | yes | Tailscale account |
-
-[Fact] Funnel works end to end (section 3). Not timed: this host resolves its own Funnel name to the tailnet address, so a timing here would be loopback. Choice: Funnel as primary (stable URL, no domain, no interstitial). ngrok free is the weakest here: slowest upload, 1 GB/month and 20,000 requests/month ([docs](https://ngrok.com/docs/pricing-limits/free-plan-limits)), a browser interstitial page unless requests carry `ngrok-skip-browser-warning` (which the API's CORS `allow_headers` does not list, so the preflight answers 400). A spare when Funnel is down: `cloudflared tunnel --protocol http2 --url http://127.0.0.1:8000` prints a temporary `https://*.trycloudflare.com` URL (set it in the page's connection dialog; it changes at every start). Cloudflare's named tunnels need a domain and are not used.
 
 ### Troubleshooting
 
@@ -241,24 +204,7 @@ The checks below come from the code (`src/evaluation/*`, `src/processing/correct
 
 The two proposed methods carry a **Proposed** tag in the page: spectrum correction (the SC pipeline) and conformal prediction. The *Conformal prediction* switch in the toolbar (kept in local storage, shared by both modes) hides or shows the conformal layer: set labels on the boxes, set chips in the tables, the set pattern in the 2-class lane, the set stats in the demo comparison and the triage card. Off, the page shows top classes only and the screening card shows a plain Normal / Abnormal at p(abnormal) 0.5.
 
-The selected serving bundle uses seed 0 at fixed epoch 100. On 23/10 it passed the real-checkpoint API test and
-was activated in `app/bundle/`; the candidate remains in `app/bundle-final-pafa-static/`. The previous bundle is
-retained under `app/bundle-backup-*/`. The running local API checkpoint hashes were checked against the selected manifest.
-`AT_APP_BUNDLE` selects which bundle the API loads.
-
-Refactor validation, 24/10/2026: `app/bundle-refactor-20261024/` is a schema-2 candidate, validated with the
-real-checkpoint GPU API test. For each seed-0 pipeline, all 2,756 cycle predictions and 742 screening-window predictions
-match the previous exports exactly, including row metadata. Checkpoint hashes are unchanged. Cycle thresholds now use
-verified float32 exports instead of float16 training-history predictions; the maximum threshold change is 0.0000506.
-Screening thresholds are unchanged. Previous cycle exports are retained in each unit's
-`export-pre-refactor-20261024/`; screening outputs and logs use run `refactor-validation-20261024`.
-The candidate was tested independently of the API on port 8000, which was running from the separate
-`api-recovery-20261024` worktree; this validation does not switch that service.
-
-```bash
-AT_APP_BUNDLE=app/bundle-refactor-20261024 AT_APP_AUTH=off AT_APP_SAMPLES=on AT_APP_RATE_LIMIT=0 \
-  OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 PYTHONPATH=. .venv-train/bin/python -m pytest -q api/test_api.py
-```
+The serving bundle uses seed 0 at a fixed epoch; `AT_APP_BUNDLE` selects the bundle directory. It currently holds BEATs + PAFA with and without static SC. The project model is now the distilled student `kd_g4_k1` (`docs/decision-logs/2026-10-29-final-model-distilled.md`); swap the `PIPELINES` units in `api/bundle.py` and rebuild after the real-checkpoint API test passes.
 
 | Name | Unit | Epoch | SC |
 | --- | --- | --- | --- |

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from final_evaluation import BASE, SC, RUN, event, export_ok, run, sha
+from final_evaluation import RUN, event, export_ok, run, sha
 from src.training.state import report_epoch
 from src.artifacts import file_hashes, atomic_npz, immutable_json
 from src.provenance import record_prediction

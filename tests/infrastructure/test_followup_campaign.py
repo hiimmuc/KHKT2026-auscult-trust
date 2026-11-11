@@ -1,5 +1,4 @@
 """Follow-up role counts, source-only gates, native recovery, and complete receipts."""
-import copy
 from datetime import datetime, timezone
 from pathlib import Path
 

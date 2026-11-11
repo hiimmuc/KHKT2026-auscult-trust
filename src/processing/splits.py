@@ -179,19 +179,6 @@ def calibration_eval_splits(df, n_splits=20, fracs=(0.5, 0.5), seed=0):
     return out
 
 
-def with_official(df, split):
-    """Add the `official` column ("train" = train+val patients, "test") from a split file; drops `split["drop"]` stems.
-
-    Use when the cycle table was built without the official split file (`cycle_table` leaves `official` empty).
-    """
-    df = df[~df.stem.isin(split.get("drop", []))].copy()
-    side = {
-        p: ("test" if k == "test" else "train") for k, v in split.items() if k != "drop" for p in v
-    }
-    df["official"] = df.patient.map(side)
-    return df[df.official.notna()].reset_index(drop=True)
-
-
 def patient_val_split(patients, frac=0.2, seed=0):
     """Hold out whole patients of the training set as a validation set.
 

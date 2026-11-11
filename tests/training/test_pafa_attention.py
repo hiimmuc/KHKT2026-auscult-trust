@@ -1,6 +1,5 @@
 """Token-attention alignment must retain classification and match released PAFA gradients."""
 from copy import deepcopy
-from types import SimpleNamespace
 
 import pytest
 import torch

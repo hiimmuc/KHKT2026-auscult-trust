@@ -131,7 +131,6 @@ def main():
             diffs.append(np.mean([invariance(data[a.base][s], ps)[0] - invariance(data[arm][s], ps)[0] for s in ss]))
         point = A[a.base][:, 0].mean() - A[arm][:, 0].mean()
         L.append(f"- {a.base} - {arm}: {point:+.3f} [{np.percentile(diffs, 2.5):+.3f}, {np.percentile(diffs, 97.5):+.3f}]")
-    # B2
     L += ["", "## B2: conformal coverage, calibrate on one filter, test on another (recording level, normal vs abnormal)", "",
           "| Pair (source -> target) | Condition | mean abs Delta | null p95 | tested |", "|---|---|---|---|---|"]
     null, abs_d = {}, {}

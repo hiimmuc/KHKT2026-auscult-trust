@@ -4,23 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-For current experiment progress and deployment state, use [`report.md`](report.md) and [`app/README.md`](app/README.md).
-The detailed dated handoffs under `docs/handoff/` are snapshots; their machine tables and next steps are historical unless
-they have a newer dated update.
+Current results: [`report.md`](report.md). State and open items: [`docs/handoff/HANDOFF.md`](docs/handoff/HANDOFF.md). Commands per stage: [`docs/REPRODUCE.md`](docs/REPRODUCE.md). Demo: [`app/README.md`](app/README.md).
 
-Main line: **proposal v10** (`docs/updates/research-proposal-v10-en.md`, 23/10/2026: final model and v9 evidence; hypotheses and registered criteria unchanged). Registered study: **proposal v9** (`docs/updates/research-proposal-v9-en.md`, 07/10/2026). Registered title (fixed): *Nghiên cứu giải pháp cải thiện độ tin cậy của mô hình phân loại âm thanh phổi dưới sự dịch chuyển thiết bị bằng hiệu chỉnh phổ và dự đoán Conformal cho hỗ trợ sàng lọc bệnh đường hô hấp*. v8 and earlier (A+B, H, v4) are superseded; their results stay in `report.md` as Phase 0.
-Pre-registration: `docs/updates/prereg-v8.md`, amended 07/10/2026 (`docs/updates/prereg-v9-amendment-1.md`, appended to the end of `prereg-v8.md`; registered, no Stage-1 run preceded it).
-Data in `../data/raw/`: ICBHI (920 wav, 6898 cycles, 126 patients), HF_Lung_V1 (9765 wav, not used in v9 core), KAUH (336 wav = 112 patients x 3 filters). Reference repos in `../repos` (read-only): OPERA, patch-mix_contrastive_learning, SG-SCL.
-Final decision (23/10/2026): **baseline** = BEATs + PAFA, fine-tuned, no SC; **AuscultTrust** = the same recipe trained and evaluated with **static SC**, plus the split-conformal layer (cycle 4-class and recording-level screening). Exploratory extensions: equal-weight **E1** (three BEATs members) and **E1+E3** (E1 plus two HTS-AT members), with and without static SC. See `docs/decision-logs/2026-10-23-final-model.md` for fixed epochs, provenance and execution logs. The registered v9 core below used SC front end + AST (Patch-Mix CL recipe).
-Final evaluation completed 23/10/2026: `scripts/final_evaluation.py` and `scripts/final_ensembles.py`;
-results/process log: `docs/reports/2026-10-23-final-pafa-static-execution.md`. Primary KAUH A/B2 controls pass;
-recording screening retains a high uncertain rate. The validated seed-0 PAFA/static-SC bundle is active.
-The P0/P1 and gate definitions below describe the historical registered AST study; do not confuse
-that P0 with the current BEATs + PAFA project baseline. Phantom work remains pending hardware.
+Main line: **proposal v10** (`docs/registered/research-proposal-v10-en.md`). Registered study: **proposal v9** with pre-registration `docs/registered/prereg-v8.md` and amendments 1-5; registered criteria unchanged. Registered title (fixed): *Nghiên cứu giải pháp cải thiện độ tin cậy của mô hình phân loại âm thanh phổi dưới sự dịch chuyển thiết bị bằng hiệu chỉnh phổ và dự đoán Conformal cho hỗ trợ sàng lọc bệnh đường hô hấp*.
 
-Stage 12 (24-27/10/2026, `report.md` section 17): source-CV trials of attention, gain6, LLRD, event heads, KD, SWA, LoRA, multi-scale and class-aware PAFA. Source evidence only; none has an official, LODO or KAUH result and none changes the model above. Next run (proposed): `docs/updates/2026-10-27-target-evaluation-plan.md`. State: `docs/handoff/HANDOFF.md`.
+Model (29/10/2026): **AuscultTrust** = distilled student `kd_g4_k1` (BEATs + PAFA, trained static SC, gain6, epoch 66, soft targets from the equal-weight G4 teacher ensemble) + split-conformal layer. **Baseline** = BEATs + PAFA, fine-tuned, no SC. The registered v9 core (AST + Patch-Mix CL) is a separate, historical study; its P0/P1 and gate G below describe it. Phantom work is pending hardware.
 
-Dates: school round 10/10/2026 (10-min talk + poster); results report submission 25/10/2026; research cut-off 31/01/2027.
+Data in `../data/raw/`: ICBHI (920 wav, 6898 cycles, 126 patients), KAUH (336 wav = 112 patients x 3 filters), phantom replay takes. Reference repos in `../repos` (read-only).
+
+Dates: research cut-off 31/01/2027.
 
 ## Project (v9)
 
@@ -57,12 +49,12 @@ Arm names in code and configs: P0 = `baseline`, P1 = `sc`, P1+P3 = `sc_gain`, P4
 
 ## Commands
 
-Two envs: analysis/tests `.venv` and training `.venv-train` (Python 3.10, `timm==0.4.5`). Data: `bash scripts/download_data.sh`, `python scripts/prepare_data.py`. Details: `docs/SETUP.md`, `docs/QUICKSTART.md`.
+Two envs: analysis/tests `.venv` and training `.venv-train` (Python 3.10, `timm==0.4.5`). Data: `bash scripts/download_data.sh`, `python scripts/prepare_data.py`. Details: `docs/SETUP.md`, `docs/REPRODUCE.md`.
 
 - Tests: `uv run --no-project --python .venv/bin/python python -m pytest -q tests` (single: append `tests/training/test_training.py::test_summary_counts_match_metrics`).
-- Training campaign (one `RUN_ID`): `bash scripts/run.sh screen`, `summary`, `final`, `report` (file header explains each). Same `RUN_ID` skips finished units and resumes interrupted ones from `last.pth`. One unit: `PYTHONPATH=. .venv-train/bin/python -m src.training.main --config experiments/train/base.yaml,experiments/train/<arm>.yaml [--cv_folds 3 --cv_fold k | --selection fixed --report_epochs E] --seed S`.
+- Registered AST campaign (one `RUN_ID`): `bash scripts/run.sh screen|summary|final|report`. Grid, LODO, SC, ensembles, distillation, replay: `docs/REPRODUCE.md`. Same `RUN_ID` skips finished units and resumes interrupted ones from `last.pth`. One unit: `PYTHONPATH=. .venv-train/bin/python -m src.training.main --config experiments/train/base.yaml,experiments/train/<arm>.yaml [--cv_folds 3 --cv_fold k | --selection fixed --report_epochs E] --seed S`.
 - Freeze/export: `python -m src.training.export_probs <outputs unit dir> --ckpt report_epoch_<E>.pth` -> softmax, embeddings, `export/model.sha256`.
-- Earlier-phase tools (encoder ladder, shift study, legacy stacks, feature cache) are in `../archive/auscult-trust-phase0` (original layout: `git checkout pre-restructure`); not extended.
+- Earlier-phase tools are in `../archive/auscult-trust-phase0`; code removed on 03/11/2026 is in git history (`git show d722ae8`).
 - CPU-heavy extraction: prefix `OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4`.
 
 ## Code map
@@ -99,8 +91,8 @@ Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 ## Working conventions
 
 - `../repos/*` is read-only reference. Never edit, build, or write results there. Reuse them by path (`src/training/upstream.py`), never vendor a copy.
-- Docs: reports in `docs/reports/`, handoffs in `docs/handoff/` (written when a session runs out of context), proposal / prereg / amendments in `docs/updates/`, decision logs in `docs/decision-logs/`.
-- Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = experiment (`train`), `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
+- Docs: results in `report.md`, detail in `docs/reports/`, handoff in `docs/handoff/` (written when a session runs out of context), registered documents in `docs/registered/`, plans in `docs/plans/`, decisions in `docs/decision-logs/`.
+- Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
 - Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../repos`, `../docs`.
 - Install a missing package before reaching for a workaround.
 - Simplest change that works. No speculative abstractions.
@@ -108,16 +100,3 @@ Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 - Do not invent dataset statistics, citations, or results. Mark unknowns as TODO.
 - Claims in docs use tags: [Fact], [Interpretation], [Hypothesis], [Assumption], [Pending].
 - Code comments and docs in English.
-
-## TODO (v9, in dependency order)
-
-1. ~~Register: choose clip vs common band and the TTA-EQ seed list, then date, append and commit~~ — done (`docs/updates/prereg-v9-amendment-1.md`, 07/10/2026; `sc_mode` decided by CV, not by hand). Still open: recount ICBHI cycles per device from filenames ([8] and [14] disagree on Litt3200/LittC2SE labels).
-2. ~~SC safety~~ — done: `sc_mode` bound in `src/processing/correction.py`, `sc_state.npz` (s_ref, per-device spectra and coefficients, `sc_mode`) and `s_ref_sha256` saved with every SC run, `run.sh screen` runs both `sc_mode` values per SC arm.
-3. ~~Stage 1 summary~~ — done (`summary.py`). Still to run: Stage 1 screen + final (`bash scripts/run.sh`).
-4. External-audio inference for the frozen Patch-Mix model: KAUH 8 s windows and phantom clips -> softmax npz, with optional SC from saved s_ref + target spectrum from unlabelled clips (`--sc_n` to cap the number of target recordings, F4).
-5. Paired invariance metrics in `src/evaluation/shift.py`: flip rate, TV distance, set change rate, patient-paired bootstrap.
-6. Screening view: window -> recording aggregation (mean, max), recording-level labels for ICBHI and KAUH, 2-class conformal, triage counts.
-7. LODO split over all recordings (`device_holdout_all` in `src/processing/splits.py` and a `--holdout_device` path in `src/training/`): a patient with any held-out-device recording leaves training and calibration; calibration carve-out 20% stratified by device. H2 statistic: prior-matched |Δ|, two-level bootstrap with recalibration, null gate from 200 exchangeable re-splits.
-8. KAUH B2 with the frozen model: calibrate on the other 4 rotation groups (current `rotation_partitions` gives a single group as `cal`, about 22 patients: add a variant), test target filter of the held-out group.
-9. A2 at test time on fbank for the frozen model (per-mel-bin mean/SD of target mapped to training statistics). TTA-EQ at test time: reuse `random_bin_gain` (P3) to draw K views, average softmax, store per-view probs for the disagreement score; same ensemble for calibration and test. LODO secondary split matching [46] (`device_holdout_all(..., drop_multi_device=True)`, pooled-Littmann fold).
-10. Phantom capture and analysis scripts (sweep ratio, clip-half gain, ceiling, explained fraction) once hardware is fixed.

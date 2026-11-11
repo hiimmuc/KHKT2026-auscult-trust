@@ -3,11 +3,6 @@
 import numpy as np
 
 
-def coverage_deficit(cov, alpha):
-    """Nominal minus empirical coverage. Positive means under-coverage."""
-    return (1 - alpha) - cov
-
-
 def set_stats(sets):
     """Mean size, singleton rate and empty-set rate of prediction sets.
 
@@ -23,36 +18,6 @@ def set_stats(sets):
         "singleton": float((n == 1).mean()),
         "empty": float((n == 0).mean()),
     }
-
-
-def binom_ci(p, n, z=1.96):
-    """Normal-approximation 95% CI half-width of a proportion. Returns 0 for n = 0."""
-    return z * np.sqrt(p * (1 - p) / n) if n else 0.0
-
-
-def per_class_coverage(sets, y, n_classes, alpha=0.1):
-    """Coverage per true class, with n and the binomial half-width at nominal.
-
-    Args:
-        sets: (n, K) boolean membership matrix.
-        y: (n,) true labels.
-        n_classes: K.
-        alpha: Miscoverage level (for the nominal CI).
-
-    Returns:
-        List of dicts `n`, `coverage`, `half_width`; coverage is NaN for an empty class.
-    """
-    out = []
-    for k in range(n_classes):
-        m = y == k
-        out.append(
-            {
-                "n": int(m.sum()),
-                "coverage": float(sets[m, k].mean()) if m.any() else float("nan"),
-                "half_width": float(binom_ci(1 - alpha, m.sum())),
-            }
-        )
-    return out
 
 
 def prior_matched_coverage(sets, y, target_prior):

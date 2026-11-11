@@ -10,7 +10,7 @@ AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEA
 # 1. Environments (details: docs/SETUP.md sections 1-2)
 uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
 uv venv .venv-train --python 3.10
-uv pip sync --python .venv-train/bin/python --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
+uv pip sync --python .venv-train/bin/python --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
 .venv-train/bin/python -m src.references --install
 
 # 2. Data (ICBHI, KAUH, encoder weights) and tests

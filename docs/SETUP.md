@@ -25,7 +25,7 @@ Two environments. Do not merge them: training pins `timm==0.4.5` on Python 3.10.
 uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt           # tests, evaluation, notebooks
 uv venv .venv-train --python 3.10
 uv pip sync --python .venv-train/bin/python \
-    --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock     # training, inference, API
+    --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock     # training, inference, API
 .venv-train/bin/python -m src.references --install                                       # reference repos at pinned commits
 ```
 

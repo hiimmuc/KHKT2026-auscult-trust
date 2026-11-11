@@ -133,6 +133,7 @@ def test_summary_screen_and_final_end_to_end(tmp_path, monkeypatch, capsys):
                   {"epochs": np.array([1, 2, 3]), "preds": preds, "labels": y, "device": devices, "patient": pats})
     scr["arms"]["freq_mixstyle"]["epoch"] = 2
     (root / "screen.json").write_text(json.dumps(scr))
+    monkeypatch.setattr(summary, "both_sides_patients", lambda: {"7"})  # the real split file is not in CI
     summary.final(type("A", (), {"run": "run1", "boot": 200})())
     out = (root / "final.md").read_text()
     assert "sc_gain (AuscultTrust)" in out and "Non-inferiority (sc_gain vs baseline, 10 seeds)" in out and "**pass**" in out

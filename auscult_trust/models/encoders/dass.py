@@ -14,10 +14,15 @@ import types
 from functools import lru_cache
 
 import torch.nn as nn
-from auscult_trust.paths import DATA, THIRD_PARTY
 from auscult_trust.models.upstream import working_directory
-
-from auscult_trust.processing.cycles import DB_PER_NAT, FBANK_STD, IMG_MEL, IMG_TIME, generate_fbank
+from auscult_trust.paths import DATA, THIRD_PARTY
+from auscult_trust.processing.cycles import (
+    DB_PER_NAT,
+    FBANK_STD,
+    IMG_MEL,
+    IMG_TIME,
+    generate_fbank,
+)
 
 LUNG_SRAD = THIRD_PARTY / "Lung-SRAD" / "models_DASS"
 WEIGHTS_ROOT = DATA / "models" / "dass"  # holds pretrained_models/DASS_medium_v2.pth
@@ -70,7 +75,9 @@ def build_dass(args):
 
 
 def preprocess_dass(wave):
-    return generate_fbank(wave, 16000, n_mels=IMG_MEL, per_sample_norm=True)  # as in Lung-SRAD for every model but AST
+    return generate_fbank(
+        wave, 16000, n_mels=IMG_MEL, per_sample_norm=True
+    )  # as in Lung-SRAD for every model but AST
 
 
 # ponytail: the per-cycle std varies a little around FBANK_STD, so the dB scale of the random gain is approximate for DASS

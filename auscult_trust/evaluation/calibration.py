@@ -29,7 +29,11 @@ def robust_coverage(cal_p, cal_y, cal_dev, test_p, test_y, alpha=ALPHA, min_n=30
     LAC quantile. Returns the same keys as `coverage`."""
     scores = lac_scores(cal_p, cal_y)
     devs = [d for d in np.unique(cal_dev) if (cal_dev == d).sum() >= min_n]
-    thr = max(split_threshold(scores[cal_dev == d], alpha) for d in devs) if devs else split_threshold(scores, alpha)
+    thr = (
+        max(split_threshold(scores[cal_dev == d], alpha) for d in devs)
+        if devs
+        else split_threshold(scores, alpha)
+    )
     sets = predict_sets(test_p, thr)
     prior = np.bincount(cal_y, minlength=cal_p.shape[1]) / len(cal_y)
     return {
@@ -60,6 +64,10 @@ def null_delta_p95(u, n_splits=200, alpha=ALPHA, seed=0):
         te = np.concatenate([groups[k] for k in order[:n_test]])
         ca = np.concatenate([groups[k] for k in order[n_test:]])
         out.append(
-            abs(coverage(u["cal_p"][ca], u["cal_y"][ca], u["cal_p"][te], u["cal_y"][te], alpha)["delta"])
+            abs(
+                coverage(u["cal_p"][ca], u["cal_y"][ca], u["cal_p"][te], u["cal_y"][te], alpha)[
+                    "delta"
+                ]
+            )
         )
     return float(np.percentile(out, 95))

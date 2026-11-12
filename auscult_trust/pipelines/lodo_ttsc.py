@@ -32,24 +32,24 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from auscult_trust import runs, artifacts
+from auscult_trust import artifacts, runs
 from auscult_trust.evaluation.calibration import coverage
+from auscult_trust.inference.adaptation import TTA_DB, TTA_SEED0, a2_images, gain_curves
+from auscult_trust.inference.model import load_frozen
+from auscult_trust.models.encoders import get_encoder
 from auscult_trust.processing.correction import (
     apply_spectrum_correction_torch,
     clip_spectra_torch,
+    coef_db_distance,
     spectrum_coefficients,
 )
 from auscult_trust.processing.icbhi import DEVICES
 from auscult_trust.training.config import load_args
-from auscult_trust.training.state import report_epoch
 from auscult_trust.training.dataset import ICBHIDataset
-from auscult_trust.models.encoders import get_encoder
-from auscult_trust.inference.model import load_frozen
-from auscult_trust.training.reporting import per_device_report
 from auscult_trust.training.methods import get_method
+from auscult_trust.training.reporting import per_device_report
+from auscult_trust.training.state import report_epoch
 
-from auscult_trust.inference.adaptation import TTA_SEED0, TTA_DB, gain_curves, a2_images
-from auscult_trust.processing.correction import coef_db_distance
 BATCH = 64
 
 
@@ -74,7 +74,9 @@ class Pipeline:
         for i in range(0, len(self.used), 256):
             j = self.used[i : i + 256]
             self.clip_spec[j] = clip_spectra_torch(self.waves[j].cuda().double()).cpu().numpy()
-        self.ckpt = runs.twin_dir(self.unit, "checkpoints") / "report_epoch_{}.pth".format(self.epoch)
+        self.ckpt = runs.twin_dir(self.unit, "checkpoints") / "report_epoch_{}.pth".format(
+            self.epoch
+        )
         self.model, self.classifier = load_frozen(self.args, self.ckpt)
         self.memo = {}
 
@@ -109,8 +111,14 @@ class Pipeline:
             w = self.waves[j].cuda()
             fix = np.isin(self.devices[j], list(apply_devices))
             if fix.any():
-                c = torch.from_numpy(np.stack([coef[d] for d in self.devices[j][fix]])).cuda().float()
-                w[torch.from_numpy(fix).cuda()] = apply_spectrum_correction_torch(w[torch.from_numpy(fix).cuda()], c)
+                c = (
+                    torch.from_numpy(np.stack([coef[d] for d in self.devices[j][fix]]))
+                    .cuda()
+                    .float()
+                )
+                w[torch.from_numpy(fix).cuda()] = apply_spectrum_correction_torch(
+                    w[torch.from_numpy(fix).cuda()], c
+                )
             out += [torch.from_numpy(self.encoder.preprocess(x[None])) for x in w]
         return torch.stack(out).permute(0, 3, 1, 2)  # (n, 1, time, freq) on CPU
 
@@ -121,7 +129,9 @@ class Pipeline:
         for i in range(0, len(images), BATCH):
             x = images[i : i + BATCH].cuda()
             if curves is not None:
-                x = x + torch.from_numpy(curves[i : i + BATCH]).cuda()[:, None, None, :].to(x.dtype)
+                x = x + torch.from_numpy(curves[i : i + BATCH]).cuda()[:, None, None, :].to(
+                    x.dtype
+                )
             with torch.cuda.amp.autocast():
                 f = self.model(x)
                 o = self.classifier(f)
@@ -160,8 +170,15 @@ def run_arm(p, a):
         cal_f = test_f = None
     else:
         (cal_p, cal_f), (test_p, test_f) = p.infer(cal_img), p.infer(test_img)
-    return {"cal_p": cal_p, "test_p": test_p, "cal_f": cal_f, "test_f": test_f, "coef": coef, "sc_mode": sc_mode,
-            "views": views if a.tta_eq else None}
+    return {
+        "cal_p": cal_p,
+        "test_p": test_p,
+        "cal_f": cal_f,
+        "test_f": test_f,
+        "coef": coef,
+        "sc_mode": sc_mode,
+        "views": views if a.tta_eq else None,
+    }
 
 
 def write_arm(p, a, res):
@@ -171,25 +188,69 @@ def write_arm(p, a, res):
     E = p.epoch
     test_pred = res["test_p"].argmax(1)
     rep = per_device_report(p.labels[p.te], test_pred, p.devices[p.te], p.args.n_cls)
-    np.savez_compressed(out / "test_preds.npz", epochs=np.array([E]), preds=test_pred[None].astype(np.int8),
-                        probs=res["test_p"][None].astype(np.float16), labels=p.labels[p.te], device=p.devices[p.te],
-                        patient=p.patients[p.te])
-    np.savez_compressed(out / "cal_preds.npz", epochs=np.array([E]), probs=res["cal_p"][None].astype(np.float16),
-                        labels=p.labels[p.ca], device=p.devices[p.ca], patient=p.patients[p.ca])
+    np.savez_compressed(
+        out / "test_preds.npz",
+        epochs=np.array([E]),
+        preds=test_pred[None].astype(np.int8),
+        probs=res["test_p"][None].astype(np.float16),
+        labels=p.labels[p.te],
+        device=p.devices[p.te],
+        patient=p.patients[p.te],
+    )
+    np.savez_compressed(
+        out / "cal_preds.npz",
+        epochs=np.array([E]),
+        probs=res["cal_p"][None].astype(np.float16),
+        labels=p.labels[p.ca],
+        device=p.devices[p.ca],
+        patient=p.patients[p.ca],
+    )
     if res["cal_f"] is not None:
-        np.savez_compressed(out / "emb.npz", cal=res["cal_f"].astype(np.float16), test=res["test_f"].astype(np.float16))
+        np.savez_compressed(
+            out / "emb.npz",
+            cal=res["cal_f"].astype(np.float16),
+            test=res["test_f"].astype(np.float16),
+        )
     if res["views"] is not None:
-        np.savez_compressed(out / "view_probs.npz", cal=np.stack(res["views"]["cal"]).astype(np.float16),
-                            test=np.stack(res["views"]["test"]).astype(np.float16))
+        np.savez_compressed(
+            out / "view_probs.npz",
+            cal=np.stack(res["views"]["cal"]).astype(np.float16),
+            test=np.stack(res["views"]["test"]).astype(np.float16),
+        )
     if res["coef"] is not None:
-        np.savez_compressed(out / "sc_coefficients.npz", **{"coefficients_{}".format(d): c for d, c in res["coef"].items()})
-    meta = {"source_unit": str(p.unit), "ckpt": p.ckpt.name, "ckpt_sha256": artifacts.sha256_file(p.ckpt), "sc": a.sc,
-            "sc_mode": res["sc_mode"] if a.sc != "none" else None, "a2": a.a2, "tta_eq": a.tta_eq,
-            "code_commit": _code_commit()}
+        np.savez_compressed(
+            out / "sc_coefficients.npz",
+            **{"coefficients_{}".format(d): c for d, c in res["coef"].items()},
+        )
+    meta = {
+        "source_unit": str(p.unit),
+        "ckpt": p.ckpt.name,
+        "ckpt_sha256": artifacts.sha256_file(p.ckpt),
+        "sc": a.sc,
+        "sc_mode": res["sc_mode"] if a.sc != "none" else None,
+        "a2": a.a2,
+        "tta_eq": a.tta_eq,
+        "code_commit": _code_commit(),
+    }
     (out / "infer_meta.json").write_text(json.dumps(meta, indent=1))
-    (out / "report.json").write_text(json.dumps({"cell": a.cell, "unit": p.unit.name, "selection": "fixed",
-                                                 "fixed": {str(E): {"epoch": E, "test": rep}}, "infer": meta}, indent=1))
-    print(out, "Score {:.2f} (Sp {:.2f}, Se {:.2f})".format(rep["all"]["score"], rep["all"]["sp"], rep["all"]["se"]))
+    (out / "report.json").write_text(
+        json.dumps(
+            {
+                "cell": a.cell,
+                "unit": p.unit.name,
+                "selection": "fixed",
+                "fixed": {str(E): {"epoch": E, "test": rep}},
+                "infer": meta,
+            },
+            indent=1,
+        )
+    )
+    print(
+        out,
+        "Score {:.2f} (Sp {:.2f}, Se {:.2f})".format(
+            rep["all"]["score"], rep["all"]["sp"], rep["all"]["se"]
+        ),
+    )
 
 
 def _code_commit():
@@ -225,8 +286,14 @@ def target_n_sweep(p, a):
             test_p = p.infer(p.images(ev, coef, apply))[0]
             ref_p = full_test[~in_est]
             y = p.labels[ev]
-            row = {"N": int(n), "N_token": tok, "rep": r, "eval_patients": int(len(pats) - n), "eval_cycles": int(len(ev)),
-                   "coef_db_rms_to_full": coef_db_distance(coef[p.held], full[p.held])}
+            row = {
+                "N": int(n),
+                "N_token": tok,
+                "rep": r,
+                "eval_patients": int(len(pats) - n),
+                "eval_cycles": int(len(ev)),
+                "coef_db_rms_to_full": coef_db_distance(coef[p.held], full[p.held]),
+            }
             for name, pr in (("n", test_p), ("full", ref_p)):
                 rep = per_device_report(y, pr.argmax(1), p.devices[ev], p.args.n_cls)["all"]
                 cov = coverage(cal_p, p.labels[p.ca], pr, y)
@@ -234,13 +301,19 @@ def target_n_sweep(p, a):
             rows.append(row)
             if tok == "all":
                 break  # "all" leaves 5 evaluation patients; one draw per seed is enough to show the ceiling
-        print("N={}: |Delta| n {:.3f} vs full {:.3f}, coef RMS {:.2f} dB".format(
-            tok, np.mean([abs(x["n"]["delta"]) for x in rows if x["N_token"] == tok]),
-            np.mean([abs(x["full"]["delta"]) for x in rows if x["N_token"] == tok]),
-            np.mean([x["coef_db_rms_to_full"] for x in rows if x["N_token"] == tok])))
+        print(
+            "N={}: |Delta| n {:.3f} vs full {:.3f}, coef RMS {:.2f} dB".format(
+                tok,
+                np.mean([abs(x["n"]["delta"]) for x in rows if x["N_token"] == tok]),
+                np.mean([abs(x["full"]["delta"]) for x in rows if x["N_token"] == tok]),
+                np.mean([x["coef_db_rms_to_full"] for x in rows if x["N_token"] == tok]),
+            )
+        )
     out = Path("outputs/train") / a.run / "target_n" / p.unit.parent.name / (p.unit.name + ".json")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({"unit": str(p.unit), "sc": a.sc, "sc_mode": sc_mode, "rows": rows}, indent=1))
+    out.write_text(
+        json.dumps({"unit": str(p.unit), "sc": a.sc, "sc_mode": sc_mode, "rows": rows}, indent=1)
+    )
     print(out)
 
 
@@ -263,10 +336,19 @@ def parse_arm(spec):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("unit_dirs", nargs="+", help="LODO units outputs/train/<run>/<cell>+lodo_<dev>/seed<s>")
-    ap.add_argument("--arm", action="append", default=[], help="cell:sc[:a2][:ttaK][:static|dynamic]; repeatable")
+    ap.add_argument(
+        "unit_dirs", nargs="+", help="LODO units outputs/train/<run>/<cell>+lodo_<dev>/seed<s>"
+    )
+    ap.add_argument(
+        "--arm",
+        action="append",
+        default=[],
+        help="cell:sc[:a2][:ttaK][:static|dynamic]; repeatable",
+    )
     ap.add_argument("--run", default="lodo-ast")
-    ap.add_argument("--target_n", default=None, help="comma list, e.g. 1,2,3,5,10,all: target-sample sweep")
+    ap.add_argument(
+        "--target_n", default=None, help="comma list, e.g. 1,2,3,5,10,all: target-sample sweep"
+    )
     ap.add_argument("--target_sc", choices=["target", "all"], default="all")
     ap.add_argument("--target_rep", type=int, default=50)
     a = ap.parse_args()
@@ -274,8 +356,24 @@ def main():
     assert arms or a.target_n, "give --arm and/or --target_n"
     for u in a.unit_dirs:
         dev = load_args(u).holdout_device.lower()
-        todo = [x for x in arms if not (Path("outputs/train") / a.run / "{}+lodo_{}".format(x.cell, dev) / Path(u).name / "report.json").exists()]
-        tn_out = Path("outputs/train") / a.run / "target_n" / Path(u).parent.name / (Path(u).name + ".json")
+        todo = [
+            x
+            for x in arms
+            if not (
+                Path("outputs/train")
+                / a.run
+                / "{}+lodo_{}".format(x.cell, dev)
+                / Path(u).name
+                / "report.json"
+            ).exists()
+        ]
+        tn_out = (
+            Path("outputs/train")
+            / a.run
+            / "target_n"
+            / Path(u).parent.name
+            / (Path(u).name + ".json")
+        )
         do_tn = a.target_n and not tn_out.exists()
         if not todo and not do_tn:
             print("done:", u)
@@ -285,8 +383,16 @@ def main():
             x.run = a.run
             write_arm(p, x, run_arm(p, x))
         if do_tn:
-            target_n_sweep(p, argparse.Namespace(run=a.run, sc=a.target_sc, sc_mode=None, target_n=a.target_n,
-                                                 target_rep=a.target_rep))
+            target_n_sweep(
+                p,
+                argparse.Namespace(
+                    run=a.run,
+                    sc=a.target_sc,
+                    sc_mode=None,
+                    target_n=a.target_n,
+                    target_rep=a.target_rep,
+                ),
+            )
         del p
         torch.cuda.empty_cache()
 

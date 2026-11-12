@@ -3,14 +3,14 @@
 Training methods inherit the head of their name, so inference builds the same network from `get_head` without importing
 any training code.
 """
+
 from copy import deepcopy
 
 import torch
-from torch import nn
-
 from auscult_trust.models.encoders import image_shape
 from auscult_trust.models.encoders.beats import TokenClassifier
 from auscult_trust.models.upstream import load_reference
+from torch import nn
 
 
 def four_class_probs(logits):
@@ -42,7 +42,11 @@ class PafaHead(Head):
     def classifier(self, model, args):
         head = super().classifier(model, args)
         pool = getattr(args, "class_pool", "mean")
-        return head if pool == "mean" else TokenClassifier(head, pool, getattr(args, "class_topk_fraction", 0.2))
+        return (
+            head
+            if pool == "mean"
+            else TokenClassifier(head, pool, getattr(args, "class_topk_fraction", 0.2))
+        )
 
 
 class EventClassifier(nn.Module):
@@ -92,7 +96,9 @@ class RecordingHead(PafaHead):
 
 class QLungHead(Head):
     def classifier(self, model, args):
-        return load_reference("QLung", "method/loss.py").AngularClassifier(model.final_feat_dim, args.n_cls, s=37)
+        return load_reference("QLung", "method/loss.py").AngularClassifier(
+            model.final_feat_dim, args.n_cls, s=37
+        )
 
 
 class PcmclHead(Head):
@@ -106,9 +112,15 @@ class PcmclHead(Head):
 class DenoisedEncoder(nn.Module):
     def __init__(self, encoder, n_freq, args):
         super().__init__()
-        self.encoder, self.final_feat_dim, self.mlp_head = encoder, encoder.final_feat_dim, encoder.mlp_head
+        self.encoder, self.final_feat_dim, self.mlp_head = (
+            encoder,
+            encoder.final_feat_dim,
+            encoder.mlp_head,
+        )
         layer = load_reference("ADD-RSC", "models/adapt_diff_denoise.py").DiffTransformerLayer
-        self.denoise = layer(d_model=n_freq, num_heads=args.denoise_heads, depth=args.denoise_depth)
+        self.denoise = layer(
+            d_model=n_freq, num_heads=args.denoise_heads, depth=args.denoise_depth
+        )
         self.denoise.classifier = nn.Linear(n_freq, args.n_cls)
         self.aux = None
 
@@ -127,14 +139,27 @@ class AddRscHead(Head):
         return model.encoder.parameters()
 
 
-HEADS = {"ce": Head, "patchmix": Head, "patchmix_cl": Head, "sg_scl": Head, "ce_pafa": PafaHead,
-         "ce_pafa_attn": PafaHead, "ce_pafa_class_aware": PafaHead, "ce_device_pafa": PafaHead,
-         "ce_recording_pafa": RecordingHead, "ce_pafa_events": EventHead, "qlung": QLungHead, "add_rsc": AddRscHead,
-         "pcmcl": PcmclHead}
+HEADS = {
+    "ce": Head,
+    "patchmix": Head,
+    "patchmix_cl": Head,
+    "sg_scl": Head,
+    "ce_pafa": PafaHead,
+    "ce_pafa_attn": PafaHead,
+    "ce_pafa_class_aware": PafaHead,
+    "ce_device_pafa": PafaHead,
+    "ce_recording_pafa": RecordingHead,
+    "ce_pafa_events": EventHead,
+    "qlung": QLungHead,
+    "add_rsc": AddRscHead,
+    "pcmcl": PcmclHead,
+}
 
 
 def get_head(name):
     try:
         return HEADS[name]()
     except KeyError:
-        raise ValueError(f"Unknown training method: {name}; choose from {', '.join(HEADS)}") from None
+        raise ValueError(
+            f"Unknown training method: {name}; choose from {', '.join(HEADS)}"
+        ) from None

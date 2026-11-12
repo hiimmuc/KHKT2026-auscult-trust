@@ -23,7 +23,12 @@ WEIGHTS_ROOT = (
 @lru_cache(maxsize=None)
 def load_reference(repository, relpath):
     root = THIRD_PARTY / repository
-    name = "auscult_reference_" + repository.replace("-", "_") + "_" + relpath.replace("/", "_").replace(".", "_")
+    name = (
+        "auscult_reference_"
+        + repository.replace("-", "_")
+        + "_"
+        + relpath.replace("/", "_").replace(".", "_")
+    )
     spec = importlib.util.spec_from_file_location(name, root / relpath)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -56,6 +61,7 @@ def _fused_attention(self, x):
 def build_ast(**kwargs):
     """`ASTModel` of the reference repository with fused attention; weights are read from `WEIGHTS_ROOT`."""
     import timm
+
     ast = load_reference("patch-mix_contrastive_learning", "models/ast.py")
     timm.models.vision_transformer.Attention.forward = _fused_attention
     (WEIGHTS_ROOT / "pretrained_models").mkdir(parents=True, exist_ok=True)

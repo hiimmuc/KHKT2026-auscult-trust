@@ -14,14 +14,14 @@ import json
 from pathlib import Path
 
 import numpy as np
-from auscult_trust import runs, artifacts
+from auscult_trust import artifacts, runs
+from auscult_trust.inference.adaptation import source_stats, test_time_sc
+from auscult_trust.inference.model import images_of, load_frozen, predict_images
+from auscult_trust.models.encoders import get_encoder
 from auscult_trust.paths import DATA
 from auscult_trust.processing.audio import SR, crop_pad, load_wav
 from auscult_trust.processing.kauh import file_table, windows
 from auscult_trust.training.config import load_args
-from auscult_trust.models.encoders import get_encoder
-from auscult_trust.inference.model import load_frozen, images_of, predict_images
-from auscult_trust.inference.adaptation import test_time_sc, source_stats
 
 KAUH_ROOT = DATA / "raw" / "kauh"
 WINDOW_SEC = 8.0
@@ -32,7 +32,9 @@ def window_waves(win):
     cache, out = {}, []
     for r in win.itertuples(index=False):
         if r.wav not in cache:
-            cache = {r.wav: load_wav(r.wav, SR)}  # rows are grouped by recording: keep one at a time
+            cache = {
+                r.wav: load_wav(r.wav, SR)
+            }  # rows are grouped by recording: keep one at a time
         x = cache[r.wav]
         i = int(round(r.start * SR))
         out.append(crop_pad(x[i : i + int(WINDOW_SEC * SR)], int(WINDOW_SEC * SR)))
@@ -41,22 +43,42 @@ def window_waves(win):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("unit_dir", help="outputs/<exp>/<run_id>/<cell>/<unit> of the trained model (holds train_args.json)")
+    ap.add_argument(
+        "unit_dir",
+        help="outputs/<exp>/<run_id>/<cell>/<unit> of the trained model (holds train_args.json)",
+    )
     ap.add_argument("--ckpt", required=True, help="weight file in the unit's checkpoints dir")
     ap.add_argument("--out", required=True)
     ap.add_argument("--sc", action="store_true", help="test-time spectrum correction")
-    ap.add_argument("--sc_state", help="sc_state.npz of an SC training run (reference spectrum); default: the unit's own")
-    ap.add_argument("--sc_args", help="train_args.json of the SC run (coefficient bound); default: the unit's own")
-    ap.add_argument("--a2", action="store_true", help="A2: per-filter image moments mapped onto the training images'")
-    ap.add_argument("--tta_eq", type=int, default=0, help="TTA-EQ views (6 dB SD per-bin gain, seeds 1000 + k)")
+    ap.add_argument(
+        "--sc_state",
+        help="sc_state.npz of an SC training run (reference spectrum); default: the unit's own",
+    )
+    ap.add_argument(
+        "--sc_args",
+        help="train_args.json of the SC run (coefficient bound); default: the unit's own",
+    )
+    ap.add_argument(
+        "--a2",
+        action="store_true",
+        help="A2: per-filter image moments mapped onto the training images'",
+    )
+    ap.add_argument(
+        "--tta_eq", type=int, default=0, help="TTA-EQ views (6 dB SD per-bin gain, seeds 1000 + k)"
+    )
     a = ap.parse_args()
     unit = Path(a.unit_dir)
     from auscult_trust.artifacts import atomic_npz
     from auscult_trust.provenance import prediction_inputs, record_prediction
-    context = dict(unit=unit, checkpoint=runs.twin_dir(unit) / a.ckpt, dataset="kauh", sc=a.sc,
-                   sc_unit=Path(a.sc_state).parent if a.sc_state else unit,
-                   options={"a2": a.a2, "tta_eq": a.tta_eq,
-                            "sc_state": a.sc_state, "sc_args": a.sc_args})
+
+    context = dict(
+        unit=unit,
+        checkpoint=runs.twin_dir(unit) / a.ckpt,
+        dataset="kauh",
+        sc=a.sc,
+        sc_unit=Path(a.sc_state).parent if a.sc_state else unit,
+        options={"a2": a.a2, "tta_eq": a.tta_eq, "sc_state": a.sc_state, "sc_args": a.sc_args},
+    )
     inputs = prediction_inputs(**context)
     args = load_args(unit)
     sc_args = argparse.Namespace(**json.load(open(a.sc_args or unit / "train_args.json")))
@@ -76,21 +98,41 @@ def main():
         for f in np.unique(filters):
             m = filters == f
             flat = images[m].reshape(-1, images.shape[-1]).astype(np.float64)
-            images[m] = isa_match(images[m], (flat.mean(0), flat.std(0) + 1e-6), src).astype(np.float32)
+            images[m] = isa_match(images[m], (flat.mean(0), flat.std(0) + 1e-6), src).astype(
+                np.float32
+            )
     view_probs = None
     recording = {}
     if a.tta_eq:
         from auscult_trust.inference.adaptation import TTA_DB, TTA_SEED0, gain_curves
 
         sd = TTA_DB * get_encoder(args.encoder).db_scale
-        view_probs = np.stack([predict_images(images, model, classifier, gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k), method=args.method)
-                               for k in range(a.tta_eq)])
+        view_probs = np.stack(
+            [
+                predict_images(
+                    images,
+                    model,
+                    classifier,
+                    gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k),
+                    method=args.method,
+                )
+                for k in range(a.tta_eq)
+            ]
+        )
         probs = view_probs.mean(0)
         if args.method == "ce_recording_pafa":
             from auscult_trust.pipelines.recording_head import recording_predictions
-            views = [recording_predictions(images, win, model, classifier,
-                         gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k))
-                     for k in range(a.tta_eq)]
+
+            views = [
+                recording_predictions(
+                    images,
+                    win,
+                    model,
+                    classifier,
+                    gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k),
+                )
+                for k in range(a.tta_eq)
+            ]
             recording = views[0]
             recording["recording_view_probs"] = np.stack([v["recording_probs"] for v in views])
             recording["recording_probs"] = recording["recording_view_probs"].mean(0)
@@ -98,6 +140,7 @@ def main():
         probs = predict_images(images, model, classifier, method=args.method)
         if args.method == "ce_recording_pafa":
             from auscult_trust.pipelines.recording_head import recording_predictions
+
             recording = recording_predictions(images, win, model, classifier)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -117,7 +160,13 @@ def main():
         ckpt_sha256=np.array(artifacts.sha256_file(ckpt)),
     )
     record_prediction(out, inputs, **context)
-    print(out, probs.shape, "sc" if a.sc else "no sc", "a2" if a.a2 else "", "tta{}".format(a.tta_eq) if a.tta_eq else "")
+    print(
+        out,
+        probs.shape,
+        "sc" if a.sc else "no sc",
+        "a2" if a.a2 else "",
+        "tta{}".format(a.tta_eq) if a.tta_eq else "",
+    )
 
 
 if __name__ == "__main__":

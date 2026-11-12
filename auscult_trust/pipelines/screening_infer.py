@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
-
 from auscult_trust.inference.model import predict
 from auscult_trust.processing.correction import apply_spectrum_correction
 from auscult_trust.processing.cycles import cut_pad, prepare_recording, read_annotations
@@ -32,11 +31,16 @@ SR, WIN = 16000, 8.0
 def icbhi_windows(args):
     """Waveforms and table (stem, patient, device, label, window) of the official-test recordings' 8 s windows."""
     wav_dir = os.path.join(args.data_folder, "audio_test_data")
-    official = dict(line.strip().split("\t") for line in open(os.path.join(args.data_folder, "official_split.txt")).read().splitlines())
+    official = dict(
+        line.strip().split("\t")
+        for line in open(os.path.join(args.data_folder, "official_split.txt")).read().splitlines()
+    )
     ann = read_annotations(wav_dir)
     both = both_sides_patients(Path(args.data_folder) / "official_split.txt")
     waves, rows = [], []
-    for stem in sorted(s for s, side in official.items() if side == "test" and s.split("_")[0] not in both):
+    for stem in sorted(
+        s for s, side in official.items() if side == "test" and s.split("_")[0] not in both
+    ):
         x, sr = sf.read(os.path.join(wav_dir, stem + ".wav"), dtype="float32", always_2d=True)
         x = torch.from_numpy(x.T.copy())
         x = prepare_recording(x, sr, SR)
@@ -46,8 +50,15 @@ def icbhi_windows(args):
         for w, s in enumerate(np.linspace(0, max(dur - WIN, 0), max(1, int(dur // WIN)))):
             i = int(round(s * SR))
             waves.append(cut_pad(x[:, i : i + int(WIN * SR)], int(WIN), SR, "repeat")[0].numpy())
-            rows.append({"stem": stem, "patient": stem.split("_")[0], "device": DEVICES.index(stem.split("_")[-1]),
-                         "label": label, "window": w})
+            rows.append(
+                {
+                    "stem": stem,
+                    "patient": stem.split("_")[0],
+                    "device": DEVICES.index(stem.split("_")[-1]),
+                    "label": label,
+                    "window": w,
+                }
+            )
     return waves, pd.DataFrame(rows)
 
 
@@ -55,6 +66,7 @@ def infer(a):
     from auscult_trust.artifacts import atomic_npz
     from auscult_trust.provenance import prediction_inputs, record_prediction
     from auscult_trust.runs import twin_dir
+
     unit = Path(a.unit_dir)
     context = dict(unit=unit, checkpoint=twin_dir(unit) / a.ckpt, dataset="screening", sc=a.sc)
     inputs = prediction_inputs(**context)
@@ -63,14 +75,18 @@ def infer(a):
     if a.sc:
         st = np.load(unit / "sc_state.npz")
         coef = {d: st["test_coefficients_{}".format(d)] for d in win.device.unique()}
-        waves = [apply_spectrum_correction(w, coef[d]).astype(np.float32) for w, d in zip(waves, win.device)]
-    from auscult_trust import runs, artifacts
+        waves = [
+            apply_spectrum_correction(w, coef[d]).astype(np.float32)
+            for w, d in zip(waves, win.device)
+        ]
+    from auscult_trust import artifacts, runs
 
     ckpt = runs.twin_dir(unit, "checkpoints") / a.ckpt
     recording = {}
     if args.method == "ce_recording_pafa":
         from auscult_trust.inference.model import images_of, load_frozen, predict_images
         from auscult_trust.pipelines.recording_head import recording_predictions
+
         model, classifier = load_frozen(args, ckpt)
         images = images_of(waves, args)
         probs = predict_images(images, model, classifier, method=args.method)
@@ -79,8 +95,14 @@ def infer(a):
         probs = predict(waves, args, ckpt)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    atomic_npz(out, probs=probs, **{k: win[k].to_numpy() for k in win.columns}, **recording, sc=np.array(a.sc),
-                        ckpt_sha256=np.array(artifacts.sha256_file(ckpt)))
+    atomic_npz(
+        out,
+        probs=probs,
+        **{k: win[k].to_numpy() for k in win.columns},
+        **recording,
+        sc=np.array(a.sc),
+        ckpt_sha256=np.array(artifacts.sha256_file(ckpt)),
+    )
     record_prediction(out, inputs, **context)
     print(out, probs.shape)
 

@@ -1,9 +1,9 @@
 """Construct the encoder and prediction head of a configured model, without losses, projectors or an optimizer."""
-import torch
-from torch import nn
 
+import torch
 from auscult_trust.models.encoders import get_encoder
 from auscult_trust.models.heads import get_head
+from torch import nn
 
 
 def build_encoder(args, head):

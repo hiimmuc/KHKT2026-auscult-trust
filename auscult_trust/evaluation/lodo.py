@@ -18,8 +18,14 @@ import json
 from pathlib import Path
 
 import numpy as np
-
-from auscult_trust.evaluation.calibration import ALPHA, coverage, robust_coverage, null_delta_p95, patient_rows, resample_rows
+from auscult_trust.evaluation.calibration import (
+    ALPHA,
+    coverage,
+    null_delta_p95,
+    patient_rows,
+    resample_rows,
+    robust_coverage,
+)
 from auscult_trust.processing.icbhi import DEVICES
 
 
@@ -63,15 +69,26 @@ def fold_table(units, arms, alpha=ALPHA):
             us = by_arm.get(arm, {})
             if not us:
                 continue
-            cs = [coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"], alpha) for u in us.values()]
-            rs = [robust_coverage(u["cal_p"], u["cal_y"], u["cal_dev"], u["test_p"], u["test_y"], alpha) for u in us.values()]
+            cs = [
+                coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"], alpha)
+                for u in us.values()
+            ]
+            rs = [
+                robust_coverage(
+                    u["cal_p"], u["cal_y"], u["cal_dev"], u["test_p"], u["test_y"], alpha
+                )
+                for u in us.values()
+            ]
             rows.append(
                 {
                     "device": dev,
                     "arm": arm,
                     "seeds": len(us),
                     "n_test": int(len(next(iter(us.values()))["test_y"])),
-                    **{k: float(np.mean([u["score"][k] for u in us.values()])) for k in ("sp", "se", "score", "hs")},
+                    **{
+                        k: float(np.mean([u["score"][k] for u in us.values()]))
+                        for k in ("sp", "se", "score", "hs")
+                    },
                     "coverage": float(np.mean([c["coverage"] for c in cs])),
                     "delta": float(np.mean([c["delta"] for c in cs])),
                     "abs_delta": float(np.mean([abs(c["delta"]) for c in cs])),
@@ -93,7 +110,12 @@ def tested_folds(units, base, alpha=ALPHA, n_splits=200):
         us = by_arm.get(base, {})
         if not us:
             continue
-        d = np.mean([abs(coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"], alpha)["delta"]) for u in us.values()])
+        d = np.mean(
+            [
+                abs(coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"], alpha)["delta"])
+                for u in us.values()
+            ]
+        )
         p95 = np.mean([null_delta_p95(u, n_splits, alpha, seed=s) for s, u in us.items()])
         out[dev] = (float(d), float(p95))
     return out
@@ -101,6 +123,7 @@ def tested_folds(units, base, alpha=ALPHA, n_splits=200):
 
 def h2_statistic(units, base, arm, folds, alpha=ALPHA, n_boot=1000, seed=0):
     """D = mean over `folds` of |Delta_base| - |Delta_arm|, point estimate and two-level bootstrap interval."""
+
     def one(draw_rng):
         diffs = []
         for dev in folds:
@@ -117,8 +140,16 @@ def h2_statistic(units, base, arm, folds, alpha=ALPHA, n_boot=1000, seed=0):
                     ci, ti = np.arange(len(b["cal_y"])), np.arange(len(b["test_y"]))
                 else:
                     ci, ti = resample_rows(cg, draw_rng), resample_rows(tg, draw_rng)
-                db = abs(coverage(b["cal_p"][ci], b["cal_y"][ci], b["test_p"][ti], b["test_y"][ti], alpha)["delta"])
-                da = abs(coverage(a["cal_p"][ci], a["cal_y"][ci], a["test_p"][ti], a["test_y"][ti], alpha)["delta"])
+                db = abs(
+                    coverage(
+                        b["cal_p"][ci], b["cal_y"][ci], b["test_p"][ti], b["test_y"][ti], alpha
+                    )["delta"]
+                )
+                da = abs(
+                    coverage(
+                        a["cal_p"][ci], a["cal_y"][ci], a["test_p"][ti], a["test_y"][ti], alpha
+                    )["delta"]
+                )
                 vals.append(db - da)
             diffs.append(np.mean(vals))
         return float(np.mean(diffs)) if diffs else float("nan")
@@ -126,22 +157,41 @@ def h2_statistic(units, base, arm, folds, alpha=ALPHA, n_boot=1000, seed=0):
     rng = np.random.default_rng(seed)
     point = one(None)
     boots = np.array([one(rng) for _ in range(n_boot)])
-    return {"D": point, "ci": [float(np.nanpercentile(boots, 2.5)), float(np.nanpercentile(boots, 97.5))], "folds": list(folds)}
+    return {
+        "D": point,
+        "ci": [float(np.nanpercentile(boots, 2.5)), float(np.nanpercentile(boots, 97.5))],
+        "folds": list(folds),
+    }
 
 
 def markdown(rows, gate, stats, base):
-    L = ["| Held-out device | Arm | Seeds | Test cycles | Sp | Se | Score | HS | Coverage | Delta (prior-matched) | Set size | Singleton | Empty | q_robust coverage | q_robust Delta | q_robust set size |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    L = [
+        "| Held-out device | Arm | Seeds | Test cycles | Sp | Se | Score | HS | Coverage | Delta (prior-matched) | Set size | Singleton | Empty | q_robust coverage | q_robust Delta | q_robust set size |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
     for r in rows:
         L.append(
-            "| {device} | {arm} | {seeds} | {n_test} | {sp:.1f} | {se:.1f} | {score:.1f} | {hs:.1f} | {coverage:.3f} | {delta:+.3f} | {size:.2f} | {singleton:.2f} | {empty:.3f} | {robust_coverage:.3f} | {robust_delta:+.3f} | {robust_size:.2f} |".format(**r)
+            "| {device} | {arm} | {seeds} | {n_test} | {sp:.1f} | {se:.1f} | {score:.1f} | {hs:.1f} | {coverage:.3f} | {delta:+.3f} | {size:.2f} | {singleton:.2f} | {empty:.3f} | {robust_coverage:.3f} | {robust_delta:+.3f} | {robust_size:.2f} |".format(
+                **r
+            )
         )
-    L += ["", "Null gate (baseline |Delta| vs 95th percentile of |Delta| under exchangeable re-splits of calibration patients):", ""]
+    L += [
+        "",
+        "Null gate (baseline |Delta| vs 95th percentile of |Delta| under exchangeable re-splits of calibration patients):",
+        "",
+    ]
     L += ["| Device | baseline abs Delta | null p95 | tested |", "|---|---|---|---|"]
     for dev, (d, p) in gate.items():
         L.append(f"| {dev} | {d:.3f} | {p:.3f} | {'yes' if d > p else 'no'} |")
-    L += ["", f"H2 statistic D = mean over tested folds of |Delta_{base}| - |Delta_arm| (95% two-level bootstrap interval):", ""]
+    L += [
+        "",
+        f"H2 statistic D = mean over tested folds of |Delta_{base}| - |Delta_arm| (95% two-level bootstrap interval):",
+        "",
+    ]
     for arm, s in stats.items():
-        L.append(f"- {arm}: D = {s['D']:+.4f} [{s['ci'][0]:+.4f}, {s['ci'][1]:+.4f}] over folds {', '.join(s['folds']) or 'none'}")
+        L.append(
+            f"- {arm}: D = {s['D']:+.4f} [{s['ci'][0]:+.4f}, {s['ci'][1]:+.4f}] over folds {', '.join(s['folds']) or 'none'}"
+        )
     return "\n".join(L) + "\n"
 
 
@@ -152,7 +202,9 @@ def main():
     ap.add_argument("--arms", nargs="+", default=["sc+sc_static", "freq_mixstyle"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
     ap.add_argument("--boot", type=int, default=1000)
-    ap.add_argument("--out", default="lodo_summary", help="file stem of the tables in the run directory")
+    ap.add_argument(
+        "--out", default="lodo_summary", help="file stem of the tables in the run directory"
+    )
     a = ap.parse_args()
     root = Path("outputs/train") / a.run
     units = collect(root, [a.base] + a.arms, DEVICES, a.seeds)
@@ -163,11 +215,17 @@ def main():
     for arm in a.arms:
         both = [d for d in folds if arm in units.get(d, {})]
         stats[arm] = h2_statistic(units, a.base, arm, both, n_boot=a.boot)
-        no_akg = [d for d in both if d != "AKGC417L"]  # class-mix dominated fold, reported separately
-        stats[arm + " (without AKGC417L)"] = h2_statistic(units, a.base, arm, no_akg, n_boot=a.boot)
+        no_akg = [
+            d for d in both if d != "AKGC417L"
+        ]  # class-mix dominated fold, reported separately
+        stats[arm + " (without AKGC417L)"] = h2_statistic(
+            units, a.base, arm, no_akg, n_boot=a.boot
+        )
     md = markdown(rows, gate, stats, a.base)
     (root / (a.out + ".md")).write_text(md)
-    (root / (a.out + ".json")).write_text(json.dumps({"rows": rows, "gate": gate, "h2": stats}, indent=1))
+    (root / (a.out + ".json")).write_text(
+        json.dumps({"rows": rows, "gate": gate, "h2": stats}, indent=1)
+    )
     print(md)
 
 

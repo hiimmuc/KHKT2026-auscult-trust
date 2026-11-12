@@ -22,12 +22,20 @@ import json
 from pathlib import Path
 
 import numpy as np
-
-from auscult_trust.evaluation.calibration import resample_rows, patient_rows, coverage, null_delta_p95
+from auscult_trust.evaluation.calibration import (
+    coverage,
+    null_delta_p95,
+    patient_rows,
+    resample_rows,
+)
 from auscult_trust.evaluation.recordings import kauh_recordings
-from auscult_trust.processing.kauh import FILTERS, ORDERED_PAIRS, file_table, rotation_partitions
-
 from auscult_trust.paths import DATA
+from auscult_trust.processing.kauh import (
+    FILTERS,
+    ORDERED_PAIRS,
+    file_table,
+    rotation_partitions,
+)
 
 KAUH_ROOT = DATA / "raw/kauh"
 
@@ -73,8 +81,12 @@ def pair_fold(rec, src, tgt, test_pat, cal_pat, cal_rows=None, test_rows=None):
     if cal_rows is not None:
         c, t = c[cal_rows(len(c))], t[test_rows(len(t))]
     return {
-        "cal_p": rec["p"][c], "cal_y": rec["y"][c], "cal_pat": rec["patient"][c],
-        "test_p": rec["p"][t], "test_y": rec["y"][t], "test_pat": rec["patient"][t],
+        "cal_p": rec["p"][c],
+        "cal_y": rec["y"][c],
+        "cal_pat": rec["patient"][c],
+        "test_p": rec["p"][t],
+        "test_y": rec["y"][t],
+        "test_pat": rec["patient"][t],
     }
 
 
@@ -86,8 +98,14 @@ def b2_delta(recs, folds, src, tgt, rng=None):
         if rng is not None:
             ci = resample_rows(patient_rows(u["cal_pat"]), rng)
             ti = resample_rows(patient_rows(u["test_pat"]), rng)
-            u = {"cal_p": u["cal_p"][ci], "cal_y": u["cal_y"][ci], "cal_pat": u["cal_pat"][ci],
-                 "test_p": u["test_p"][ti], "test_y": u["test_y"][ti], "test_pat": u["test_pat"][ti]}
+            u = {
+                "cal_p": u["cal_p"][ci],
+                "cal_y": u["cal_y"][ci],
+                "cal_pat": u["cal_pat"][ci],
+                "test_p": u["test_p"][ti],
+                "test_y": u["test_y"][ti],
+                "test_pat": u["test_pat"][ti],
+            }
         out.append(abs(coverage(u["cal_p"], u["cal_y"], u["test_p"], u["test_y"])["delta"]))
     return float(np.mean(out))
 
@@ -102,7 +120,9 @@ def main():
     a = ap.parse_args()
     root = Path(a.dir)
     conds = [a.base] + a.arms
-    data = {c: {int(p.stem[4:]): load(p) for p in sorted((root / c).glob("seed*.npz"))} for c in conds}
+    data = {
+        c: {int(p.stem[4:]): load(p) for p in sorted((root / c).glob("seed*.npz"))} for c in conds
+    }
     recs = {c: {s: kauh_recordings(d) for s, d in data[c].items()} for c in conds}
     seeds = sorted(set.intersection(*[set(v) for v in data.values()]))
     if not seeds:
@@ -113,26 +133,50 @@ def main():
                 if not np.array_equal(data[c][s][key], data[a.base][s][key]):
                     raise ValueError(f"Unpaired KAUH rows: {c}, seed {s}, {key}")
     folds = rotation_folds()
-    L = ["## A: paired invariance across the three filters (windows)", "",
-         "| Condition | Flip rate | TV distance |", "|---|---|---|"]
+    L = [
+        "## A: paired invariance across the three filters (windows)",
+        "",
+        "| Condition | Flip rate | TV distance |",
+        "|---|---|---|",
+    ]
     A = {}
     for c in conds:
         v = np.array([invariance(data[c][s]) for s in seeds])
         A[c] = v
-        L.append(f"| {c} | {v[:, 0].mean():.3f} ± {v[:, 0].std(ddof=1) if len(v) > 1 else 0:.3f} | {v[:, 1].mean():.3f} ± {v[:, 1].std(ddof=1) if len(v) > 1 else 0:.3f} |")
+        L.append(
+            f"| {c} | {v[:, 0].mean():.3f} ± {v[:, 0].std(ddof=1) if len(v) > 1 else 0:.3f} | {v[:, 1].mean():.3f} ± {v[:, 1].std(ddof=1) if len(v) > 1 else 0:.3f} |"
+        )
     rng = np.random.default_rng(0)
     pats = sorted(set(data[a.base][seeds[0]]["patient"]))
-    L += ["", "Flip-rate reduction against the baseline (positive: arm is more invariant), 95% bootstrap interval over patients and seeds:", ""]
+    L += [
+        "",
+        "Flip-rate reduction against the baseline (positive: arm is more invariant), 95% bootstrap interval over patients and seeds:",
+        "",
+    ]
     for arm in a.arms:
         diffs = []
         for _ in range(a.boot):
             ps = list(rng.choice(pats, len(pats)))
             ss = rng.choice(seeds, len(seeds))
-            diffs.append(np.mean([invariance(data[a.base][s], ps)[0] - invariance(data[arm][s], ps)[0] for s in ss]))
+            diffs.append(
+                np.mean(
+                    [
+                        invariance(data[a.base][s], ps)[0] - invariance(data[arm][s], ps)[0]
+                        for s in ss
+                    ]
+                )
+            )
         point = A[a.base][:, 0].mean() - A[arm][:, 0].mean()
-        L.append(f"- {a.base} - {arm}: {point:+.3f} [{np.percentile(diffs, 2.5):+.3f}, {np.percentile(diffs, 97.5):+.3f}]")
-    L += ["", "## B2: conformal coverage, calibrate on one filter, test on another (recording level, normal vs abnormal)", "",
-          "| Pair (source -> target) | Condition | mean abs Delta | null p95 | tested |", "|---|---|---|---|---|"]
+        L.append(
+            f"- {a.base} - {arm}: {point:+.3f} [{np.percentile(diffs, 2.5):+.3f}, {np.percentile(diffs, 97.5):+.3f}]"
+        )
+    L += [
+        "",
+        "## B2: conformal coverage, calibrate on one filter, test on another (recording level, normal vs abnormal)",
+        "",
+        "| Pair (source -> target) | Condition | mean abs Delta | null p95 | tested |",
+        "|---|---|---|---|---|",
+    ]
     null, abs_d = {}, {}
     for src, tgt in ORDERED_PAIRS:
         for c in conds:
@@ -140,16 +184,34 @@ def main():
         nulls = []
         for s in seeds:
             for test_pat, cal_pat in folds:
-                u = pair_fold(recs[a.base][s], src, src, test_pat, cal_pat)  # source-filter data only
-                nulls.append(null_delta_p95({**u, "test_pat": u["test_pat"]}, n_splits=a.null_splits, seed=s))
+                u = pair_fold(
+                    recs[a.base][s], src, src, test_pat, cal_pat
+                )  # source-filter data only
+                nulls.append(
+                    null_delta_p95(
+                        {**u, "test_pat": u["test_pat"]}, n_splits=a.null_splits, seed=s
+                    )
+                )
         null[src, tgt] = float(np.mean(nulls))
         for c in conds:
-            L.append(f"| {src} -> {tgt} | {c} | {abs_d[src, tgt, c]:.3f} | {null[src, tgt]:.3f} | {'yes' if abs_d[src, tgt, a.base] > null[src, tgt] else 'no'} |")
+            L.append(
+                f"| {src} -> {tgt} | {c} | {abs_d[src, tgt, c]:.3f} | {null[src, tgt]:.3f} | {'yes' if abs_d[src, tgt, a.base] > null[src, tgt] else 'no'} |"
+            )
     tested = [(s_, t_) for s_, t_ in ORDERED_PAIRS if abs_d[s_, t_, a.base] > null[s_, t_]]
-    L += ["", f"Tested pairs (baseline |Delta| above the null p95): {len(tested)} of {len(ORDERED_PAIRS)}.", ""]
-    results = {"A": {c: A[c].mean(0).tolist() for c in conds}, "tested_pairs": [list(p) for p in tested],
-               "seeds": seeds, "bootstrap_draws": a.boot, "null_splits": a.null_splits}
+    L += [
+        "",
+        f"Tested pairs (baseline |Delta| above the null p95): {len(tested)} of {len(ORDERED_PAIRS)}.",
+        "",
+    ]
+    results = {
+        "A": {c: A[c].mean(0).tolist() for c in conds},
+        "tested_pairs": [list(p) for p in tested],
+        "seeds": seeds,
+        "bootstrap_draws": a.boot,
+        "null_splits": a.null_splits,
+    }
     for arm in a.arms:
+
         def stat(draw):
             vals = []
             for src, tgt in tested:
@@ -160,8 +222,10 @@ def main():
                     seed = None if draw is None else int(draw.integers(0, 2**32))
                     base_rng = None if seed is None else np.random.default_rng(seed)
                     arm_rng = None if seed is None else np.random.default_rng(seed)
-                    paired.append(b2_delta(recs[a.base][s], folds, src, tgt, base_rng)
-                                  - b2_delta(recs[arm][s], folds, src, tgt, arm_rng))
+                    paired.append(
+                        b2_delta(recs[a.base][s], folds, src, tgt, base_rng)
+                        - b2_delta(recs[arm][s], folds, src, tgt, arm_rng)
+                    )
                 vals.append(np.mean(paired))
             return float(np.mean(vals)) if vals else float("nan")
 
@@ -169,7 +233,9 @@ def main():
         if tested:
             boots = np.array([stat(np.random.default_rng(1000 + i)) for i in range(a.boot)])
             ci = np.percentile(boots, [2.5, 97.5]).tolist()
-            L.append(f"- D({a.base} vs {arm}) = {point:+.4f} [{ci[0]:+.4f}, {ci[1]:+.4f}] over {len(tested)} tested pairs")
+            L.append(
+                f"- D({a.base} vs {arm}) = {point:+.4f} [{ci[0]:+.4f}, {ci[1]:+.4f}] over {len(tested)} tested pairs"
+            )
             results[f"D_{arm}"] = [point, *ci]
         else:
             L.append(f"- D({a.base} vs {arm}): not tested (no pair passes the null gate).")

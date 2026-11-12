@@ -108,7 +108,11 @@ def preprocess_htsat(wave):
     AudioSet clips are 10 s, so the 8 s cycle is repeat-padded to 10 s; otherwise the network would stretch 801 frames to its
     1024-frame grid instead of the 1001 it was pretrained with.
     """
-    wave = torch.cat([wave, wave[:, :CLIP_SAMPLES - wave.shape[1]]], 1) if wave.shape[1] < CLIP_SAMPLES else wave[:, :CLIP_SAMPLES]
+    wave = (
+        torch.cat([wave, wave[:, : CLIP_SAMPLES - wave.shape[1]]], 1)
+        if wave.shape[1] < CLIP_SAMPLES
+        else wave[:, :CLIP_SAMPLES]
+    )
     spec, mel = _htsat_frontend()
     with torch.no_grad():
         out = mel(

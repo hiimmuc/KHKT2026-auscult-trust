@@ -4,12 +4,11 @@ Run `python -m auscult_trust.evaluation.ensemble_study registered|krate --out <n
 Historical member predictions are inputs, never overwritten. No weights or epochs are fitted.
 """
 import argparse
-from functools import lru_cache
 import json
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
-
 from auscult_trust.artifacts import atomic_json, atomic_npz, file_hashes
 from auscult_trust.evaluation.calibration import coverage, null_delta_p95
 from auscult_trust.evaluation.lodo import load_unit

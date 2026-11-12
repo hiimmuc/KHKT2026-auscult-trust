@@ -16,11 +16,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchaudio.functional as AF
-from src.paths import DATA, REPOS
+from src.paths import DATA, THIRD_PARTY
 
 from .patch_mix import mix_patches
 
-OPERA_HTSAT = REPOS / "OPERA" / "src" / "model" / "htsat"
+OPERA_HTSAT = THIRD_PARTY / "OPERA" / "src" / "model" / "htsat"
 HTSAT_AUDIOSET = DATA / "models" / "htsat" / "AudioSet" / "HTSAT_AudioSet_Saved_1.ckpt"
 OPERA_CT = DATA / "models" / "opera" / "encoder-operaCT.ckpt"
 FEATURE_DIM = 768

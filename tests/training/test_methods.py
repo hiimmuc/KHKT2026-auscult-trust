@@ -85,7 +85,7 @@ def test_method_loss_backpropagates_and_returns_four_class_probabilities(name, e
 
 
 def test_ce_has_no_upstream_method_dependencies():
-    subprocess.run([sys.executable, "-c", "import os; os.environ['AT_REPOS']='/missing-reference-repositories'; "
+    subprocess.run([sys.executable, "-c", "import src.training.upstream as u; u.THIRD_PARTY = u.THIRD_PARTY / 'missing'; "
                     "from types import SimpleNamespace; from torch import nn; "
                     "from src.training.methods import get_method; "
                     "get_method('ce').components(SimpleNamespace(mlp_head=nn.Linear(2,4)), SimpleNamespace())"], check=True)

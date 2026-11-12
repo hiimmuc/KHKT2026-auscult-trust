@@ -32,7 +32,7 @@ import pandas as pd
 from src import runs, artifacts
 from src.artifacts import atomic_json, atomic_npz
 from src.provenance import prediction_inputs, verify_prediction
-from src.paths import REPO, REPOS, DATA
+from src.paths import REPO, THIRD_PARTY, DATA
 from src.evaluation.conformal import lac_scores, split_threshold
 from src.training.config import load_args
 from src.training.state import report_epoch
@@ -175,9 +175,9 @@ def main():
         "runtime_files": {
             "repo": {str(p.relative_to(REPO)): artifacts.sha256_file(p) for p in
                      [*(REPO / "src").rglob("*.py"), REPO / "api/engine.py", REPO / "api/main.py"]},
-            "references": {str(p.relative_to(REPOS)): artifacts.sha256_file(p)
+            "references": {str(p.relative_to(THIRD_PARTY)): artifacts.sha256_file(p)
                            for name in ("PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL")
-                           for p in (REPOS / name).rglob("*.py")},
+                           for p in (THIRD_PARTY / name).rglob("*.py")},
             "data": {"models/beats/BEATs_iter3_plus_AS2M.pt": artifacts.sha256_file(DATA / "models/beats/BEATs_iter3_plus_AS2M.pt")},
         },
         "classes": CLASSES,

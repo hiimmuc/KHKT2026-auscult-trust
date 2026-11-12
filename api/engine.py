@@ -26,7 +26,7 @@ from src.training.config import load_args
 from src.processing.correction import apply_spectrum_correction, mean_spectrum, spectrum_coefficients
 from src.processing.cycles import cut_pad, prepare_recording
 from src.artifacts import verify_file
-from src.paths import REPO, REPOS, DATA
+from src.paths import REPO, THIRD_PARTY, DATA
 
 SR, SEG_SEC = 16000, 8
 MIN_SEC, MAX_SEC = 2.0, 90.0
@@ -214,7 +214,7 @@ class Engine:
     def __init__(self, manifest, bundle_dir):
         if manifest.get("schema") != 2 or not manifest.get("runtime_files"):
             raise ValueError("Legacy serving bundle; rebuild with api.bundle before serving")
-        for scope, root in (("repo", REPO), ("references", REPOS), ("data", DATA)):
+        for scope, root in (("repo", REPO), ("references", THIRD_PARTY), ("data", DATA)):
             for path, expected in manifest["runtime_files"][scope].items():
                 verify_file(root / path, expected)
         self.m = manifest

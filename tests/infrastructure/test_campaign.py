@@ -59,8 +59,8 @@ def test_freeze_keeps_same_seed_cv_folds_as_distinct_units(tmp_path):
         for cell in ('pafa', 'pafa+warm5') for fold in range(3)))
     assert campaign.identities(jobs) == [
         ('cv', cell, f'cv{fold}') for cell in ('pafa', 'pafa+warm5') for fold in range(3)]
-    for name in ('requirements-train.lock', 'requirements-references.lock.json', 'pyproject.toml'):
-        (tmp_path / name).write_text('')
+    for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml'):
+        (tmp_path / name).parent.mkdir(exist_ok=True); (tmp_path / name).write_text('')
     config, manifest = tmp_path / 'config.json', tmp_path / 'frozen.json'
     config.write_text(json.dumps({'source': str(tmp_path), 'expected_units': 6,
                                  'machines': {'A': {'jobs': 'jobs.txt'}}}))

@@ -153,7 +153,7 @@ def test_single_teacher_export_certifies_only_outer_training_rows(tmp_path, monk
     monkeypatch.setattr(distillation, 'load_args', lambda *a: args)
     monkeypatch.setattr(distillation, 'load_frozen', lambda *a: (torch.nn.Flatten(), torch.nn.Linear(4, 4)))
     monkeypatch.setattr(distillation, 'DATA', tmp_path)
-    monkeypatch.setattr(distillation, 'REPOS', tmp_path / 'refs')
+    monkeypatch.setattr(distillation, 'THIRD_PARTY', tmp_path / 'refs')
     out = tmp_path / 'targets.npz'
     distillation.export(SimpleNamespace(units=[unit], checkpoints=[checkpoint], out=out, expected_epoch=66))
     with np.load(out) as targets:

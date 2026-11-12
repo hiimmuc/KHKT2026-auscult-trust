@@ -1,10 +1,10 @@
-"""The Patch-Mix CL model and loss, taken unchanged from the read-only reference repository `repos/patch-mix_contrastive_learning`.
+"""The Patch-Mix CL model and loss, taken unchanged from the vendored `third_party/patch-mix_contrastive_learning`.
 
 Only what the reference does not provide is added here: its attention is replaced by PyTorch's fused attention (same maths,
 less memory, needed for batch 8 on a small GPU) and its hard-coded `./pretrained_models/` weight folder is resolved to
 `<data>/models/ast/pretrained_models/` by changing the working directory while the model is built.
-SG-SCL, QLung and ADD-RSC losses and layers come the same way from their reference repositories.
-The reference modules are loaded by file path because their package names (`models`, `method`) are too generic to put on `sys.path`.
+SG-SCL, QLung and ADD-RSC losses and layers come the same way from their vendored repositories.
+The vendored modules are loaded by file path because their package names (`models`, `method`) are too generic to put on `sys.path`.
 """
 
 import contextlib
@@ -13,7 +13,7 @@ import os
 from functools import lru_cache
 
 import torch
-from src.paths import DATA, REPOS
+from src.paths import DATA, THIRD_PARTY
 
 WEIGHTS_ROOT = (
     DATA / "models" / "ast"
@@ -22,7 +22,7 @@ WEIGHTS_ROOT = (
 
 @lru_cache(maxsize=None)
 def load_reference(repository, relpath):
-    root = REPOS / repository
+    root = THIRD_PARTY / repository
     name = "auscult_reference_" + repository.replace("-", "_") + "_" + relpath.replace("/", "_").replace(".", "_")
     spec = importlib.util.spec_from_file_location(name, root / relpath)
     module = importlib.util.module_from_spec(spec)

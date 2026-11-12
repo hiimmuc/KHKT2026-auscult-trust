@@ -47,7 +47,7 @@ def place(all_jobs):
     return load
 
 
-def prepare(snapshot, hosts, data, references, deadline):
+def prepare(snapshot, hosts, data, deadline):
     root = Path(snapshot).resolve()
     manifest = root / 'logs' / NAME / 'programme.json'
     if manifest.exists():
@@ -59,7 +59,7 @@ def prepare(snapshot, hosts, data, references, deadline):
     files = [p for folder in ('src', 'scripts', 'experiments') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
     files += [root / 'requirements-train.lock', root / 'pyproject.toml']
-    spec = dict(name=NAME, snapshot=str(root), data=data, references=references, machines=machines, archive_machine='E',
+    spec = dict(name=NAME, snapshot=str(root), data=data, machines=machines, archive_machine='E',
                 deadline=deadline, stack=[], reference_snapshot=str(dc.CAMPAIGNS / dc.REFERENCE[0]), recipes=RECIPES,
                 source_hashes={str(p.relative_to(root)): sha256_file(p) for p in sorted(set(files))},
                 frozen_at=datetime.now(timezone.utc).isoformat(), status={})
@@ -119,11 +119,10 @@ if __name__ == '__main__':
     parser.add_argument('--snapshot')
     parser.add_argument('--hosts')
     parser.add_argument('--data')
-    parser.add_argument('--references')
     parser.add_argument('--deadline', default=(datetime.now(timezone.utc) + timedelta(days=2)).isoformat())
     args = parser.parse_args()
     if args.command == 'prepare':
-        prepare(args.snapshot, args.hosts, args.data, args.references, args.deadline)
+        prepare(args.snapshot, args.hosts, args.data, args.deadline)
     elif args.command == 'sync':
         sync(args.manifest)
     else:

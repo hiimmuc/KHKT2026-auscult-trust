@@ -44,7 +44,7 @@ def test_fingerprint_tracks_data_sc_code_and_checkpoint(tmp_path, monkeypatch):
     for name in ("repo/src", "refs", "data", "audio/audio_test_data", "unit"):
         (tmp_path / name).mkdir(parents=True)
     monkeypatch.setattr(provenance, "REPO", tmp_path / "repo")
-    monkeypatch.setattr(provenance, "REPOS", tmp_path / "refs")
+    monkeypatch.setattr(provenance, "THIRD_PARTY", tmp_path / "refs")
     monkeypatch.setattr(provenance, "DATA", tmp_path / "data")
     monkeypatch.setattr(provenance, "environment", lambda: {"packages": {"numpy": "fixed"}})
     unit, checkpoint = tmp_path / "unit", tmp_path / "model.pth"

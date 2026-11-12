@@ -4,23 +4,14 @@ from importlib.metadata import distributions
 import json
 from pathlib import Path
 import platform
-import subprocess
 
 from src.artifacts import atomic_json, file_hashes, sha256_file, verify_file
-from src.paths import REPO, REPOS, DATA
+from src.paths import REPO, THIRD_PARTY, DATA
 
 
 def environment():
-    """Resolved packages and local reference revisions; no environment variables or tokens."""
-    refs = {}
-    if REPOS.exists():
-        for root in sorted(REPOS.iterdir()):
-            if (root / ".git").exists():
-                def git(*args):
-                    return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
-                changed = [line for line in git("status", "--porcelain").splitlines()
-                           if "__pycache__/" not in line and not line.endswith(".pyc")]
-                refs[root.name] = {"commit": git("rev-parse", "HEAD"), "dirty": bool(changed)}
+    """Resolved packages and vendored upstream revisions; no environment variables or tokens."""
+    refs = {name: spec["commit"] for name, spec in json.loads((THIRD_PARTY / "SOURCES.json").read_text()).items()}
     hardware = {"machine": platform.machine()}
     try:
         import torch
@@ -59,7 +50,7 @@ def prediction_inputs(unit, checkpoint, dataset, sc=False, sc_unit=None, options
                                     "opera_ct": "opera"}.get(args.get("encoder"), args.get("encoder", ""))
     files += [p for p in model_root.rglob("*") if p.is_file()]
     files += list((REPO / "src").rglob("*.py"))
-    files += [p for p in REPOS.rglob("*.py") if ".git" not in p.parts]
+    files += list(THIRD_PARTY.rglob("*.py"))
     return {"schema": 1, "dataset": dataset, "sc": bool(sc), "options": options or {},
             "files": file_hashes(files), "environment": environment()}
 

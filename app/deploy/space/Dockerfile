@@ -6,7 +6,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 USER user
 COPY --chown=user auscult-trust ./auscult-trust
-COPY --chown=user repos ./repos
 COPY --chown=user entrypoint.sh .
 WORKDIR /app/auscult-trust
 ENV PYTHONPATH=. PYTHONUNBUFFERED=1 AT_APP_BUNDLE=app/bundle

@@ -130,7 +130,7 @@ def test_generated_commands_have_unique_identities_and_fixed_source_horizon(tmp_
 
 def test_worker_reuses_native_sweep_admission_limits(tmp_path, monkeypatch):
     state = spec(tmp_path)
-    state.update(phase='screen', source_hashes={}, data='/data', references='/references')
+    state.update(phase='screen', source_hashes={}, data='/data')
     calls = []
     monkeypatch.setattr(campaign.subprocess, 'run', lambda *a, **kw: calls.append((a, kw)))
     campaign.worker(state, 'F', 'screen')
@@ -139,7 +139,6 @@ def test_worker_reuses_native_sweep_admission_limits(tmp_path, monkeypatch):
     for flag, value in [('--workers', '2'), ('--gpu-gb', '32'), ('--disk-gb', '30'), ('--ram-gb', '20')]:
         assert command[command.index(flag) + 1] == value
     assert kwargs['env']['AT_DATA'] == '/data'
-    assert kwargs['env']['AT_REPOS'] == '/references'
     assert command[command.index('--deadline') + 1] == state['deadline']
 
 
@@ -348,7 +347,7 @@ def test_deadline_never_launches_new_training(tmp_path, monkeypatch):
 
 def test_source_preprocessing_audit_is_persistent_cpu_only_and_idempotent(tmp_path, monkeypatch):
     state = spec(tmp_path)
-    state.update(data='/source-data', references='/frozen-references')
+    state.update(data='/source-data')
     job = campaign.cv_jobs(['anchor'], [0])[0]
     from src.artifacts import atomic_json
     atomic_json(campaign.unit_path(state, job) / 'collected-checkpoint.json', {'sha256': 'certified'})
@@ -758,7 +757,7 @@ def test_followup_names_do_not_mutate_legacy_identity_or_require_a(tmp_path, mon
     state = spec(tmp_path)
     state['name'] = 'followup-20261026'
     state['machines'] = {'B': {'local': True}, 'D': {'host': 'd'}, 'E': {'host': 'e'}, 'F': {'host': 'f'}}
-    state['data'], state['references'] = 'data', 'refs'
+    state['data'] = 'data'
     jobs = campaign.cv_jobs(['anchor', 'llrd'], [0], name=state['name'])
     campaign.set_phase(state, 'screen', jobs)
     assert all(job['run'] == 'followup-20261026-s0' for job in jobs)

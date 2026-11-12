@@ -10,7 +10,7 @@ Main line: **proposal v10** (`docs/registered/research-proposal-v10-en.md`). Reg
 
 Model (29/10/2026): **AuscultTrust** = distilled student `kd_g4_k1` (BEATs + PAFA, trained static SC, gain6, epoch 66, soft targets from the equal-weight G4 teacher ensemble) + split-conformal layer. **Baseline** = BEATs + PAFA, fine-tuned, no SC. The registered v9 core (AST + Patch-Mix CL) is a separate, historical study; its P0/P1 and gate G below describe it. Phantom work is pending hardware.
 
-Data in `../data/raw/`: ICBHI (920 wav, 6898 cycles, 126 patients), KAUH (336 wav = 112 patients x 3 filters), phantom replay takes. Reference repos in `../repos` (read-only).
+Data in `../data/raw/`: ICBHI (920 wav, 6898 cycles, 126 patients), KAUH (336 wav = 112 patients x 3 filters), phantom replay takes. Vendored upstream code in `third_party/` (see `third_party/README.md`).
 
 Dates: research cut-off 31/01/2027.
 
@@ -61,7 +61,7 @@ Two envs: analysis/tests `.venv` and training `.venv-train` (Python 3.10, `timm=
 
 Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 
-- `src/paths.py` (REPO, DATA = `AT_DATA` or `../data`, REPOS = `AT_REPOS` or `../repos`, OUTPUTS, CHECKPOINTS), `src/runs.py` (run directories `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`, `meta.json`, `twin_dir`). `src/artifacts.py` owns atomic writes and `sha256_file`; `src/provenance.py` owns environment and prediction certificates.
+- `src/paths.py` (REPO, DATA = `AT_DATA` or `../data`, THIRD_PARTY = `third_party/`, OUTPUTS, CHECKPOINTS), `src/runs.py` (run directories `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`, `meta.json`, `twin_dir`). `src/artifacts.py` owns atomic writes and `sha256_file`; `src/provenance.py` owns environment and prediction certificates.
 - `src/processing/cycles.py` owns cycle preparation; `src/inference/` owns frozen prediction and test-time adaptation. API and experiment workflows use these shared modules; evaluation primitives belong in `src/evaluation/calibration.py`, `recordings.py`, and `metrics.py`.
 - Docstrings: Google style. Code, comments, scripts and configs are self-contained: no references to documents, versions, sections or stage numbers; plain names.
 
@@ -90,10 +90,10 @@ Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 
 ## Working conventions
 
-- `../repos/*` is read-only reference. Never edit, build, or write results there. Reuse them by path (`src/training/upstream.py`), never vendor a copy.
+- `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`src/training/upstream.py`).
 - Docs: results in `report.md`, detail in `docs/reports/`, handoff in `docs/handoff/` (written when a session runs out of context), registered documents in `docs/registered/`, plans in `docs/plans/`, decisions in `docs/decision-logs/`.
 - Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
-- Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../repos`, `../docs`.
+- Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../docs`.
 - Install a missing package before reaching for a workaround.
 - Simplest change that works. No speculative abstractions.
 - Do not modify `data/raw/` or committed split files.

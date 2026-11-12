@@ -13,7 +13,7 @@ import os
 import shutil
 from pathlib import Path
 
-from src.paths import DATA, REPO, REPOS
+from src.paths import DATA, REPO, THIRD_PARTY
 
 REFERENCE_REPOS = ["PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL"]
 BEATS = "models/beats/BEATs_iter3_plus_AS2M.pt"
@@ -40,7 +40,7 @@ def main():
     shutil.copytree(REPO / "src", space / "auscult-trust/src", ignore=IGNORE)
     shutil.copytree(REPO / "api", space / "auscult-trust/api", ignore=API_IGNORE)
     for r in REFERENCE_REPOS:
-        shutil.copytree(REPOS / r, space / "repos" / r, ignore=IGNORE)
+        shutil.copytree(THIRD_PARTY / r, space / "auscult-trust/third_party" / r, ignore=IGNORE)
 
     manifest = json.loads((REPO / "app/bundle/manifest.json").read_text())
     root = weights / "auscult-trust"

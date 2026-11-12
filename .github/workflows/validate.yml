@@ -19,5 +19,4 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv venv .venv-train --python 3.10
       - run: uv pip sync --python .venv-train/bin/python --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
-      - run: .venv-train/bin/python -m src.references --install --only PAFA ADD-RSC patch-mix_contrastive_learning QLung SG-SCL
       - run: bash scripts/validate.sh

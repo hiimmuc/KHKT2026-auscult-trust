@@ -3,7 +3,7 @@
 #   bash scripts/build_dass_env.sh            torch 2.9.1 built for CUDA 13.0 (default), kernel compiled with the system CUDA 13.0
 #   CUDA_TAG=cu128 bash scripts/build_dass_env.sh   torch 2.9.1 for CUDA 12.8, kernel compiled with a conda CUDA 12.8 toolkit
 # The kernel must be compiled with the same CUDA major version as torch (PyTorch's extension builder refuses otherwise).
-# The kernel's setup.py hardcodes sm_70/80/90, so it is built from a copy with the GPU's own architecture added; ../repos/DASS
+# The kernel's setup.py hardcodes sm_70/80/90, so it is built from a copy with the GPU's own architecture added; third_party/DASS
 # stays untouched. The kernel is installed with --reinstall-package so that torch is never replaced by a newer PyPI build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,7 +35,7 @@ fi
 # 3. kernel, built for the GPU in this machine
 SM=$($PY -c "import torch;m,n=torch.cuda.get_device_capability(0);print(f'{m}{n}')")
 export TORCH_CUDA_ARCH_LIST="${SM:0:-1}.${SM: -1}"
-BUILD=${TMPDIR:-/tmp}/selective_scan-$USER; rm -rf $BUILD; cp -r ../repos/DASS/kernels/selective_scan $BUILD
+BUILD=${TMPDIR:-/tmp}/selective_scan-$USER; rm -rf $BUILD; cp -r third_party/DASS/kernels/selective_scan $BUILD
 sed -i "65a\\    cc_flag.extend(['-gencode', 'arch=compute_$SM,code=sm_$SM'])" $BUILD/setup.py
 if [ "$CUDA_TAG" = cu130 ]; then
   sed -i '/compute_70/d' $BUILD/setup.py  # CUDA 13 dropped Volta (sm_70)

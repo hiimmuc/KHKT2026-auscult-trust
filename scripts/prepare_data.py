@@ -12,11 +12,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.paths import DATA, REPOS  # noqa: E402
+from src.paths import DATA, THIRD_PARTY  # noqa: E402
 
 ICBHI = DATA / "raw" / "icbhi" / "ICBHI_final_database"
 PROCESSED = DATA / "processed" / "patchmix_icbhi"
-SPLIT_SOURCE = REPOS / "patch-mix_contrastive_learning" / "data" / "icbhi_dataset" / "official_split.txt"
+SPLIT_SOURCE = THIRD_PARTY / "patch-mix_contrastive_learning" / "data" / "icbhi_dataset" / "official_split.txt"
 
 
 def fix_icbhi_names():

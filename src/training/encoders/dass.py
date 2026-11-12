@@ -14,12 +14,12 @@ import types
 from functools import lru_cache
 
 import torch.nn as nn
-from src.paths import DATA, REPOS
+from src.paths import DATA, THIRD_PARTY
 from src.training.upstream import working_directory
 
 from src.processing.cycles import DB_PER_NAT, FBANK_STD, IMG_MEL, IMG_TIME, generate_fbank
 
-LUNG_SRAD = REPOS / "Lung-SRAD" / "models_DASS"
+LUNG_SRAD = THIRD_PARTY / "Lung-SRAD" / "models_DASS"
 WEIGHTS_ROOT = DATA / "models" / "dass"  # holds pretrained_models/DASS_medium_v2.pth
 FEATURE_DIM = 768
 

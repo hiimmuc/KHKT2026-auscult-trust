@@ -597,7 +597,7 @@ def worker(spec, machine, phase):
     verify_source(spec)
     root = Path(spec['snapshot'])
     m = spec['machines'][machine]
-    env = {**os.environ, 'AT_DATA': m.get('data', spec['data']), 'AT_REPOS': m.get('references', spec['references']),
+    env = {**os.environ, 'AT_DATA': m.get('data', spec['data']),
            'RUN_ID': programme_name(spec), 'SWEEP_TAG': '-' + phase + '-' + machine, 'PYTHONPATH': str(root)}
     subprocess.run([str(root / '.venv-train/bin/python'), '-u', 'scripts/sweep.py',
                     str(root / 'logs' / programme_name(spec) / phase / (machine + '.jobs.txt')),
@@ -618,7 +618,7 @@ def prepare(args):
         raise ValueError('Expected named A/B/D/E/F workers')
     files = [p for folder in ('src', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
-    files += [root / name for name in ('requirements-train.lock', 'requirements-references.lock.json', 'pyproject.toml')]
+    files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     for name in BASE + ARMS:
         if not (root / 'experiments/train' / (name + '.yaml')).is_file():
             raise FileNotFoundError(name)
@@ -630,7 +630,7 @@ def prepare(args):
             raise ValueError('Baselines need five paired seeds for official and all four devices')
         if any(not Path(p).is_absolute() for cohort in mapping.values() for p in cohort.values()):
             raise ValueError('Baseline unit paths must be absolute')
-    spec = dict(name=NAME, snapshot=str(root), data=args.data, references=args.references, machines=machines,
+    spec = dict(name=NAME, snapshot=str(root), data=args.data, machines=machines,
                 deadline=args.deadline, baselines=baselines, stack=[],
                 source_hashes={str(p.relative_to(root)): sha256_file(p) for p in sorted(set(files))},
                 frozen_at=datetime.now(timezone.utc).isoformat())
@@ -702,7 +702,7 @@ def launch_audit(spec, job):
     destination.mkdir(parents=True, exist_ok=True)
     service = f'auscult-{programme_name(spec)}-audit-{key}'
     command = ['/usr/bin/env', 'PYTHONPATH=' + str(root), 'CUDA_VISIBLE_DEVICES=', 'OMP_NUM_THREADS=2', 'OPENBLAS_NUM_THREADS=2',
-               'MKL_NUM_THREADS=2', 'AT_DATA=' + spec['data'], 'AT_REPOS=' + spec['references'],
+               'MKL_NUM_THREADS=2', 'AT_DATA=' + spec['data'],
                str(root / '.venv-train/bin/python'), '-u', str(root / 'scripts/preprocessing_audit.py'),
                '--unit-dir', str(unit_path(spec, job)), '--out', str(destination), '--max-recordings', '16']
     content = ('[Unit]\nDescription=Frozen source preprocessing audit\n[Service]\nType=simple\nWorkingDirectory=' + str(root) +
@@ -931,7 +931,6 @@ def main():
     parser.add_argument('manifest', nargs='?')
     parser.add_argument('--snapshot')
     parser.add_argument('--data')
-    parser.add_argument('--references')
     parser.add_argument('--hosts')
     parser.add_argument('--baselines')
     parser.add_argument('--deadline', default='2026-10-26T23:00:00+07:00')

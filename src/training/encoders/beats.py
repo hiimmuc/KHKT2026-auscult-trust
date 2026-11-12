@@ -14,13 +14,13 @@ from functools import lru_cache
 import torch
 import torch.nn as nn
 import torchaudio
-from src.paths import DATA, REPOS
+from src.paths import DATA, THIRD_PARTY
 
 from src.processing.cycles import DB_PER_NAT
 from .patch_mix import mix_patches
 from ..adapters import apply_lora, multiscale_features
 
-PAFA = REPOS / "PAFA"
+PAFA = THIRD_PARTY / "PAFA"
 WEIGHTS = DATA / "models" / "beats" / "BEATs_iter3_plus_AS2M.pt"
 FBANK_MEAN, FBANK_STD = 15.41663, 6.55582
 FEATURE_DIM = 768

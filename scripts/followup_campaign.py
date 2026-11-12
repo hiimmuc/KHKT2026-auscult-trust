@@ -179,9 +179,9 @@ def prepare(args):
             str(path): sha256_file(path) for path in source.glob('cv*/*') if path.name in ('report.json', 'val_preds.npz')}})
     files = [path for folder in ('src', 'scripts', 'experiments', 'tests') for path in (root / folder).rglob('*')
              if path.is_file() and path.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in path.parts]
-    files += [root / name for name in ('requirements-train.lock', 'requirements-references.lock.json', 'pyproject.toml')]
+    files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     spec = dict(name=NAME, snapshot=str(root), machines=machines, archive_machine='E', data=args.data,
-        references=args.references, deadline=args.deadline, recovery_report=str(Path(args.recovery_report).resolve()),
+        deadline=args.deadline, recovery_report=str(Path(args.recovery_report).resolve()),
         ensemble_manifest=str(Path(args.ensemble_manifest).resolve()), ensemble_manifest_sha256=sha256_file(args.ensemble_manifest),
         baselines=baselines, stack=[], selected={'anchor': 66},
         audits=previous['audits'], source_anchor_reuse=reuse,
@@ -210,7 +210,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['prepare', 'run'])
     parser.add_argument('manifest', nargs='?')
-    for name in ('snapshot', 'data', 'references', 'hosts', 'previous-manifest', 'baselines', 'recovery-report', 'ensemble-manifest'):
+    for name in ('snapshot', 'data', 'hosts', 'previous-manifest', 'baselines', 'recovery-report', 'ensemble-manifest'):
         parser.add_argument('--' + name)
     parser.add_argument('--deadline', default='2026-10-26T23:00:00+07:00')
     parser.add_argument('--once', action='store_true')

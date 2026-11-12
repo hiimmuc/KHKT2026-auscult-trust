@@ -158,8 +158,8 @@ def test_prepare_reuses_six_source_folds_and_freezes_ensemble_plan(tmp_path, mon
     from types import SimpleNamespace
     root, old = tmp_path / 'new', tmp_path / 'old'
     root.mkdir()
-    for name in ('requirements-train.lock', 'requirements-references.lock.json', 'pyproject.toml'):
-        (root / name).write_text('frozen')
+    for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml'):
+        (root / name).parent.mkdir(exist_ok=True); (root / name).write_text('frozen')
     hosts = tmp_path / 'hosts.json'
     atomic_json(hosts, state(root)['machines'])
     previous = tmp_path / 'previous.json'
@@ -176,7 +176,7 @@ def test_prepare_reuses_six_source_folds_and_freezes_ensemble_plan(tmp_path, mon
     ensemble = tmp_path / 'ensemble.json'
     atomic_json(ensemble, {'fixed_groups': True})
     monkeypatch.setattr(core, 'audits_complete', lambda _: True)
-    args = SimpleNamespace(snapshot=root, data='source-data', references='frozen-refs', hosts=hosts,
+    args = SimpleNamespace(snapshot=root, data='source-data', hosts=hosts,
                            previous_manifest=previous, baselines=baseline, recovery_report=tmp_path / 'not-verified.json',
                            ensemble_manifest=ensemble, deadline='2026-10-26T23:00:00+07:00')
     campaign.prepare(args)

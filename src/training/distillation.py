@@ -9,7 +9,7 @@ import torch
 
 from src.artifacts import atomic_npz, file_hashes
 from src.inference.model import load_frozen
-from src.paths import DATA, REPOS
+from src.paths import DATA, THIRD_PARTY
 from src.provenance import record_prediction, verify_prediction
 from src.training.config import load_args
 
@@ -73,7 +73,7 @@ def export(args):
         raise FileExistsError(args.out)
     predictions, first, files, contexts = [], None, [], []
     files += [DATA / 'models/beats/BEATs_iter3_plus_AS2M.pt']
-    files += list(REPOS.rglob('*.py'))
+    files += list(THIRD_PARTY.rglob('*.py'))
     for unit, checkpoint in zip(args.units, args.checkpoints):
         a = load_args(unit)
         if getattr(a, 'soft_targets', None):

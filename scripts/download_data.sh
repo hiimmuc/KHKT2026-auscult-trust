@@ -2,7 +2,7 @@
 # Download every public dataset and model file the project needs into the data directory
 # (DATA_DIR, default ../data next to the repo; same as AT_DATA in src/paths.py). Already complete files are skipped.
 #
-#   bash scripts/download_data.sh            ICBHI, KAUH, encoder weights, reference repositories
+#   bash scripts/download_data.sh            ICBHI, KAUH, encoder weights
 #   bash scripts/download_data.sh --hf-lung  also HF_Lung_V1 (large; only needed for the archived early experiments)
 #
 # Sources
@@ -17,7 +17,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DATA_DIR=${DATA_DIR:-${AT_DATA:-../data}}
-REPOS_DIR=${REPOS_DIR:-${AT_REPOS:-../repos}}
 ICBHI_URL=https://bhichallenge.med.auth.gr/sites/default/files/ICBHI_final_database/ICBHI_final_database.zip
 ICBHI_MIRROR=https://dataverse.harvard.edu/api/access/datafile/7127117
 ICBHI_MD5=f6a5d0ea40bbcd25e17754f9d5ddae48
@@ -59,10 +58,6 @@ opera=$DATA_DIR/models/opera/encoder-operaCT.ckpt
 [ -f "$opera" ] || fetch "https://huggingface.co/evelyn0414/OPERA/resolve/main/encoder-operaCT.ckpt?download=true" "$opera"
 
 [ -f "$DATA_DIR/models/htsat/AudioSet/HTSAT_AudioSet_Saved_1.ckpt" ] || echo "HTS-AT weights missing: download HTSAT_AudioSet_Saved_1.ckpt (link in the header) to DATA_DIR/models/htsat/AudioSet/"
-
-# Reference repositories (read-only): Patch-Mix CL (model, loss, official ICBHI split), OPERA (HTS-AT network),
-# Lung-SRAD (DASS), RespireNet and SG-SCL (baselines), HTS-AT
-AT_REPOS="$REPOS_DIR" "${PY:-python}" -m src.references --install
 
 if [ "${1:-}" = "--hf-lung" ] && [ ! -d "$DATA_DIR/raw/hf_lung/train" ]; then
   git clone https://gitlab.com/techsupportHF/HF_Lung_V1 "$DATA_DIR/raw/hf_lung_download"

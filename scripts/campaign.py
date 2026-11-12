@@ -40,7 +40,7 @@ def freeze(config, out):
     root = Path(spec['source'])
     files = [p for folder in ('src', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
-    files += [root / name for name in ('requirements-train.lock', 'requirements-references.lock.json', 'pyproject.toml')]
+    files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     jobs = [job for machine in spec['machines'].values() for job in identities(root / machine['jobs'])]
     if len(jobs) != len(set(jobs)) or len(jobs) != spec['expected_units']:
         raise ValueError('Duplicate jobs or unexpected unit count')
@@ -83,7 +83,7 @@ def start(spec, machine):
             out, ck = root / 'outputs/train' / run / cell / seed, root / 'checkpoints/train' / run / cell / seed
             if out.exists() or ck.exists():
                 raise ValueError(f'Existing unit must be verified or set aside explicitly: {out}')
-        env = {**os.environ, 'AT_DATA': spec['data'], 'AT_REPOS': spec['references'],
+        env = {**os.environ, 'AT_DATA': spec['data'],
                'RUN_ID': spec['run'], 'SWEEP_TAG': '-' + machine, 'PYTHONPATH': str(root)}
         cmd = [str(root / '.venv-train/bin/python'), '-u', 'scripts/sweep.py', m['jobs'],
                '--workers', str(m['workers']), '--gpu-gb', str(m.get('gpu_gb', 28)),

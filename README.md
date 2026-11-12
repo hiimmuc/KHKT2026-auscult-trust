@@ -11,7 +11,6 @@ AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEA
 uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
 uv venv .venv-train --python 3.10
 uv pip sync --python .venv-train/bin/python --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
-.venv-train/bin/python -m src.references --install
 
 # 2. Data (ICBHI, KAUH, encoder weights) and tests
 bash scripts/download_data.sh && python scripts/prepare_data.py
@@ -64,4 +63,4 @@ PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 &
 | `outputs/train/<run>/<cell>/<unit>/` | Reports, predictions; `outputs/index.csv` lists every unit |
 | `checkpoints/train/<run>/<cell>/<unit>/` | Weights |
 
-`../data` holds datasets, `../repos` the read-only reference code.
+`../data` holds datasets; `third_party/` holds the vendored upstream code.

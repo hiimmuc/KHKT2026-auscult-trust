@@ -11,11 +11,10 @@ Every command runs from the repository root. `PY=.venv-train/bin/python` for tra
 ```
 KHKT-CVA-2026/
 ├── auscult-trust/   this repo
-├── data/            raw/ processed/ splits/ models/ cache/        (AT_DATA overrides)
-└── repos/           read-only OPERA, Patch-Mix CL, SG-SCL, PAFA, ...  (AT_REPOS overrides)
+└── data/            raw/ processed/ splits/ models/ cache/        (AT_DATA overrides)
 ```
 
-From a git worktree, set `AT_DATA` and `AT_REPOS` to the wrapper's `data/` and `repos/`.
+From a git worktree, set `AT_DATA` to the wrapper's `data/`. Upstream model code is vendored in `third_party/` (no separate clone).
 
 ## 2. Environments
 
@@ -26,15 +25,14 @@ uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt   
 uv venv .venv-train --python 3.10
 uv pip sync --python .venv-train/bin/python \
     --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock     # training, inference, API
-.venv-train/bin/python -m src.references --install                                       # reference repos at pinned commits
 ```
 
-`requirements-train.lock` is the resolved Linux/CUDA 12.8 environment; `requirements-references.lock.json` pins the reference repos. DASS needs a third environment: `bash scripts/build_dass_env.sh`.
+`requirements-train.lock` is the resolved Linux/CUDA 12.8 environment; `third_party/SOURCES.json` records the upstream commits of the vendored code. DASS needs a third environment: `bash scripts/build_dass_env.sh`.
 
 ## 3. Data
 
 ```bash
-bash scripts/download_data.sh      # ICBHI, KAUH, encoder weights, reference repos; skips finished files
+bash scripts/download_data.sh      # ICBHI, KAUH, encoder weights; skips finished files
 python scripts/prepare_data.py     # builds processed/ and the committed splits; idempotent
 ```
 

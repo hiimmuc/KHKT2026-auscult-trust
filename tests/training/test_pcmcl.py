@@ -2,7 +2,8 @@ import numpy as np
 import torch
 
 from src.processing.correction import apply_spectrum_correction
-from src.training.methods.pcmcl_data import COMBINATIONS, four_class, four_class_probs, multilabel, sc_part
+from src.models.heads import four_class_probs
+from src.training.methods.pcmcl_data import COMBINATIONS, four_class, multilabel, sc_part
 
 
 def test_sc_part_matches_the_dataset_correction_and_keeps_the_length():

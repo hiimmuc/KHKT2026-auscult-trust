@@ -297,7 +297,7 @@ def main():
             p = predict_images(images, model_nn, clf, method=args.method)
             # TTA-EQ (8 fixed-seed smooth gain views, 6 dB SD) on the denoised + SC replay cycles
             from src.inference.adaptation import TTA_DB, TTA_SEED0, gain_curves
-            from src.training.encoders import get_encoder
+            from src.models.encoders import get_encoder
             sd = TTA_DB * get_encoder(args.encoder).db_scale
             i, extra = 0, []
             for c, v, s, ws in batch:

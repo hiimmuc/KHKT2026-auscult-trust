@@ -2,16 +2,15 @@
 import torch
 from torch import nn
 
+from src.models.heads import PcmclHead, four_class_probs
+
 from .base import StepResult, TrainingMethod
 from .pafa import alignment_loss, projection_head
-from .pcmcl_data import four_class, four_class_probs
+from .pcmcl_data import four_class
 
 
-class Method(TrainingMethod):
+class Method(PcmclHead, TrainingMethod):
     multilabel = True
-
-    def classifier(self, model, args):
-        return nn.Linear(model.final_feat_dim, 3)
 
     def projector(self, model, args):
         projector = nn.ModuleDict({"ssl": nn.Linear(model.final_feat_dim, 2)})
@@ -24,9 +23,6 @@ class Method(TrainingMethod):
         if args.pcmcl_pafa:
             losses.append(alignment_loss())
         return losses
-
-    def probabilities(self, logits):
-        return four_class_probs(logits)
 
     def step(self, context, batch):
         c, a = context, context.args

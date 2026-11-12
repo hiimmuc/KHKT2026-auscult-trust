@@ -13,7 +13,7 @@ import yaml
 from src.paths import DATA
 from src.processing.icbhi import CLASSES, DEVICES
 
-from .encoders import NAMES, get_encoder
+from src.models.encoders import NAMES, get_encoder
 from .methods import NAMES as METHOD_NAMES, get_method
 
 EXP = "train"

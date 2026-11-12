@@ -6,7 +6,7 @@ import pytest
 import torch
 from torch import nn
 
-from src.training.encoders.beats import BeatsEncoder, TokenClassifier
+from src.models.encoders.beats import BeatsEncoder, TokenClassifier
 from src.training.methods.base import Batch, StepContext
 from src.training.methods.class_aware_pafa import ClassAwarePAFA, Method, centroid_pair_masks
 from src.training.methods.pafa import Method as PafaMethod, alignment_loss

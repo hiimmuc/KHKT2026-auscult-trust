@@ -1,14 +1,12 @@
 """QLung angular classification with a quality-adaptive margin."""
 from torch.nn import functional as F
 
-from ..upstream import load_reference
+from src.models.heads import QLungHead
+from src.models.upstream import load_reference
 from .base import StepResult, TrainingMethod
 
 
-class Method(TrainingMethod):
-    def classifier(self, model, args):
-        return load_reference("QLung", "method/loss.py").AngularClassifier(model.final_feat_dim, args.n_cls, s=37)
-
+class Method(QLungHead, TrainingMethod):
     def losses(self, model, args):
         reference = load_reference("QLung", "method/loss.py")
         return [*super().losses(model, args), reference.AngularMarginLoss(model.final_feat_dim, args.n_cls, s=15, m=0.5,

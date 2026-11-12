@@ -11,7 +11,7 @@ from torch import nn
 from src.inference.model import load_frozen, predict_images
 from src.training.config import parse_args
 from src.training.methods import get_method
-from src.training.modeling import build_inference_model
+from src.models.factory import build_inference_model
 
 
 class Encoder(nn.Module):
@@ -28,10 +28,11 @@ class Encoder(nn.Module):
 
 @pytest.mark.parametrize("method", ["ce", "ce_pafa", "pcmcl", "qlung"])
 def test_frozen_checkpoint_matches_direct_prediction_without_training_components(tmp_path, monkeypatch, method):
+    from src.models import factory
     from src.training import modeling
     args = parse_args(["--method", method])
     spec = SimpleNamespace(build=lambda _: Encoder(), image_shape=(16, 32))
-    monkeypatch.setattr(modeling, "get_encoder", lambda _: spec)
+    monkeypatch.setattr(factory, "get_encoder", lambda _: spec)
     def forbidden(*args, **kwargs):
         pytest.fail("Frozen inference constructed training-only components")
     monkeypatch.setattr(type(get_method(method)), "projector", forbidden)

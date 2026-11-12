@@ -9,7 +9,8 @@ from torch.utils.data import Dataset, Subset
 
 from src.training.device_augment import band_noise, DeviceAugmentedCycles
 from src.training.methods.base import Batch, StepContext
-from src.training.methods.recording_pafa import Method, RecordingClassifier
+from src.models.heads import RecordingClassifier
+from src.training.methods.recording_pafa import Method
 from src.training.methods.device_pafa import Method as DeviceMethod
 from src.training.recording_bags import RecordingBags, predict_recording, evaluate_recordings
 

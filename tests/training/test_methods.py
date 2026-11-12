@@ -85,7 +85,7 @@ def test_method_loss_backpropagates_and_returns_four_class_probabilities(name, e
 
 
 def test_ce_has_no_upstream_method_dependencies():
-    subprocess.run([sys.executable, "-c", "import src.training.upstream as u; u.THIRD_PARTY = u.THIRD_PARTY / 'missing'; "
+    subprocess.run([sys.executable, "-c", "import src.models.upstream as u; u.THIRD_PARTY = u.THIRD_PARTY / 'missing'; "
                     "from types import SimpleNamespace; from torch import nn; "
                     "from src.training.methods import get_method; "
                     "get_method('ce').components(SimpleNamespace(mlp_head=nn.Linear(2,4)), SimpleNamespace())"], check=True)
@@ -111,7 +111,7 @@ def test_frozen_encoder_keeps_only_method_frontend_trainable(name):
     from unittest.mock import patch
     args = parse_args(["--method", name, "--freeze_encoder"])
     spec = SimpleNamespace(image_shape=(16, 32), build=lambda _: ToyEncoder())
-    with patch("src.training.modeling.get_encoder", return_value=spec):
+    with patch("src.models.factory.get_encoder", return_value=spec):
         model, classifier, _, _, optimizer = build_model(args, device="cpu")
     encoder = model.encoder if name == "add_rsc" else model
     assert all(not p.requires_grad for p in encoder.parameters())
@@ -120,3 +120,11 @@ def test_frozen_encoder_keeps_only_method_frontend_trainable(name):
         assert all(p.requires_grad for p in model.denoise.parameters())
     optimized = {id(p) for group in optimizer.param_groups for p in group["params"]}
     assert all(id(p) in optimized for p in classifier.parameters())
+
+
+def test_every_method_inherits_the_head_inference_builds():
+    from src.models.heads import HEADS, get_head
+    from src.training.methods import NAMES
+    assert set(HEADS) == set(NAMES)
+    for name in NAMES:
+        assert isinstance(get_method(name), type(get_head(name)))

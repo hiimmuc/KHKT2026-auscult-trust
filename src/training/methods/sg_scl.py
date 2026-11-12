@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from ..augment import SpecAugment
-from ..upstream import load_reference
+from src.models.upstream import load_reference
 from .base import StepResult, TrainingMethod
 
 

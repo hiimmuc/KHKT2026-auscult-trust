@@ -2,7 +2,7 @@
 
 Byte-identical copies of the upstream files this project imports, at the pinned commits in `SOURCES.json`. Only `*.py` files,
 licence files and the files named below are kept; weights and datasets are not included. Do not edit these files: the
-serving-bundle and prediction certificates hash them, and `src/training/upstream.py` loads them by path.
+serving-bundle and prediction certificates hash them, and `src/models/upstream.py` loads them by path.
 
 Needed beyond Python sources: `patch-mix_contrastive_learning/data/icbhi_dataset/official_split.txt` (the official 60/40 split)
 and `DASS/kernels/selective_scan` (the CUDA kernel built by `scripts/build_dass_env.sh`). `BEATs` inside `PAFA/` is Microsoft's

@@ -2,8 +2,9 @@
 
 import numpy as np
 import torch
-from src.training.encoders import get_encoder
-from src.training.modeling import build_inference_model
+from src.models.encoders import get_encoder
+from src.models.factory import build_inference_model
+from src.models.heads import get_head
 
 
 def load_frozen(args, ckpt_path, device=None):
@@ -24,8 +25,7 @@ def images_of(waves, args):
 @torch.no_grad()
 def predict_images(images, model, classifier, curves=None, *, method="ce"):
     """Softmax on (n, time, freq) images; `curves` (n, freq) are added to every frame (TTA-EQ view)."""
-    from src.training.methods import get_method
-    objective = get_method(method)
+    head = get_head(method)
     parameter = next(model.parameters(), None)
     if parameter is None:
         parameter = next(classifier.parameters(), torch.empty(0))
@@ -36,7 +36,7 @@ def predict_images(images, model, classifier, curves=None, *, method="ce"):
         if curves is not None:
             x = x + torch.from_numpy(curves[i : i + 32])[:, None, None, :]
         o = classifier(model(x.to(device)))  # fp32, as the earlier KAUH conditions
-        probs.append(objective.probabilities(o).cpu().numpy())
+        probs.append(head.probabilities(o).cpu().numpy())
     return np.concatenate(probs)
 
 

@@ -18,7 +18,7 @@ from src.paths import DATA, THIRD_PARTY
 
 from src.processing.cycles import DB_PER_NAT
 from .patch_mix import mix_patches
-from ..adapters import apply_lora, multiscale_features
+from src.models.adapters import apply_lora, multiscale_features
 
 PAFA = THIRD_PARTY / "PAFA"
 WEIGHTS = DATA / "models" / "beats" / "BEATs_iter3_plus_AS2M.pt"

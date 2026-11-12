@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from src.evaluation.recording_head import recording_predictions
-from src.training.methods.recording_pafa import RecordingClassifier
+from src.models.heads import RecordingClassifier
 
 
 def classifier():

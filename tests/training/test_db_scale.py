@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from src.processing.cycles import generate_fbank
-from src.training.encoders import get_encoder
+from src.models.encoders import get_encoder
 
 
 def test_ast_db_scale_matches_fbank_shift():
@@ -22,7 +22,7 @@ def test_ast_db_scale_matches_fbank_shift():
 def test_beats_preprocess_matches_reference_and_db_scale():
     import torchaudio
 
-    from src.training.encoders.beats import preprocess_beats
+    from src.models.encoders.beats import preprocess_beats
 
     torch.manual_seed(0)
     wave = torch.randn(1, 16000 * 8) * 0.1

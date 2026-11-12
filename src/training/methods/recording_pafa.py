@@ -1,39 +1,16 @@
 """Joint cycle classification and binary recording screening with shared features."""
-from copy import deepcopy
 from types import SimpleNamespace
 
 import torch
 from torch import nn
+from src.models.heads import RecordingHead
+
 from . import pafa
 from .base import Batch, StepResult
 
 
-class RecordingClassifier(nn.Module):
-    def __init__(self, cycle_head, dimension):
-        super().__init__()
-        self.cycle_head = cycle_head
-        self.recording_head = nn.Linear(dimension, 2)
-
-    def forward(self, features):
-        return self.cycle_head(features)
-
-    def recording_logits(self, features, mask=None):
-        window_logits = self.recording_head(features)
-        abnormal = window_logits[..., 1] - window_logits[..., 0]
-        if mask is not None:
-            mask = mask.to(features.device).bool()
-            if not torch.all(mask.any(1)):
-                raise ValueError("Every recording must contain a valid window")
-            abnormal = abnormal.masked_fill(~mask, -torch.inf)
-        score = abnormal.max(1).values
-        return torch.stack([torch.zeros_like(score), score], 1)
-
-
-class Method(pafa.Method):
+class Method(RecordingHead, pafa.Method):
     supports_consistency = False
-
-    def classifier(self, model, args):
-        return RecordingClassifier(deepcopy(model.mlp_head), model.final_feat_dim)
 
     def step(self, context, batch):
         c = context

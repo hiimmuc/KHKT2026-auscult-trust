@@ -1,11 +1,12 @@
 """Contracts shared by the trainer and method implementations."""
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
-from copy import deepcopy
 from dataclasses import dataclass
 
 import torch
 from torch import nn
+
+from src.models.heads import Head
 
 
 @dataclass
@@ -51,11 +52,12 @@ class StepContext:
             return self.model(images, **kwargs)
 
 
-class TrainingMethod(ABC):
+class TrainingMethod(Head, ABC):
+    """Training objective; the encoder wrapping, classifier and probabilities come from the `Head` of the method name."""
+
     trainable_frontend = False
     two_views = False
     multilabel = False
-    supports_data_parallel = True
     supports_consistency = False
     supports_dual_mix = False
 
@@ -63,26 +65,14 @@ class TrainingMethod(ABC):
         import numpy as np
         return np.zeros(len(dataset.labels), np.float32)
 
-    def wrap_encoder(self, model, spec, args):
-        return model
-
     def components(self, model, args):
         return Components(self.classifier(model, args), self.projector(model, args), self.losses(model, args))
-
-    def classifier(self, model, args):
-        return deepcopy(model.mlp_head)
 
     def projector(self, model, args):
         return nn.Identity()
 
     def losses(self, model, args):
         return [nn.CrossEntropyLoss()]
-
-    def encoder_parameters(self, model):
-        return model.parameters()
-
-    def probabilities(self, logits):
-        return torch.softmax(logits.float(), 1)
 
     @abstractmethod
     def step(self, context, batch):

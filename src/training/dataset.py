@@ -23,7 +23,7 @@ from .augment import SpecAugment, random_bin_gain_image
 from src.processing.cycles import individual_cycles, read_annotations
 from .methods.pcmcl_data import PCMCLTrain
 from .methods import get_method
-from .encoders import get_encoder, image_shape
+from src.models.encoders import get_encoder, image_shape
 
 CACHE = (
     DATA / "cache" / "train_images"

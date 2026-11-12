@@ -8,7 +8,8 @@ from torch import nn
 from torch.nn import functional as F
 
 from src.training.methods.base import Batch, StepContext
-from src.training.methods.event_pafa import EventClassifier, Method, event_targets
+from src.models.heads import EventClassifier
+from src.training.methods.event_pafa import Method, event_targets
 from src.training.methods.pafa import Method as PafaMethod
 
 

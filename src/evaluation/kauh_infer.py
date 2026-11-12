@@ -19,7 +19,7 @@ from src.paths import DATA
 from src.processing.audio import SR, crop_pad, load_wav
 from src.processing.kauh import file_table, windows
 from src.training.config import load_args
-from src.training.encoders import get_encoder
+from src.models.encoders import get_encoder
 from src.inference.model import load_frozen, images_of, predict_images
 from src.inference.adaptation import test_time_sc, source_stats
 

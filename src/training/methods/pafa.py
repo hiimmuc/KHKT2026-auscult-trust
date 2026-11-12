@@ -1,7 +1,7 @@
 """Cross entropy with patient-aware feature alignment (PAFA). Config key: ce_pafa."""
 from torch.nn import functional as F
-from ..encoders.beats import TokenClassifier
-from ..upstream import load_reference
+from src.models.heads import PafaHead
+from src.models.upstream import load_reference
 from .base import StepResult, TrainingMethod
 
 
@@ -24,12 +24,7 @@ def alignment_loss():
     return load_reference("PAFA", "method/pafa.py").PAFALoss()
 
 
-class Method(TrainingMethod):
-    def classifier(self, model, args):
-        head = super().classifier(model, args)
-        pool = getattr(args, "class_pool", "mean")
-        return head if pool == "mean" else TokenClassifier(head, pool, getattr(args, "class_topk_fraction", 0.2))
-
+class Method(PafaHead, TrainingMethod):
     def projector(self, model, args):
         return projection_head(model.final_feat_dim)
 

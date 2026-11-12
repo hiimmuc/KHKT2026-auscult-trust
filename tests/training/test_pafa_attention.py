@@ -6,10 +6,10 @@ import torch
 from torch import nn
 
 from src.training.config import parse_args
-from src.training.encoders.beats import BeatsEncoder
+from src.models.encoders.beats import BeatsEncoder
 from src.training.methods import get_method
 from src.training.methods.base import Batch, StepContext
-from src.training.upstream import load_reference
+from src.models.upstream import load_reference
 
 
 class TokenEncoder(nn.Module):

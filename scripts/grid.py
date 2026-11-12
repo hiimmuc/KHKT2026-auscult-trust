@@ -56,7 +56,7 @@ def smoke_cell(c, steps):
     """Build the cell's model and run `steps` training steps and one evaluation batch on random images of the right shape."""
     import numpy as np
     import torch
-    from src.training.encoders import get_encoder, image_shape
+    from src.models.encoders import get_encoder, image_shape
     from src.training.engine import evaluate, train_epoch
     from src.training.modeling import build_model
 

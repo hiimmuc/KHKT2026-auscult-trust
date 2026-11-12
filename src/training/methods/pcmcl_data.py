@@ -1,4 +1,4 @@
-"""PC-MCL (patient-consistent multi-cycle learning) as in `../repos/PC-MCL` (`util/dataset_pcmcl.py`, `main.py`).
+"""PC-MCL (patient-consistent multi-cycle learning) after the PC-MCL reference implementation (`util/dataset_pcmcl.py`, `main.py`).
 
 Training items, per epoch: every training cycle once (3-label target normal, crackle, wheeze), plus `pcmcl_mix` x n
 multi-cycle samples (2 or 3 short cycles concatenated, label = element-wise OR of the parts, the combinations of the
@@ -29,13 +29,6 @@ COMBINATIONS = [((0, 1), (1, 1, 0)), ((0, 2), (1, 0, 1)), ((1, 2), (0, 1, 1)),
 def multilabel(label):
     """4-class id -> [normal, crackle, wheeze]."""
     return [int(label == 0), int(label in (1, 3)), int(label in (2, 3))]
-
-
-def four_class_probs(logits):
-    """(n, 3) logits -> (n, 4) probabilities of normal, crackle, wheeze, both (crackle and wheeze independent)."""
-    s = torch.sigmoid(logits.float())
-    c, w = s[:, 1], s[:, 2]
-    return torch.stack([(1 - c) * (1 - w), c * (1 - w), (1 - c) * w, c * w], 1)
 
 
 def sc_part(wave, coef):

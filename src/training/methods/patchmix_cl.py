@@ -1,5 +1,5 @@
 """Patch-Mix contrastive objective, including Lung-SRAD's dual-axis variant."""
-from ..upstream import load_reference
+from src.models.upstream import load_reference
 from .base import TrainingMethod
 from .ce import classify
 

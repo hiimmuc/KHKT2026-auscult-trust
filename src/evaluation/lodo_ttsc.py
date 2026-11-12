@@ -43,7 +43,7 @@ from src.processing.icbhi import DEVICES
 from src.training.config import load_args
 from src.training.state import report_epoch
 from src.training.dataset import ICBHIDataset
-from src.training.encoders import get_encoder
+from src.models.encoders import get_encoder
 from src.inference.model import load_frozen
 from src.training.reporting import per_device_report
 from src.training.methods import get_method

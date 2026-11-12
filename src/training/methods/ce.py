@@ -1,6 +1,6 @@
 """Cross-entropy classification and optional spectral consistency regularization."""
 from ..augment import js_divergence, random_bin_gain_batch
-from ..encoders import get_encoder
+from src.models.encoders import get_encoder
 from .base import StepResult, TrainingMethod
 
 

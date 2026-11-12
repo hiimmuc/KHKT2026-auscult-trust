@@ -62,6 +62,7 @@ Two envs: analysis/tests `.venv` and training `.venv-train` (Python 3.10, `timm=
 Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 
 - `src/paths.py` (REPO, DATA = `AT_DATA` or `../data`, THIRD_PARTY = `third_party/`, OUTPUTS, CHECKPOINTS), `src/runs.py` (run directories `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`, `meta.json`, `twin_dir`). `src/artifacts.py` owns atomic writes and `sha256_file`; `src/provenance.py` owns environment and prediction certificates.
+- `src/models/` owns the networks: `encoders/`, `adapters.py`, prediction `heads.py` (training methods inherit the head of their name), `factory.py` and `upstream.py` (loader of `third_party/`). Training and inference both build models there; `src/inference/` never imports `src/training/` for networks.
 - `src/processing/cycles.py` owns cycle preparation; `src/inference/` owns frozen prediction and test-time adaptation. API and experiment workflows use these shared modules; evaluation primitives belong in `src/evaluation/calibration.py`, `recordings.py`, and `metrics.py`.
 - Docstrings: Google style. Code, comments, scripts and configs are self-contained: no references to documents, versions, sections or stage numbers; plain names.
 
@@ -90,7 +91,7 @@ Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 
 ## Working conventions
 
-- `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`src/training/upstream.py`).
+- `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`src/models/upstream.py`).
 - Docs: results in `report.md`, detail in `docs/reports/`, handoff in `docs/handoff/` (written when a session runs out of context), registered documents in `docs/registered/`, plans in `docs/plans/`, decisions in `docs/decision-logs/`.
 - Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
 - Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../docs`.

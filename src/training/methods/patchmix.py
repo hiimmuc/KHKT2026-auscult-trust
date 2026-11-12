@@ -1,5 +1,5 @@
 """Patch-Mix augmentation with mixed-label cross entropy."""
-from ..upstream import load_reference
+from src.models.upstream import load_reference
 from .base import StepResult, TrainingMethod
 
 

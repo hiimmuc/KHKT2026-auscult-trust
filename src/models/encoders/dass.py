@@ -15,7 +15,7 @@ from functools import lru_cache
 
 import torch.nn as nn
 from src.paths import DATA, THIRD_PARTY
-from src.training.upstream import working_directory
+from src.models.upstream import working_directory
 
 from src.processing.cycles import DB_PER_NAT, FBANK_STD, IMG_MEL, IMG_TIME, generate_fbank
 

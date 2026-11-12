@@ -39,13 +39,15 @@ class BeatsEncoder(nn.Module):
     class_pool = "mean"
     multiscale = False
 
-    def __init__(self, n_cls, mix_beta, class_pool="mean", lora_rank=0, multiscale=False):
+    def __init__(self, n_cls, mix_beta, class_pool="mean", lora_rank=0, multiscale=False, config=None):
+        """`config`: BEATs configuration of a released model; its weights then come from the model checkpoint, not `WEIGHTS`."""
         super().__init__()
         mod = _beats_module()
-        ck = torch.load(WEIGHTS, map_location="cpu", weights_only=False)
-        cfg = mod.BEATsConfig({**ck["cfg"], "finetuned_model": False, "spec_transform": None})
-        self.beats = mod.BEATs(cfg)
-        self.beats.load_state_dict(ck["model"])
+        ck = None if config else torch.load(WEIGHTS, map_location="cpu", weights_only=False)
+        self.config = config or ck["cfg"]
+        self.beats = mod.BEATs(mod.BEATsConfig({**self.config, "finetuned_model": False, "spec_transform": None}))
+        if ck:
+            self.beats.load_state_dict(ck["model"])
         self.mlp_head = nn.Linear(FEATURE_DIM, n_cls)
         self.mix_beta = mix_beta
         self.class_pool = class_pool
@@ -78,7 +80,7 @@ class BeatsEncoder(nn.Module):
 
 def build_beats(args):
     return BeatsEncoder(args.n_cls, args.mix_beta, getattr(args, "class_pool", "mean"),
-                        getattr(args, 'lora_rank', 0), getattr(args, 'multiscale', False))
+                        getattr(args, 'lora_rank', 0), getattr(args, 'multiscale', False), getattr(args, 'beats_config', None))
 
 
 class TokenClassifier(nn.Module):

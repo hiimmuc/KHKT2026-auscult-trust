@@ -68,7 +68,7 @@ def test_pipeline_rejects_modified_weights_before_model_load(tmp_path, monkeypat
     checkpoint.write_bytes(b"changed")
     monkeypatch.setattr(engine, "load_frozen", lambda *a: pytest.fail("loaded unverified model"))
     with pytest.raises(ValueError, match="integrity"):
-        engine.Pipeline("test", {"checkpoint": str(checkpoint), "checkpoint_sha256": expected}, tmp_path)
+        engine.Pipeline("test", {"checkpoint": checkpoint.name, "checkpoint_sha256": expected, "runtime": {"file": "runtime.json"}}, tmp_path)
 
 
 def test_legacy_bundle_is_rejected(tmp_path):
@@ -83,9 +83,8 @@ def test_pipeline_checks_arguments_and_correction_before_load(tmp_path, monkeypa
     checkpoint, arguments, correction = [tmp_path / name for name in ("model.pth", "train_args.json", "sc.npz")]
     for path in (checkpoint, arguments, correction):
         path.write_bytes(b"original")
-    entry = {"unit": str(tmp_path), "checkpoint": str(checkpoint),
-             "checkpoint_sha256": artifacts.sha256_file(checkpoint),
-             "args_sha256": artifacts.sha256_file(arguments), "spectrum_correction": True,
+    entry = {"checkpoint": checkpoint.name, "checkpoint_sha256": artifacts.sha256_file(checkpoint),
+             "runtime": {"file": arguments.name, "sha256": artifacts.sha256_file(arguments)}, "spectrum_correction": True,
              "sc": {"state": correction.name, "sha256": artifacts.sha256_file(correction)}}
     (arguments if target == "arguments" else correction).write_bytes(b"changed")
     monkeypatch.setattr(engine, "load_frozen", lambda *a: pytest.fail("loaded unverified inputs"))

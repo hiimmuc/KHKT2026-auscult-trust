@@ -24,17 +24,21 @@ import argparse
 import hashlib
 import os
 import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 
 from src import runs, artifacts
 from src.artifacts import atomic_json, atomic_npz
 from src.provenance import prediction_inputs, verify_prediction
-from src.paths import REPO, THIRD_PARTY, DATA
+from src.paths import REPO, THIRD_PARTY
 from src.evaluation.conformal import lac_scores, split_threshold
 from src.training.config import load_args
+from src.inference.model import load_frozen
+from src.models.runtime import runtime_config
 from src.training.state import report_epoch
 from src.evaluation.calibration import ALPHA
 from src.evaluation.recordings import icbhi_recordings
@@ -93,12 +97,21 @@ def pipeline_entry(name, unit, screen_npz, label, split, out):
     rcal = np.isin(rec["patient"], split["calibration"])
     thr_screen = float(split_threshold(lac_scores(rec["p"][rcal], rec["y"][rcal]), ALPHA))
 
+    model, classifier = load_frozen(args, ckpt, device="cpu")
+    if not hasattr(model, "config"):
+        raise ValueError("A self-contained release needs a BEATs encoder; other encoders still load pretrained weights from the data folder")
+    weights, runtime = out / "weights_{}.pth".format(name), out / "runtime_{}.json".format(name)
+    with artifacts.atomic_path(weights) as tmp:
+        torch.save({"model": model.state_dict(), "classifier": classifier.state_dict()}, tmp)
+    atomic_json(runtime, runtime_config(args, beats_config=model.config))
+
     entry = {
         "label": label,
         "unit": str(unit),
-        "checkpoint": str(ckpt.resolve()),
-        "checkpoint_sha256": sha,
-        "args_sha256": artifacts.sha256_file(unit / "train_args.json"),
+        "checkpoint": weights.name,
+        "checkpoint_sha256": artifacts.sha256_file(weights),
+        "source_checkpoint_sha256": sha,
+        "runtime": {"file": runtime.name, "sha256": artifacts.sha256_file(runtime)},
         "epoch": epoch,
         "encoder": args.encoder,
         "method": args.method,
@@ -171,14 +184,12 @@ def main():
         })
 
     manifest = {
-        "schema": 2,
+        "schema": 3,
+        "code_commit": subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
         "runtime_files": {
-            "repo": {str(p.relative_to(REPO)): artifacts.sha256_file(p) for p in
-                     [*(REPO / "src").rglob("*.py"), REPO / "api/engine.py", REPO / "api/main.py"]},
-            "references": {str(p.relative_to(THIRD_PARTY)): artifacts.sha256_file(p)
-                           for name in ("PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL")
-                           for p in (THIRD_PARTY / name).rglob("*.py")},
-            "data": {"models/beats/BEATs_iter3_plus_AS2M.pt": artifacts.sha256_file(DATA / "models/beats/BEATs_iter3_plus_AS2M.pt")},
+            "third_party": {str(p.relative_to(THIRD_PARTY)): artifacts.sha256_file(p)
+                            for name in ("PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL")
+                            for p in (THIRD_PARTY / name).rglob("*.py")},
         },
         "classes": CLASSES,
         "classes2": ["normal", "abnormal"],

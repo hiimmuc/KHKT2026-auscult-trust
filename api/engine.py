@@ -14,7 +14,6 @@ official-test cycles, train cycles for LittC2SE); otherwise it is the mean spect
 import io
 import threading
 import time
-from pathlib import Path
 
 import numpy as np
 import soundfile as sf
@@ -22,11 +21,11 @@ import torch
 
 from src.evaluation.conformal import predict_sets
 from src.inference.model import images_of, load_frozen, predict_images
-from src.training.config import load_args
+from src.models.runtime import load_runtime
 from src.processing.correction import apply_spectrum_correction, mean_spectrum, spectrum_coefficients
 from src.processing.cycles import cut_pad, prepare_recording
 from src.artifacts import verify_file
-from src.paths import REPO, THIRD_PARTY, DATA
+from src.paths import THIRD_PARTY
 
 SR, SEG_SEC = 16000, 8
 MIN_SEC, MAX_SEC = 2.0, 90.0
@@ -129,12 +128,12 @@ def align(ref16, take16):
 class Pipeline:
     def __init__(self, name, entry, bundle_dir):
         self.name, self.entry = name, entry
-        verify_file(entry["checkpoint"], entry.get("checkpoint_sha256"))
-        verify_file(Path(entry["unit"]) / "train_args.json", entry.get("args_sha256"))
+        verify_file(bundle_dir / entry["checkpoint"], entry.get("checkpoint_sha256"))
+        verify_file(bundle_dir / entry["runtime"]["file"], entry["runtime"].get("sha256"))
         if entry["spectrum_correction"]:
             verify_file(bundle_dir / entry["sc"]["state"], entry["sc"].get("sha256"))
-        self.args = load_args(entry["unit"])
-        self.model, self.classifier = load_frozen(self.args, entry["checkpoint"])
+        self.args = load_runtime(bundle_dir / entry["runtime"]["file"])
+        self.model, self.classifier = load_frozen(self.args, bundle_dir / entry["checkpoint"])
         self.thr = entry["thresholds"]
         self.sc = None
         if entry["spectrum_correction"]:
@@ -212,11 +211,10 @@ class Engine:
     """All pipelines of one bundle. Inference is serialised by one lock (one GPU, shared with training jobs)."""
 
     def __init__(self, manifest, bundle_dir):
-        if manifest.get("schema") != 2 or not manifest.get("runtime_files"):
+        if manifest.get("schema") != 3 or not manifest.get("runtime_files"):
             raise ValueError("Legacy serving bundle; rebuild with api.bundle before serving")
-        for scope, root in (("repo", REPO), ("references", THIRD_PARTY), ("data", DATA)):
-            for path, expected in manifest["runtime_files"][scope].items():
-                verify_file(root / path, expected)
+        for path, expected in manifest["runtime_files"]["third_party"].items():
+            verify_file(THIRD_PARTY / path, expected)
         self.m = manifest
         self.pipelines = {n: Pipeline(n, e, bundle_dir) for n, e in manifest["pipelines"].items()}
         self.lock = threading.Lock()

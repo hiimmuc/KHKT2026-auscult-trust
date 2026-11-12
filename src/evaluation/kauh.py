@@ -3,7 +3,7 @@ coverage when calibrating on one filter and testing on another).
 
     python -m src.evaluation.kauh --dir outputs/kauh/<run> --base p0 --arms p0_sc auscult
 
-`<dir>/<condition>/seed<s>.npz` come from `src.evaluation.kauh_infer` (window softmax). Conditions: the baseline weights without
+`<dir>/<condition>/seed<s>.npz` come from `src.pipelines.kauh_infer` (window softmax). Conditions: the baseline weights without
 test-time SC (`p0`), with it (`p0_sc`, the isolation contrast) and the AuscultTrust weights with SC (`auscult`).
 
 A: the same 8 s window rendered with the Bell, Diaphragm and Extended filter must give the same prediction; flip rate (window

@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import nn
 
-from src.evaluation.recording_head import recording_predictions
+from src.pipelines.recording_head import recording_predictions
 from src.models.heads import RecordingClassifier
 
 

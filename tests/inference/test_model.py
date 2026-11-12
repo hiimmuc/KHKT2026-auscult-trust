@@ -65,6 +65,6 @@ tensor_cuda, module_cuda = torch.Tensor.cuda, torch.nn.Module.cuda
 import api.engine
 assert torch.Tensor.cuda is tensor_cuda
 assert torch.nn.Module.cuda is module_cuda
-assert not {'src.evaluation.kauh_infer', 'src.evaluation.lodo_ttsc',
+assert not {'src.pipelines.kauh_infer', 'src.pipelines.lodo_ttsc',
             'src.evaluation.screening'} & sys.modules.keys()
 """], check=True)

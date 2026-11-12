@@ -124,7 +124,7 @@ def main():
                     verify_prediction(export / "test.npz", inputs_now())
                 if (export / "model.sha256").read_text().split()[0] != checkpoint_sha:
                     raise ValueError(f"Cycle export checkpoint mismatch: {unit}")
-            for dataset, module in (("screening", "screening"), ("kauh", "kauh_infer")):
+            for dataset, module in (("screening", "screening_infer"), ("kauh", "kauh_infer")):
                 out = Path("outputs") / dataset / RUN / name / f"seed{seed}.npz"
                 out.parent.mkdir(parents=True, exist_ok=True)
                 source = Path("outputs") / dataset / OLD_RUN / (old or "-") / f"seed{seed}.npz"
@@ -133,13 +133,13 @@ def main():
                     for extra in source.parent.glob(f"seed{seed}.npz.*"):
                         shutil.copy2(extra, out.parent / extra.name)
                 if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
-                    run(["-m", "src.evaluation." + module, *(["infer"] if dataset == "screening" else []),
+                    run(["-m", "src.pipelines." + module,
                          unit, "--ckpt", checkpoint.name, "--out", out, *(["--sc"] if sc else [])])
                     if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
                         raise ValueError(f"Fresh export failed verification: {out}")
     run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
          "--arms", "previous", "anchor", "student", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "analyse", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
+    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
          "--pairs", "baseline:baseline", "previous:previous", "anchor:anchor", "student:student"])
     event(status="campaign_complete", run=RUN)
 

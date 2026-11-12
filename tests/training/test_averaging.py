@@ -2,6 +2,7 @@
 import pytest
 import torch
 
+from src.training import dataset as dataset_module
 from src.training.averaging import EpochAverager
 
 
@@ -82,7 +83,7 @@ def test_training_resume_exports_average_but_restarts_from_live_weights(tmp_path
     monkeypatch.setattr(main.runs, 'unit_dir', lambda exp, cell, unit, kind: out if kind == 'outputs' else checkpoints)
     monkeypatch.setattr(main.runs, 'write_meta', lambda *a: None)
     monkeypatch.setattr(main, 'prediction_inputs', lambda *a: {})
-    monkeypatch.setattr(main, 'build_loaders', lambda a: (loader, None, loader, dataset, dataset, None, None))
+    monkeypatch.setattr(main, 'build_loaders', lambda a: dataset_module.Loaders(loader, None, loader, dataset, dataset))
     def build(a):
         networks = modules(0)
         optimizer = torch.optim.SGD([p for m in networks for p in m.parameters()], lr=0.1, momentum=0.9)

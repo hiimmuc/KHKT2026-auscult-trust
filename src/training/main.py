@@ -138,9 +138,10 @@ def main():
     cudnn.deterministic = True
     cudnn.benchmark = False
 
-    train_loader, val_loader, test_loader, train_dataset, test_dataset, cal_loader, cal_cycles = (
-        build_loaders(args)
-    )
+    loaders = build_loaders(args)
+    train_loader, val_loader, test_loader = loaders.train, loaders.val, loaders.test
+    train_dataset, test_dataset = loaders.train_dataset, loaders.test_dataset
+    cal_loader, cal_cycles = loaders.calibration, loaders.calibration_cycles
     if args.method in ('ce_recording_pafa', 'ce_device_pafa'):
         from torch.utils.data import DataLoader
         source_sampler = train_loader.sampler

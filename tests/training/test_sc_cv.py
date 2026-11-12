@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 
+from src.processing import cycle_correction
 from src.training import dataset
 
 
@@ -22,11 +23,11 @@ def make_dataset(selection='cv', profile='target'):
 @pytest.mark.parametrize('profile', ['target', 'source'])
 def test_cv_sc_excludes_validation_from_training_reference_and_coefficients(monkeypatch, profile):
     monkeypatch.setattr(dataset, 'cv_split', lambda *a: (np.array([0, 2]), np.array([1, 3])))
-    monkeypatch.setattr(dataset, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
-    monkeypatch.setattr(dataset, 'apply_spectrum_correction', lambda wave, coef: wave * coef[10])
+    monkeypatch.setattr(cycle_correction, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
+    monkeypatch.setattr(cycle_correction, 'apply_spectrum_correction', lambda wave, coef: wave * coef[10])
     ds = make_dataset(profile=profile)
     def correct(scale):
-        return ds._spectrum_correct([torch.full((1, 4), x) for x in (2., 20.*scale, 4., 40.*scale)], None)
+        return ds._correct([torch.full((1, 4), x) for x in (2., 20.*scale, 4., 40.*scale)], None)
     first, changed = correct(1), correct(10)
     np.testing.assert_allclose(first['reference'], 3.)
     np.testing.assert_array_equal(first['reference'], changed['reference'])
@@ -39,9 +40,9 @@ def test_cv_sc_excludes_validation_from_training_reference_and_coefficients(monk
 
 
 def test_fixed_sc_retains_full_training_pool(monkeypatch):
-    monkeypatch.setattr(dataset, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
-    monkeypatch.setattr(dataset, 'apply_spectrum_correction', lambda wave, coef: wave)
-    state = make_dataset(selection='fixed')._spectrum_correct(
+    monkeypatch.setattr(cycle_correction, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
+    monkeypatch.setattr(cycle_correction, 'apply_spectrum_correction', lambda wave, coef: wave)
+    state = make_dataset(selection='fixed')._correct(
         [torch.full((1, 4), x) for x in (2., 20., 4., 40.)], None)
     np.testing.assert_allclose(state['reference'], 16.5)
 
@@ -61,15 +62,15 @@ def test_cv_sc_persists_validation_state_and_patient_boundary(tmp_path):
 
 
 def test_lodo_reference_and_training_coefficients_exclude_calibration(monkeypatch):
-    monkeypatch.setattr(dataset, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
-    monkeypatch.setattr(dataset, 'apply_spectrum_correction', lambda wave, coef: wave * coef[10])
+    monkeypatch.setattr(cycle_correction, 'mean_spectrum', lambda waves: np.full(513, np.mean(waves)))
+    monkeypatch.setattr(cycle_correction, 'apply_spectrum_correction', lambda wave, coef: wave * coef[10])
     ds = make_dataset(selection='fixed')
     ds.devices = [0, 0, 1, 1, 2, 0]
     ds.patients = np.array(['1', '2', '3', '4', '5', '6'])
     ds.args.holdout_device = dataset.DEVICES[2]
     ds.lodo = (np.array([0, 2]), np.array([1, 3]), np.array([4]))
     def correct(scale):
-        return ds._spectrum_correct([torch.full((1, 4), x) for x in
+        return ds._correct([torch.full((1, 4), x) for x in
             (2., 200.*scale, 4., 400.*scale, 10., 10000.)], None)
     first, changed = correct(1), correct(10)
     np.testing.assert_allclose(first['reference'], 3.)

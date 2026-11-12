@@ -1,6 +1,6 @@
 """Frozen-model inference on KAUH 8 s windows, with optional test-time spectrum correction (SC).
 
-    python -m src.evaluation.kauh_infer outputs/train/<run>/<cell>/seed<s> --ckpt report_epoch_<E>.pth \
+    python -m src.pipelines.kauh_infer outputs/train/<run>/<cell>/seed<s> --ckpt report_epoch_<E>.pth \
         --out outputs/kauh/<run>/<name>/seed<s>.npz [--sc --sc_state outputs/train/<run>/<sc cell>/seed<s>/sc_state.npz]
 
 No KAUH data is used for training or selection. With `--sc`, the reference spectrum `s_ref` comes from the saved SC state of an
@@ -87,7 +87,7 @@ def main():
                                for k in range(a.tta_eq)])
         probs = view_probs.mean(0)
         if args.method == "ce_recording_pafa":
-            from src.evaluation.recording_head import recording_predictions
+            from src.pipelines.recording_head import recording_predictions
             views = [recording_predictions(images, win, model, classifier,
                          gain_curves(len(images), images.shape[-1], sd, TTA_SEED0 + k))
                      for k in range(a.tta_eq)]
@@ -97,7 +97,7 @@ def main():
     else:
         probs = predict_images(images, model, classifier, method=args.method)
         if args.method == "ce_recording_pafa":
-            from src.evaluation.recording_head import recording_predictions
+            from src.pipelines.recording_head import recording_predictions
             recording = recording_predictions(images, win, model, classifier)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)

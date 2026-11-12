@@ -172,7 +172,7 @@ def main():
     torch.set_num_threads(2)
     summary = audit(cli.data_folder, cli.max_recordings)
     traced = ["experiments/train/grid/pafa_beats.yaml", "src/processing/cycles.py", "src/processing/audio.py",
-              "src/evaluation/screening.py", "src/evaluation/kauh_infer.py"]
+              "src/pipelines/screening_infer.py", "src/pipelines/kauh_infer.py"]
     summary["source_sha256"] = {name: hashlib.sha256((REPO / name).read_bytes()).hexdigest() for name in traced}
     summary["training_recipe_yaml"] = (REPO / traced[0]).read_text()
     effects = summary["effects"]

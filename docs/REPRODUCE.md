@@ -44,7 +44,7 @@ $PY -m src.training.main --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/paf
 ## 4. SC at inference
 
 ```bash
-bash scripts/run_lodo_infer.sh        # test-time SC, A2, TTA-EQ on trained LODO units (src/evaluation/lodo_ttsc.py)
+bash scripts/run_lodo_infer.sh        # test-time SC, A2, TTA-EQ on trained LODO units (src/pipelines/lodo_ttsc.py)
 bash scripts/run_kauh.sh              # KAUH filter pairs with frozen models
 $PY -m src.training.export_probs outputs/train/<run>/<cell>/seed0 --ckpt report_epoch_<E>.pth   # freeze: softmax + model.sha256
 $PY scripts/final_evaluation.py       # frozen baseline vs SC evaluation: KAUH A/B2/B1, screening

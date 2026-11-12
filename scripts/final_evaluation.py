@@ -89,10 +89,10 @@ def main():
                               options={"sc_test_profile": None}))
             if (export / "model.sha256").read_text().split()[0] != checkpoint_sha:
                 raise ValueError(f"Cycle export checkpoint mismatch: {unit}")
-            for dataset, module in (("screening", "screening"), ("kauh", "kauh_infer")):
+            for dataset, module in (("screening", "screening_infer"), ("kauh", "kauh_infer")):
                 out = Path("outputs") / dataset / RUN / name / f"seed{seed}.npz"
                 if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
-                    run(["-m", "src.evaluation." + module, *(["infer"] if dataset == "screening" else []),
+                    run(["-m", "src.pipelines." + module,
                          unit, "--ckpt", checkpoint.name, "--out", out, *(["--sc"] if sc else [])])
                     export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset)
         # Isolation contrast: baseline weights with static SC from the corresponding SC run.
@@ -100,12 +100,12 @@ def main():
         checkpoint = Path(str(unit).replace("outputs/", "checkpoints/", 1)) / "report_epoch_100.pth"
         out = Path("outputs/kauh") / RUN / "baseline_ttsc" / f"seed{seed}.npz"
         if not export_ok(out, sha(checkpoint), True, unit=unit, checkpoint=checkpoint, dataset="kauh", sc_unit=sc_unit):
-            run(["-m", "src.evaluation.kauh_infer", unit, "--ckpt", checkpoint.name, "--out", out,
+            run(["-m", "src.pipelines.kauh_infer", unit, "--ckpt", checkpoint.name, "--out", out,
                  "--sc", "--sc_state", sc_unit / "sc_state.npz", "--sc_args", sc_unit / "train_args.json"])
             export_ok(out, sha(checkpoint), True, unit=unit, checkpoint=checkpoint, dataset="kauh", sc_unit=sc_unit)
     run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
          "--arms", "auscult", "baseline_ttsc", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "analyse", "--dir", f"outputs/screening/{RUN}",
+    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}",
          "--kauh_dir", f"outputs/kauh/{RUN}", "--pairs", "baseline:baseline", "baseline:baseline_ttsc", "auscult:auscult"])
     run(["-m", "api.bundle", "--out", f"app/bundle-{RUN}"])
     event(status="campaign_complete", run=RUN)

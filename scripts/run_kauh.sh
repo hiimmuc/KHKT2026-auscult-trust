@@ -19,10 +19,10 @@ for s in 0 1 2 3 4; do
   B=outputs/train/$RUN_ID/baseline/seed$s; A=outputs/train/$RUN_ID/$SC_CELL/seed$s
   ck() { [ -f "${1/outputs/checkpoints}/$2" ]; }
   if ck $B report_epoch_$E_BASE.pth; then
-    [ -f outputs/kauh/$OUT/p0/seed$s.npz ] || $PY -m src.evaluation.kauh_infer $B --ckpt report_epoch_$E_BASE.pth --out outputs/kauh/$OUT/p0/seed$s.npz
-    [ -f outputs/kauh/$OUT/p0_sc/seed$s.npz ] || $PY -m src.evaluation.kauh_infer $B --ckpt report_epoch_$E_BASE.pth --sc --sc_state $SC_UNIT/sc_state.npz --sc_args $SC_UNIT/train_args.json --out outputs/kauh/$OUT/p0_sc/seed$s.npz
+    [ -f outputs/kauh/$OUT/p0/seed$s.npz ] || $PY -m src.pipelines.kauh_infer $B --ckpt report_epoch_$E_BASE.pth --out outputs/kauh/$OUT/p0/seed$s.npz
+    [ -f outputs/kauh/$OUT/p0_sc/seed$s.npz ] || $PY -m src.pipelines.kauh_infer $B --ckpt report_epoch_$E_BASE.pth --sc --sc_state $SC_UNIT/sc_state.npz --sc_args $SC_UNIT/train_args.json --out outputs/kauh/$OUT/p0_sc/seed$s.npz
   fi
   if ck $A report_epoch_$E_SC.pth; then
-    [ -f outputs/kauh/$OUT/auscult/seed$s.npz ] || $PY -m src.evaluation.kauh_infer $A --ckpt report_epoch_$E_SC.pth --sc --out outputs/kauh/$OUT/auscult/seed$s.npz
+    [ -f outputs/kauh/$OUT/auscult/seed$s.npz ] || $PY -m src.pipelines.kauh_infer $A --ckpt report_epoch_$E_SC.pth --sc --out outputs/kauh/$OUT/auscult/seed$s.npz
   fi
 done

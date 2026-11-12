@@ -3,31 +3,23 @@
 import copy
 import os
 import random
-from collections import defaultdict
+from typing import NamedTuple
 
 import numpy as np
 import torch
-from src.paths import DATA
-from src.processing.correction import (
-    apply_spectrum_correction,
-    mean_spectrum,
-    reference_spectrum,
-    spectrum_coefficients,
-)
+from src.processing.cycle_correction import correct_cycles
+from src.processing.recordings import select_recordings
 from src.processing.icbhi import DEVICES
 from src.processing.splits import cv_split, lodo_split, patient_val_split
 from torch.utils.data import DataLoader, Dataset, Sampler, Subset
 from torchvision import transforms
 
 from .augment import SpecAugment, random_bin_gain_image
+from .cache import CACHE, ImageCache
 from src.processing.cycles import individual_cycles, read_annotations
 from .methods.pcmcl_data import PCMCLTrain
 from .methods import get_method
 from src.models.encoders import get_encoder, image_shape
-
-CACHE = (
-    DATA / "cache" / "train_images"
-)  # one array per encoder and split, shared by all jobs and seeds
 
 
 def validation_metadata(source_subset):
@@ -57,35 +49,13 @@ class ICBHIDataset(Dataset):
 
     def __init__(self, train_flag, transform, args, sc_reference=None, print_flag=True, audio_only=False):
         self.train_flag, self.transform, self.args = train_flag, transform, args
-        lodo = bool(args.holdout_device)  # leave-one-device-out: one dataset over all cycles, split by index later
-        self.split = "all" if lodo else "train" if train_flag else "test"
-        if args.test_fold != "official":
-            self.split = "fold{}_{}".format(args.test_fold, self.split)
+        self.filenames, self.split, self.dropped = select_recordings(args, train_flag)
         wav_dir = os.path.join(args.data_folder, "audio_test_data")
-        official = dict(
-            line.strip().split("\t")
-            for line in open(os.path.join(args.data_folder, "official_split.txt"))
-            .read()
-            .splitlines()
-        )
-        stems = sorted(
-            {f.split(".")[0] for f in os.listdir(wav_dir) if f.endswith((".wav", ".txt"))}
-        )
-        if lodo:  # drop the patients that the official split puts on both sides
-            sides = defaultdict(set)
-            for f in stems:
-                sides[f.split("_")[0]].add(official.get(f))
-            self.dropped = {p for p, s in sides.items() if len(s) > 1 or None in s}
-            self.filenames = [f for f in stems if f.split("_")[0] not in self.dropped]
-        elif args.test_fold == "official":
-            self.filenames = [f for f in stems if official.get(f) == self.split]
-        else:
-            fold = dict(line.split() for line in open(os.path.join(args.data_folder, "patient_list_foldwise.txt")).read().splitlines())
-            self.filenames = [f for f in stems if (fold[f.split("_")[0]] == args.test_fold) != train_flag]
         annotations = read_annotations(wav_dir)
 
         self.encoder = get_encoder(args.encoder)
-        cached = None if args.spectrum_correction or audio_only else self._load_cache()
+        cache = ImageCache(self.encoder, args, self.split)
+        cached = None if args.spectrum_correction or audio_only else cache.load()
         if cached:
             self.images, self.labels, self.devices, self.patients = cached
             self.sc = None
@@ -104,15 +74,13 @@ class ICBHIDataset(Dataset):
                 self._lodo_indices()
                 return
             self._lodo_indices()
-            self.sc = (
-                self._spectrum_correct(audio, sc_reference) if args.spectrum_correction else None
-            )
+            self.sc = self._correct(audio, sc_reference) if args.spectrum_correction else None
             if self.sc:
                 audio = self.sc.pop("audio")
             if args.spectrum_correction:
                 self.images = [self.encoder.preprocess(a) for a in audio]
             else:
-                self.images = self._build_cache(audio)
+                self.images = cache.build(audio, self.labels, self.devices, self.patients)
         assert self.images[0].shape == (*image_shape(self.encoder, self.args), 1), self.images[0].shape
         self.quality = get_method(args.method).quality_scores(self, annotations, wav_dir, CACHE)
         self.soft_targets = None
@@ -147,124 +115,11 @@ class ICBHIDataset(Dataset):
                 self.args.seed,
             )
 
-    def _cache_paths(self):
-        a = self.args
-        stem = "{}_{}_{}cls_{}s_{}_{}hz_{}mel".format(
-            a.encoder, self.split, a.n_cls, a.desired_length, a.pad_types, a.sample_rate, a.n_mels
-        )
-        return CACHE / (stem + ".npy"), CACHE / (stem + ".meta.npz")
-
-    def _load_cache(self):
-        """Spectrograms of this encoder and split memory-mapped from disk (shared by every job), or None."""
-        images, meta = self._cache_paths()
-        if not (images.exists() and meta.exists()):
-            return None
-        m = np.load(meta)
-        return (
-            np.load(images, mmap_mode="r"),
-            m["labels"].tolist(),
-            m["devices"].tolist(),
-            m["patients"],
-        )
-
-    def _build_cache(self, audio):
-        """Write the spectrogram of every cycle straight into a .npy file (no second copy in RAM), return it memory-mapped."""
-        images, meta = self._cache_paths()
-        images.parent.mkdir(parents=True, exist_ok=True)
-        tmp, tmp_meta = (
-            p.with_name("{}.{}.tmp{}".format(p.stem, os.getpid(), p.suffix))
-            for p in (images, meta)
-        )
-        out = np.lib.format.open_memmap(
-            tmp, mode="w+", dtype=np.float32, shape=(len(audio), *image_shape(self.encoder, self.args), 1)
-        )
-        for i, a in enumerate(audio):
-            out[i] = self.encoder.preprocess(a)
-        out.flush()
-        del out
-        np.savez(tmp_meta, labels=self.labels, devices=self.devices, patients=self.patients)
-        tmp_meta.replace(meta)
-        tmp.replace(images)  # the image file last: its presence means both files are complete
-        return np.load(images, mmap_mode="r")
-
-
-    def _spectrum_correct(self, audio, sc_reference):
-        """SC of every cycle. Returns dict `device_spectra`, `reference` (s_ref), `coefficients`, corrected `audio`."""
-        used = None
-        validation = set()
-        reference_rows = None
-        partition = "validation"
-        if self.lodo is not None:
-            train_rows, cal_rows, test_rows = self.lodo
-            used = set(np.concatenate((train_rows, test_rows)).tolist())
-            validation = set(cal_rows.tolist())
-            reference_rows = train_rows
-            partition = "calibration"
-        elif self.train_flag and self.args.selection == "cv":
-            train_rows, val_rows = _validation_indices(self)
-            used, validation = set(train_rows.tolist()), set(val_rows.tolist())
-            reference_rows = train_rows
-        by_dev = defaultdict(list)
-        val_by_dev = defaultdict(list)
-        for i, (a, d) in enumerate(zip(audio, self.devices)):
-            if used is None or i in used:
-                by_dev[d].append(a.numpy()[0])
-            if i in validation:
-                val_by_dev[d].append(a.numpy()[0])
-        spectra = {d: mean_spectrum(w) for d, w in by_dev.items()}
-        if self.lodo is not None:  # reference = mean of the source devices; the held-out device is corrected towards it
-            held = DEVICES.index(self.args.holdout_device)
-            ref_spectra = {d: s for d, s in spectra.items() if d != held}
-        else:
-            ref_spectra = spectra if self.train_flag else sc_reference
-        a = self.args
-        coef = spectrum_coefficients(
-            spectra,
-            reference=a.sc_reference,
-            sc_mode=a.sc_mode,
-            limit_freq_low=a.sc_limit_freq_low,
-            limit_freq_high=a.sc_limit_freq_high,
-            limit_freq_diff=a.sc_limit_freq_diff,
-            reference_spectra=ref_spectra,
-        )
-        if not self.train_flag and self.lodo is None and getattr(a, "sc_test_profile", "target") == "source":
-            # inductive: each test device uses the coefficient estimated on the training clips of the same device
-            coef = spectrum_coefficients(
-                sc_reference,
-                reference=a.sc_reference,
-                sc_mode=a.sc_mode,
-                limit_freq_low=a.sc_limit_freq_low,
-                limit_freq_high=a.sc_limit_freq_high,
-                limit_freq_diff=a.sc_limit_freq_diff,
-                reference_spectra=sc_reference,
-            )
-        only = getattr(a, "sc_only_device", None)
-        val_spectra = {d: mean_spectrum(w) for d, w in val_by_dev.items()}
-        val_coef = coef
-        if validation and getattr(a, "sc_test_profile", "target") == "target":
-            val_coef = spectrum_coefficients(
-                val_spectra, reference=a.sc_reference, sc_mode=a.sc_mode,
-                limit_freq_low=a.sc_limit_freq_low, limit_freq_high=a.sc_limit_freq_high,
-                limit_freq_diff=a.sc_limit_freq_diff, reference_spectra=ref_spectra,
-            )
-        apply = {d for d in coef if only is None or d == DEVICES.index(only)}
-        val_apply = {d for d in val_coef if only is None or d == DEVICES.index(only)}
-        corrected = [
-            torch.from_numpy(apply_spectrum_correction(
-                w.numpy()[0], (val_coef if i in validation else coef)[d]).astype(np.float32))[None]
-            if d in (val_apply if i in validation else apply)
-            else w  # devices outside --sc_only_device stay raw (not even an STFT round trip)
-            for i, (w, d) in enumerate(zip(audio, self.devices))
-        ]
-        return {
-            "device_spectra": spectra,
-            "reference": reference_spectrum(ref_spectra, a.sc_reference),
-            "coefficients": coef,
-            "audio": corrected,
-            **({partition + "_spectra": val_spectra, partition + "_coefficients": val_coef,
-                "reference_patients": np.unique(self.patients[reference_rows]),
-                partition + "_patients": np.unique(self.patients[list(validation)])} if validation else {}),
-        }
+    def _correct(self, audio, sc_reference):
+        """Spectrum-correct every cycle; the held-out cycles of a LODO or CV run are corrected from their own spectra."""
+        cv_rows = _validation_indices(self) if self.lodo is None and self.train_flag and self.args.selection == "cv" else None
+        return correct_cycles(audio, self.devices, self.patients, self.args, train_flag=self.train_flag,
+                              sc_reference=sc_reference, lodo=self.lodo, cv_rows=cv_rows)
 
     def __getitem__(self, index):
         image = np.array(self.images[index])  # a copy: the cached array is read-only
@@ -362,12 +217,25 @@ class _Cycles:
         self.sc = ds.sc
 
 
+class Loaders(NamedTuple):
+    """Training loaders; `val` is None for a fixed refit, `test_dataset` is None under cross-validation, and the
+    calibration fields are set for leave-one-device-out runs only."""
+
+    train: DataLoader
+    val: DataLoader | None
+    test: DataLoader | None
+    train_dataset: Dataset
+    test_dataset: object
+    calibration: DataLoader | None = None
+    calibration_cycles: object = None
+
+
 def _lodo_loaders(args):
     """Leave-one-device-out loaders: training patients, calibration patients (evaluated at the report epochs) and the
     held-out device as test set.
 
     Returns:
-        Tuple (train_loader, None, test_loader, dataset, test cycles, calibration loader, calibration cycles).
+        `Loaders` with the held-out device as test set and its cycles as `test_dataset`.
     """
     train_tf = transforms.Compose([transforms.ToTensor()] + ([SpecAugment()] if args.spec_augment and args.method != "sg_scl" else []))
     eval_tf = transforms.ToTensor()
@@ -394,7 +262,7 @@ def _lodo_loaders(args):
     train = make(Subset(ds, tr_idx), **_training_sampling(ds, tr_idx, args))
     if get_method(args.method).multilabel:  # on-the-fly multi-cycle images use the main process
         train = DataLoader(PCMCLTrain(ds, tr_idx, args), batch_size=args.batch_size, shuffle=True, drop_last=True)
-    return (
+    return Loaders(
         train,
         None,
         make(Subset(eval_ds, te_idx), shuffle=False),
@@ -406,12 +274,7 @@ def _lodo_loaders(args):
 
 
 def build_loaders(args):
-    """Train, validation (None for a fixed refit) and test loaders, plus calibration loader and cycles (leave-one-device-out only).
-
-    Returns:
-        Tuple (train_loader, val_loader, test_loader, train_dataset, test_dataset, calibration_loader, calibration_cycles);
-        the last two are None unless `args.holdout_device` is set.
-    """
+    """Train, validation (None for a fixed refit), test and, for leave-one-device-out, calibration loaders as `Loaders`."""
     if args.holdout_device:
         return _lodo_loaders(args)
     train_tf = transforms.Compose([transforms.ToTensor()] + ([SpecAugment()] if args.spec_augment and not get_method(args.method).two_views else []))
@@ -451,12 +314,10 @@ def build_loaders(args):
     val_loader = (
         make(val_set, shuffle=False) if args.selection == "cv" else None
     )  # fixed refit: val patients are in the training set
-    return (
+    return Loaders(
         train_loader,
         val_loader,
         None if test_dataset is None else make(test_dataset, shuffle=False),
         train_dataset,
         test_dataset,
-        None,
-        None,
     )

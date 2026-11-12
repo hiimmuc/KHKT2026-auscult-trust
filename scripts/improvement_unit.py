@@ -43,7 +43,7 @@ def main():
         checked_step([sys.executable, '-m', 'src.training.export_probs', str(out), '--ckpt', checkpoint.name,
                       '--num_workers', '0'], [cycle, out / 'export/model.sha256'], checkpoint_sha, out / 'cycle-export.complete.json')
         outputs += [cycle, out / 'export/model.sha256']
-        for name, command in [('screening', ['src.evaluation.screening', 'infer']), ('kauh', ['src.evaluation.kauh_infer'])]:
+        for name, command in [('screening', ['src.pipelines.screening_infer']), ('kauh', ['src.pipelines.kauh_infer'])]:
             prediction = out / (name + '.npz')
             checked_step([sys.executable, '-m', *command, str(out), '--ckpt', checkpoint.name,
                           '--out', str(prediction), '--sc'], [prediction], checkpoint_sha, out / (name + '.complete.json'))

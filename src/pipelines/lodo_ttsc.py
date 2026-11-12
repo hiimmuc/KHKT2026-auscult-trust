@@ -1,8 +1,8 @@
 """Inference-only arms on a trained leave-one-device-out (LODO) unit: test-time SC, A2, TTA-EQ, and the target-sample sweep.
 
-    python -m src.evaluation.lodo_ttsc outputs/train/lodo-ast/baseline+lodo_*/seed* --arm baseline_ttsc:target:static \
+    python -m src.pipelines.lodo_ttsc outputs/train/lodo-ast/baseline+lodo_*/seed* --arm baseline_ttsc:target:static \
         --arm baseline_a2:none:a2 --arm baseline_tta8:none:tta8
-    python -m src.evaluation.lodo_ttsc outputs/train/lodo-ast/sc+sc_static+lodo_*/seed* --arm sc_tta8:all:tta8 \
+    python -m src.pipelines.lodo_ttsc outputs/train/lodo-ast/sc+sc_static+lodo_*/seed* --arm sc_tta8:all:tta8 \
         --target_n 1,2,3,5,10,all --target_rep 50
 
 An arm is `cell:sc[:a2][:ttaK][:static|dynamic]`.

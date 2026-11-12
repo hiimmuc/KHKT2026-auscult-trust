@@ -88,9 +88,9 @@ U=outputs/train/$RUN_ID/beats+ft+pafa/seed0
 # 6.1 Freeze: softmax and embeddings on the official test set, tied to the weight hash.
 .venv-train/bin/python -m src.training.export_probs $U --ckpt report_epoch_100.pth        # -> $U/export/test.npz, model.sha256
 # 6.2 Recording-level screening: 8 s windows, p(abnormal), 2-class split conformal, triage.
-.venv-train/bin/python -m src.evaluation.screening infer $U --ckpt report_epoch_100.pth \
+.venv-train/bin/python -m src.pipelines.screening_infer $U --ckpt report_epoch_100.pth \
     --out outputs/screening/my-run/baseline/seed0.npz                                      # add --sc for SC-trained units
-.venv-train/bin/python -m src.evaluation.screening analyse --pairs p0:p0
+.venv-train/bin/python -m src.evaluation.screening --pairs p0:p0
 # 6.3 KAUH: filter-pair conformal coverage with frozen models (needs a screen.json of the run).
 bash scripts/run_kauh.sh
 ```
@@ -98,7 +98,7 @@ bash scripts/run_kauh.sh
 **SC at inference only (no SC at training).** Test-time SC, A2 and TTA-EQ on trained LODO units, then the H2 tables:
 
 ```bash
-RUN=lodo-ast SC_CELL=sc+sc_static bash scripts/run_lodo_infer.sh        # src/evaluation/lodo_ttsc.py
+RUN=lodo-ast SC_CELL=sc+sc_static bash scripts/run_lodo_infer.sh        # src/pipelines/lodo_ttsc.py
 bash scripts/lodo_h2_all.sh && .venv/bin/python scripts/lodo_tables.py > lodo_tables.md
 ```
 

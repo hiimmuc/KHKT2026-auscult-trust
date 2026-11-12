@@ -65,7 +65,8 @@ def main():
                    sc=args.spectrum_correction, options={"sc_test_profile": a.sc_test_profile})
     inputs = prediction_inputs(**context)
 
-    _, val_loader, test_loader, train_ds, test_ds, _, _ = build_loaders(args)
+    loaders = build_loaders(args)
+    val_loader, test_loader, train_ds, test_ds = loaders.val, loaders.test, loaders.train_dataset, loaders.test_dataset
     ckpt = ckpt_unit / a.ckpt
     model, classifier = load_frozen(args, ckpt)
 

@@ -46,7 +46,7 @@ from src.processing.icbhi import CLASSES, DEVICES, cycle_table
 from src.processing.splits import calibration_eval_splits
 from src.processing.splits import both_sides_patients
 
-# (unit, screening export from `src.evaluation.screening infer`, label); BEATs + PAFA with and without static SC.
+# (unit, screening export from `src.pipelines.screening_infer`, label); BEATs + PAFA with and without static SC.
 # The AST units (screen-ast/sc+sc_static, screen-ast/baseline) fit too once their weights are on disk.
 PIPELINES = {
     "auscult": ("outputs/train/lodo-v1/beats+ft+pafa+sc+sc_static/seed0", "outputs/screening/final-pafa-static/auscult/seed0.npz",

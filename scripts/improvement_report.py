@@ -94,7 +94,7 @@ def main():
     (out / 'report.md').write_text('\n'.join(lines) + '\n')
     commands = [
         [sys.executable, '-m', 'src.evaluation.kauh', '--dir', str(root / 'outputs/kauh' / spec['name']), '--base', 'control', '--arms', 'gain', '--boot', '1000', '--null_splits', '200'],
-        [sys.executable, '-m', 'src.evaluation.screening', 'analyse', '--dir', str(root / 'outputs/screening' / spec['name']), '--kauh_dir', str(root / 'outputs/kauh' / spec['name']), '--pairs', 'control:control', 'gain:gain'],
+        [sys.executable, '-m', 'src.evaluation.screening', '--dir', str(root / 'outputs/screening' / spec['name']), '--kauh_dir', str(root / 'outputs/kauh' / spec['name']), '--pairs', 'control:control', 'gain:gain'],
     ]
     for command in commands:
         subprocess.run(command, cwd=root, check=True)

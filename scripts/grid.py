@@ -92,7 +92,8 @@ def smoke_data():
     for name, more in (("ast+ft+qlung", []), ("ast+ft+pafa", []), ("beats+ft+pafa", []), ("ast+ft+sg_scl", []),
                        ("ast+ft+ce", ["--test_fold", "0"])):
         args = parse(cs[name], "--selection", "fixed", "--report_epochs", "1", "--num_workers", "0", *more)
-        tr, _, te, train_ds, test_ds, _, _ = build_loaders(args)
+        loaders = build_loaders(args)
+        tr, te, train_ds, test_ds = loaders.train, loaders.test, loaders.train_dataset, loaders.test_dataset
         images, labels, devices, patients, quality = next(iter(tr))
         print(name, *more, "train/test cycles", len(train_ds), len(test_ds), "image", tuple(images.shape),
               "quality mean {:.3f}".format(float(train_ds.quality.mean())), flush=True)

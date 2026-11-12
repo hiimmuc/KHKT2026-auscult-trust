@@ -53,13 +53,13 @@ def main():
                 frozen.mkdir(parents=True, exist_ok=True)
                 immutable_json(frozen / "freeze.json", {"unit": str(unit), "epoch": epoch,
                     "seed": seed, "sc": sc, "inputs": {str(p): sha(p) for p in inputs}})
-                for dataset, module in (("screening", "screening"), ("kauh", "kauh_infer")):
+                for dataset, module in (("screening", "screening_infer"), ("kauh", "kauh_infer")):
                     out = (Path("outputs") / dataset / RUN / arm / f"seed{seed}.npz" if cell == E1[0]
                            else Path("outputs") / dataset / RUN / "members" / (cell + suffix) / f"seed{seed}.npz")
                     if not export_ok(out, ckpt_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
                         if cell == E1[0]:
                             raise RuntimeError("Run final_evaluation.py first: " + str(out))
-                        run(["-m", "src.evaluation." + module, *(["infer"] if dataset == "screening" else []),
+                        run(["-m", "src.pipelines." + module,
                              unit, "--ckpt", ckpt.name, "--out", out, *(["--sc"] if sc else [])])
                         export_ok(out, ckpt_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset)
                     paths[cell, dataset] = out
@@ -73,7 +73,7 @@ def main():
         sr = f"outputs/screening/{RUN}/extensions/{name}"
         run(["-m", "src.evaluation.kauh", "--dir", kr, "--base", "baseline", "--arms", "auscult",
              "--boot", "1000", "--null_splits", "200"])
-        run(["-m", "src.evaluation.screening", "analyse", "--dir", sr, "--kauh_dir", kr,
+        run(["-m", "src.evaluation.screening", "--dir", sr, "--kauh_dir", kr,
              "--pairs", "baseline:baseline", "auscult:auscult"])
     event(status="extensions_complete", groups=["E1", "E1+E3"], rule="raw equal-weight mean softmax")
 

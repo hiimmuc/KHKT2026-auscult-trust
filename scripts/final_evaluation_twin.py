@@ -47,7 +47,7 @@ def main():
                 with np.load(unit / "sc_state.npz") as z:
                     manifest["s_ref_sha256"] = hashlib.sha256(z["reference"].tobytes()).hexdigest()
             immutable_json(frozen / "freeze.json", manifest)
-            for dataset, module in (("screening", "screening"), ("kauh", "kauh_infer")):
+            for dataset, module in (("screening", "screening_infer"), ("kauh", "kauh_infer")):
                 out = Path("outputs") / dataset / RUN / name / f"seed{seed}.npz"
                 out.parent.mkdir(parents=True, exist_ok=True)
                 source = Path("outputs") / dataset / PREV_RUN / name / f"seed{seed}.npz"
@@ -56,7 +56,7 @@ def main():
                     for extra in source.parent.glob(f"seed{seed}.npz.*"):
                         shutil.copy2(extra, out.parent / extra.name)
                 if not export_ok(out, ck_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
-                    run(["-m", "src.evaluation." + module, *(["infer"] if dataset == "screening" else []),
+                    run(["-m", "src.pipelines." + module,
                          unit, "--ckpt", ckpt.name, "--out", out, *(["--sc"] if sc else [])])
                     if not export_ok(out, ck_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
                         raise ValueError(f"Fresh export failed verification: {out}")
@@ -70,13 +70,13 @@ def main():
         except (ValueError, FileNotFoundError, OSError):
             ok = False
         if not ok:
-            run(["-m", "src.evaluation.kauh_infer", twin, "--ckpt", t_ckpt.name, "--out", out, "--sc",
+            run(["-m", "src.pipelines.kauh_infer", twin, "--ckpt", t_ckpt.name, "--out", out, "--sc",
                  "--sc_state", student / "sc_state.npz", "--sc_args", student / "train_args.json"])
             verify_prediction(out, prediction_inputs(twin, t_ckpt, "kauh", True, sc_unit=student, options=options))
         event(status="verified", artifact=str(out), sha256=sha(out))
     run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "twin",
          "--arms", "student", "twin_ttsc", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "analyse", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
+    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
          "--pairs", "twin:twin", "student:student", "twin:twin_ttsc"])
     event(status="campaign_complete", run=RUN)
 

@@ -48,7 +48,7 @@ def cells():
 
 
 def parse(c, *more):
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     return parse_args(["--config", ",".join(c["config"]), "--cell", c["cell"], *c["extra"], *more])
 
 
@@ -56,9 +56,9 @@ def smoke_cell(c, steps):
     """Build the cell's model and run `steps` training steps and one evaluation batch on random images of the right shape."""
     import numpy as np
     import torch
-    from src.models.encoders import get_encoder, image_shape
-    from src.training.engine import evaluate, train_epoch
-    from src.training.modeling import build_model
+    from auscult_trust.models.encoders import get_encoder, image_shape
+    from auscult_trust.training.engine import evaluate, train_epoch
+    from auscult_trust.training.modeling import build_model
 
     args = parse(c, "--selection", "fixed", "--report_epochs", "1")
     args.class_nums = np.array([2063, 1215, 501, 363])
@@ -87,7 +87,7 @@ def smoke_cell(c, steps):
 
 def smoke_data():
     """Real data path of the cells whose data differs from the cached default: QLung quality, 5 s AST/BEATs, 80/20 fold."""
-    from src.training.dataset import build_loaders
+    from auscult_trust.training.dataset import build_loaders
     cs = {c["cell"]: c for c in cells()}
     for name, more in (("ast+ft+qlung", []), ("ast+ft+pafa", []), ("beats+ft+pafa", []), ("ast+ft+sg_scl", []),
                        ("ast+ft+ce", ["--test_fold", "0"])):
@@ -182,7 +182,7 @@ def write_jobs(a):
         epochs = smokes[0][c["cell"]]["epochs"]
         py = DASS_PY if c["encoder"] == "dass" else PY
         for s in range(a.seeds):
-            line = "RUN_ID={} MEM_GB={:.0f} {} -m src.training.main --config {} --cell {} {}--selection fixed --report_epochs {} --seed {}".format(
+            line = "RUN_ID={} MEM_GB={:.0f} {} -m auscult_trust.training.main --config {} --cell {} {}--selection fixed --report_epochs {} --seed {}".format(
                 RUN, max(4, smokes[0][c["cell"]]["peak_gb"] * 1.25 + 1.5), py, ",".join(c["config"]), c["cell"],
                 "".join(x + " " for x in c["extra"]), epochs, s)
             rank = 0 if c["cell"] in diagonal else 1 + ENCODER_ORDER.index(c["encoder"])
@@ -229,7 +229,7 @@ def lodo_jobs(a):
                 [f"experiments/train/lodo_{dev}.yaml"] if dev else [])
             name = cell + (("+sc+sc_static" if a.sc_mode == "static" else "+sc") if sc else "") + (f"+lodo_{dev}" if dev else "")
             for s in range(a.seeds):
-                line = "RUN_ID={} MEM_GB={:.0f} {} -m src.training.main --config {} --cell {} {}--selection fixed --report_epochs {} --seed {}".format(
+                line = "RUN_ID={} MEM_GB={:.0f} {} -m auscult_trust.training.main --config {} --cell {} {}--selection fixed --report_epochs {} --seed {}".format(
                     a.run, max(4, smokes[0][cell]["peak_gb"] * 1.25 + 1.5), py, ",".join(cfg), name, "".join(x + " " for x in c["extra"]), epochs, s)
                 units.append(([m[cell]["run_h"] * cost * (SC_COST if sc else 1.0) for m in smokes], line))
     speed = a.speed or [1.0] * len(smokes)
@@ -254,10 +254,10 @@ def unit_metrics(npz, epoch, quality=None, alpha=0.1, n_splits=20):
     """
     import numpy as np
     import pandas as pd
-    from src.evaluation.conformal import lac_scores, split_threshold
-    from src.processing.icbhi import DEVICES
-    from src.processing.splits import calibration_eval_splits
-    from src.training.reporting import per_device_report
+    from auscult_trust.evaluation.conformal import lac_scores, split_threshold
+    from auscult_trust.processing.icbhi import DEVICES
+    from auscult_trust.processing.splits import calibration_eval_splits
+    from auscult_trust.training.reporting import per_device_report
 
     d = np.load(npz)
     epochs, y, dev, pat = d["epochs"], d["labels"], d["device"], d["patient"]
@@ -295,7 +295,7 @@ def unit_metrics(npz, epoch, quality=None, alpha=0.1, n_splits=20):
 def table(epoch):
     """Markdown table over the grid cells (mean +- SD over seeds); missing cells are listed as pending."""
     import numpy as np
-    from src.paths import DATA
+    from auscult_trust.paths import DATA
 
     root = REPO / "outputs" / "train" / RUN
     qpath = DATA / "cache" / "train_images" / "quality_test_4cls_8s_repeat_16000hz_0.7_0.3.npy"
@@ -336,9 +336,9 @@ def audit(job_list=None, hash_files=False):
     Returns the number of problems.
     """
     import numpy as np
-    from src.artifacts import sha256_file
-    from src.training.main import _VOLATILE
-    from src.training.reporting import per_device_report
+    from auscult_trust.artifacts import sha256_file
+    from auscult_trust.training.main import _VOLATILE
+    from auscult_trust.training.reporting import per_device_report
 
     out_root, ck_root = REPO / "outputs" / "train" / RUN, REPO / "checkpoints" / "train" / RUN
     want = None

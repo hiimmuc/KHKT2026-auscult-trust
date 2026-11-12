@@ -14,7 +14,7 @@ from pathlib import Path
 
 from scripts import distill_campaign as dc
 from scripts import improvement_campaign as core
-from src.artifacts import atomic_json, sha256_file
+from auscult_trust.artifacts import atomic_json, sha256_file
 
 NAME = 'student-final-20261029'
 dc.NAME = NAME
@@ -56,7 +56,7 @@ def prepare(snapshot, hosts, data, deadline):
     if set(machines) != set(WEIGHTS) or not machines['B'].get('local'):
         raise ValueError('B must control A/B/C/D/E/F')
     core.GPU_BUDGETS.update(GPU)
-    files = [p for folder in ('src', 'scripts', 'experiments') for p in (root / folder).rglob('*')
+    files = [p for folder in ('auscult_trust', 'scripts', 'experiments') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
     files += [root / 'requirements-train.lock', root / 'pyproject.toml']
     spec = dict(name=NAME, snapshot=str(root), data=data, machines=machines, archive_machine='E',

@@ -2,7 +2,7 @@
 
 import torch
 
-from src.training.augment import js_divergence, random_bin_gain_batch
+from auscult_trust.training.augment import js_divergence, random_bin_gain_batch
 
 
 def test_gain_curve_is_constant_over_time_and_scaled():

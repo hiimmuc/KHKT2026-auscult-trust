@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 import torch
 
-from src.provenance import record_prediction
-from src.training.distillation import aligned_targets
-from src.training.methods.base import Batch, StepContext
-from src.training.methods.pafa import Method
+from auscult_trust.provenance import record_prediction
+from auscult_trust.training.distillation import aligned_targets
+from auscult_trust.training.methods.base import Batch, StepContext
+from auscult_trust.training.methods.pafa import Method
 
 
 def test_targets_are_exactly_the_training_subset_and_verified(tmp_path):
@@ -43,7 +43,7 @@ def test_pafa_distillation_matches_soft_cross_entropy_and_backpropagates():
 
 
 def test_refined_objective_mixes_hard_labels_and_temperature_kl():
-    from src.training.methods.pafa import distillation_loss
+    from auscult_trust.training.methods.pafa import distillation_loss
     logits = torch.tensor([[2., -.5, .3, 1.]], requires_grad=True)
     teacher = torch.tensor([[.6, .2, .15, .05]])
     labels = torch.tensor([3])
@@ -60,8 +60,8 @@ def test_refined_objective_mixes_hard_labels_and_temperature_kl():
 
 
 def test_teacher_rows_exclude_outer_validation_patients(monkeypatch):
-    from src.training import dataset
-    from src.training.distillation import training_rows
+    from auscult_trust.training import dataset
+    from auscult_trust.training.distillation import training_rows
     ds = SimpleNamespace(args=SimpleNamespace(selection='cv', cv_folds=3), lodo=None,
                          labels=[0, 0, 1, 2], patients=np.array(['a', 'a', 'b', 'c']))
     monkeypatch.setattr(dataset, '_validation_indices', lambda ds: (np.array([0, 1, 3]), np.array([2])))
@@ -75,7 +75,7 @@ def test_teacher_rows_exclude_outer_validation_patients(monkeypatch):
 
 def test_teacher_checkpoint_must_match_epoch_and_source_fold(tmp_path):
     import json
-    from src.training.distillation import validate_teacher
+    from auscult_trust.training.distillation import validate_teacher
     args = SimpleNamespace(seed=0, selection='cv', cv_folds=3, cv_fold=1,
                            holdout_device=None, spectrum_correction=False, sc_mode='dynamic', method='ce_pafa',
                            soft_targets=None)
@@ -91,7 +91,7 @@ def test_teacher_checkpoint_must_match_epoch_and_source_fold(tmp_path):
 
 
 def test_refined_kd_retains_observed_labels_and_patient_alignment():
-    from src.training.methods.pafa import distillation_loss
+    from auscult_trust.training.methods.pafa import distillation_loss
     features = torch.tensor([[1., 2.], [2., 3.]])
     labels, patients = torch.tensor([0, 3]), torch.tensor([12, 15])
     targets = torch.tensor([[.1, .7, .1, .1], [.7, .1, .1, .1]])
@@ -112,7 +112,7 @@ def test_refined_kd_retains_observed_labels_and_patient_alignment():
 
 
 def test_refined_config_and_snapshot_validation():
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     args = parse_args(['--method', 'ce_pafa', '--soft_targets', 'teacher.npz',
                        '--kd_hard_weight', '.5', '--kd_temperature', '2', '--snapshot_epochs', '66'])
     assert args.snapshot_epoch_list == [66]
@@ -125,8 +125,8 @@ def test_refined_config_and_snapshot_validation():
 
 def test_single_teacher_export_certifies_only_outer_training_rows(tmp_path, monkeypatch):
     import json
-    from src.training import distillation, dataset
-    from src.processing import cycles
+    from auscult_trust.training import distillation, dataset
+    from auscult_trust.processing import cycles
     folder = tmp_path / 'data'
     audio = folder / 'audio_test_data'
     audio.mkdir(parents=True)

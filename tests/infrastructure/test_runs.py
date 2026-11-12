@@ -2,7 +2,7 @@ import json
 
 
 def test_run_layout_resumes_and_never_overwrites(tmp_path, monkeypatch):
-    from src import runs, artifacts
+    from auscult_trust import runs, artifacts
     monkeypatch.setattr(runs, "_KINDS", {"outputs": tmp_path / "outputs", "checkpoints": tmp_path / "checkpoints"})
     monkeypatch.delenv("RUN_ID", raising=False)
     monkeypatch.setenv("RUN_TAG", "demo")

@@ -10,8 +10,8 @@ import numpy as np
 
 sys.path.insert(0, "scripts")
 from grid import unit_metrics
-from src.evaluation.lodo import collect, coverage
-from src.processing.icbhi import DEVICES
+from auscult_trust.evaluation.lodo import collect, coverage
+from auscult_trust.processing.icbhi import DEVICES
 
 R = Path("outputs/train/lodo-v1")
 CELLS = ["ast+ft+ce", "ast+ft+pafa", "ast+ft+patchmix_cl", "htsat+ft+ce", "htsat+ft+patchmix_cl", "htsat+ft+sg_scl",

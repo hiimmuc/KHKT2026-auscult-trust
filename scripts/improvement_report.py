@@ -8,10 +8,10 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np
-from src.artifacts import atomic_json, sha256_file, verify_file
-from src.evaluation.ensemble_study import classification
-from src.evaluation.lodo import load_unit
-from src.evaluation.calibration import coverage
+from auscult_trust.artifacts import atomic_json, sha256_file, verify_file
+from auscult_trust.evaluation.ensemble_study import classification
+from auscult_trust.evaluation.lodo import load_unit
+from auscult_trust.evaluation.calibration import coverage
 
 
 def paired_score_interval(pairs, draws=1000):
@@ -93,8 +93,8 @@ def main():
         lines.append(f'| {cohort} | {c:.2f} | {g:.2f} | {g-c:+.2f} | {result["gain_minus_control_ci"]} |')
     (out / 'report.md').write_text('\n'.join(lines) + '\n')
     commands = [
-        [sys.executable, '-m', 'src.evaluation.kauh', '--dir', str(root / 'outputs/kauh' / spec['name']), '--base', 'control', '--arms', 'gain', '--boot', '1000', '--null_splits', '200'],
-        [sys.executable, '-m', 'src.evaluation.screening', '--dir', str(root / 'outputs/screening' / spec['name']), '--kauh_dir', str(root / 'outputs/kauh' / spec['name']), '--pairs', 'control:control', 'gain:gain'],
+        [sys.executable, '-m', 'auscult_trust.evaluation.kauh', '--dir', str(root / 'outputs/kauh' / spec['name']), '--base', 'control', '--arms', 'gain', '--boot', '1000', '--null_splits', '200'],
+        [sys.executable, '-m', 'auscult_trust.evaluation.screening', '--dir', str(root / 'outputs/screening' / spec['name']), '--kauh_dir', str(root / 'outputs/kauh' / spec['name']), '--pairs', 'control:control', 'gain:gain'],
     ]
     for command in commands:
         subprocess.run(command, cwd=root, check=True)

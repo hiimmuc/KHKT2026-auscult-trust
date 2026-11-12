@@ -13,8 +13,8 @@ from pathlib import Path
 import numpy as np
 
 from scripts import improvement_campaign as core
-from src.artifacts import atomic_json, sha256_file
-from src.paths import CHECKPOINTS, OUTPUTS
+from auscult_trust.artifacts import atomic_json, sha256_file
+from auscult_trust.paths import CHECKPOINTS, OUTPUTS
 
 NAME = 'distill-20261028'
 STUDENT_EPOCH = 66
@@ -85,7 +85,7 @@ def command(spec, job):
     job = dict(job, extra_args=['--soft_targets', str(target), *job['extra_args'][2:]])
     units, checkpoints = teacher_files(group, job['cohort'], job['seed'])
     env = f'RUN_ID={job["run"]} MEM_GB=11'
-    export = [str(root / '.venv-train/bin/python'), '-m', 'src.training.distillation', '--units', *map(str, units),
+    export = [str(root / '.venv-train/bin/python'), '-m', 'auscult_trust.training.distillation', '--units', *map(str, units),
               '--checkpoints', *map(str, checkpoints), '--out', str(target)]
     return env + ' mkdir -p ' + shlex.quote(str(target.parent)) + ' && ' + env + ' ' + shlex.join(export) + ' && ' + \
         core_command(spec, job)
@@ -115,7 +115,7 @@ def prepare(snapshot, hosts, data, deadline):
     machines = core.load(hosts)
     if set(machines) != set(WEIGHTS) or not machines['B'].get('local'):
         raise ValueError('B must control A/B/C/D/E')
-    files = [p for folder in ('src', 'scripts', 'experiments') for p in (root / folder).rglob('*')
+    files = [p for folder in ('auscult_trust', 'scripts', 'experiments') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
     files += [root / 'requirements-train.lock', root / 'pyproject.toml']
     spec = dict(name=NAME, snapshot=str(root), data=data, machines=machines, archive_machine='E',

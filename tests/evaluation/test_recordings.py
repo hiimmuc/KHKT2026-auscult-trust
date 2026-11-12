@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.evaluation.recordings import icbhi_recordings, kauh_recordings
+from auscult_trust.evaluation.recordings import icbhi_recordings, kauh_recordings
 
 
 @pytest.mark.parametrize("agg,probabilities", [("mean", [[0.6, 0.4], [0.3, 0.7]]),

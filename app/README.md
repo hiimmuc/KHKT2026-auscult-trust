@@ -192,15 +192,15 @@ The page never routes the microphone to the speaker, so there is no feedback loo
 
 ## What the model gives, and how the app shows it
 
-The checks below come from the code (`src/evaluation/*`, `src/processing/correction.py`), not from assumptions.
+The checks below come from the code (`auscult_trust/evaluation/*`, `auscult_trust/processing/correction.py`), not from assumptions.
 
 | Output | Source | Shown as |
 | --- | --- | --- |
 | 4-class softmax (normal, crackle, wheeze, both) per segment | BEATs + PAFA, fine-tuned; annotated cycles cut/padded to 5 s, unannotated windows 8 s | coloured boxes over the waveform, packed into rows when segments overlap |
 | 2-class view, p(abnormal) = 1 - p(normal), same softmax | same | lane under the waveform |
-| Conformal sets, LAC, alpha 0.1 | `src/evaluation/conformal.py` | box label "set k", lane pattern (solid = one class, hatched = both, outline = empty), chips in the tables |
-| Recording-level screening (8 s windows, mean of 1 - p(normal), 2-class LAC) | `src/evaluation/screening.py` | triage card with the p(abnormal) bar and the zones the threshold creates |
-| SC = spectrum correction: per-bin STFT gain towards the training-device reference | `src/processing/correction.py` | gain curve (dB vs Hz) and the side-by-side pipeline without SC |
+| Conformal sets, LAC, alpha 0.1 | `auscult_trust/evaluation/conformal.py` | box label "set k", lane pattern (solid = one class, hatched = both, outline = empty), chips in the tables |
+| Recording-level screening (8 s windows, mean of 1 - p(normal), 2-class LAC) | `auscult_trust/evaluation/screening.py` | triage card with the p(abnormal) bar and the zones the threshold creates |
+| SC = spectrum correction: per-bin STFT gain towards the training-device reference | `auscult_trust/processing/correction.py` | gain curve (dB vs Hz) and the side-by-side pipeline without SC |
 
 The two proposed methods carry a **Proposed** tag in the page: spectrum correction (the SC pipeline) and conformal prediction. The *Conformal prediction* switch in the toolbar (kept in local storage, shared by both modes) hides or shows the conformal layer: set labels on the boxes, set chips in the tables, the set pattern in the 2-class lane, the set stats in the demo comparison and the triage card. Off, the page shows top classes only and the screening card shows a plain Normal / Abnormal at p(abnormal) 0.5.
 

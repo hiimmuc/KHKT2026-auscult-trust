@@ -54,7 +54,7 @@ A unit is one fit: one recipe, one seed. A recipe is a list of YAML files; later
 ```bash
 export RUN_ID=my-run PYTHONPATH=.
 C=experiments/train
-.venv-train/bin/python -m src.training.main \
+.venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
     --cell beats+ft+pafa --selection fixed --report_epochs 100 --seed 0
 ```
@@ -64,7 +64,7 @@ Outputs: `report.json` (per-epoch metrics), `test_preds.npz` (per-epoch softmax)
 **With spectrum correction (SC) at training.** Add the SC recipes. `sc.yaml` estimates each device's spectrum and maps it to the mean training spectrum; `sc_static.yaml` bounds the coefficient to 50-2000 Hz; `sc_gain.yaml` adds a random smooth per-mel-bin gain (6 dB SD).
 
 ```bash
-.venv-train/bin/python -m src.training.main \
+.venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/sc.yaml,$C/sc_static.yaml,$C/sc_gain.yaml \
     --cell beats+ft+pafa+sc+sc_static+sc_gain --selection fixed --report_epochs 100 --seed 0
 ```
@@ -74,7 +74,7 @@ The unit saves `sc_state.npz` and `s_ref_sha256`; inference needs both.
 **Leave-one-device-out (LODO).** Append `$C/lodo_<device>.yaml` (`meditron`, `littc2se`, `litt3200`, `akgc417l`) to `--config` and `+lodo_<device>` to `--cell`. The held-out device is never seen in training, SC estimation or calibration.
 
 ```bash
-.venv-train/bin/python -m src.training.main \
+.venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/lodo_meditron.yaml \
     --cell beats+ft+pafa+lodo_meditron --selection fixed --report_epochs 100 --seed 0
 ```
@@ -86,11 +86,11 @@ The unit saves `sc_state.npz` and `s_ref_sha256`; inference needs both.
 ```bash
 U=outputs/train/$RUN_ID/beats+ft+pafa/seed0
 # 6.1 Freeze: softmax and embeddings on the official test set, tied to the weight hash.
-.venv-train/bin/python -m src.training.export_probs $U --ckpt report_epoch_100.pth        # -> $U/export/test.npz, model.sha256
+.venv-train/bin/python -m auscult_trust.training.export_probs $U --ckpt report_epoch_100.pth        # -> $U/export/test.npz, model.sha256
 # 6.2 Recording-level screening: 8 s windows, p(abnormal), 2-class split conformal, triage.
-.venv-train/bin/python -m src.pipelines.screening_infer $U --ckpt report_epoch_100.pth \
+.venv-train/bin/python -m auscult_trust.pipelines.screening_infer $U --ckpt report_epoch_100.pth \
     --out outputs/screening/my-run/baseline/seed0.npz                                      # add --sc for SC-trained units
-.venv-train/bin/python -m src.evaluation.screening --pairs p0:p0
+.venv-train/bin/python -m auscult_trust.evaluation.screening --pairs p0:p0
 # 6.3 KAUH: filter-pair conformal coverage with frozen models (needs a screen.json of the run).
 bash scripts/run_kauh.sh
 ```
@@ -98,7 +98,7 @@ bash scripts/run_kauh.sh
 **SC at inference only (no SC at training).** Test-time SC, A2 and TTA-EQ on trained LODO units, then the H2 tables:
 
 ```bash
-RUN=lodo-ast SC_CELL=sc+sc_static bash scripts/run_lodo_infer.sh        # src/pipelines/lodo_ttsc.py
+RUN=lodo-ast SC_CELL=sc+sc_static bash scripts/run_lodo_infer.sh        # auscult_trust/pipelines/lodo_ttsc.py
 bash scripts/lodo_h2_all.sh && .venv/bin/python scripts/lodo_tables.py > lodo_tables.md
 ```
 
@@ -118,7 +118,7 @@ Ensemble of your own units (last epoch, official test split):
 
 ```python
 import numpy as np
-from src.training.reporting import per_device_report
+from auscult_trust.training.reporting import per_device_report
 
 units = [f"outputs/train/{RUN_ID}/beats+ft+pafa/seed{s}" for s in (0, 1, 2)]   # RUN_ID: your run id
 Z = [np.load(f"{u}/test_preds.npz") for u in units]
@@ -137,7 +137,7 @@ One student learns from the equal-weight softmax of four teachers of the same se
 S=0; T=outputs/train; K=checkpoints/train
 mkdir -p $T/my-run/kd_g4_k1/seed$S
 # 8.1 Export the teachers' soft targets on the training cycles (needs the four teacher units of seed $S).
-.venv-train/bin/python -m src.training.distillation \
+.venv-train/bin/python -m auscult_trust.training.distillation \
     --units $T/followup-20261026-final/gain6-cv66/seed$S $T/target-20261027-final/pcsl5_control/seed$S \
             $T/target-20261027-final/class_aware_light/seed$S $T/target-20261027-final/multiscale/seed$S \
     --checkpoints $K/followup-20261026-final/gain6-cv66/seed$S/report_epoch_66.pth \
@@ -146,7 +146,7 @@ mkdir -p $T/my-run/kd_g4_k1/seed$S
             $K/target-20261027-final/multiscale/seed$S/report_epoch_68.pth \
     --out $T/my-run/kd_g4_k1/seed$S/teacher.npz
 # 8.2 Fit the student on those targets.
-RUN_ID=my-run .venv-train/bin/python -m src.training.main \
+RUN_ID=my-run .venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/sc.yaml,$C/sc_static.yaml,$C/sc_gain.yaml \
     --cell kd_g4_k1 --seed $S --epochs 100 --stop_epoch 66 --selection fixed --report_epochs 66 \
     --soft_targets $T/my-run/kd_g4_k1/seed$S/teacher.npz

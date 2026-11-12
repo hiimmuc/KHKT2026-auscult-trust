@@ -13,9 +13,9 @@ from pathlib import Path
 
 import numpy as np
 
-from src.artifacts import atomic_json, atomic_npz, file_hashes
-from src.evaluation.ensemble_study import classification, k_for_rate, predict
-from src.processing.icbhi import DEVICES
+from auscult_trust.artifacts import atomic_json, atomic_npz, file_hashes
+from auscult_trust.evaluation.ensemble_study import classification, k_for_rate, predict
+from auscult_trust.processing.icbhi import DEVICES
 
 E1 = ['beats+ft+pafa', 'beats+ft+sg_scl', 'beats+ft+patchmix_cl']
 E3 = ['htsat+ft+patchmix_cl', 'htsat+ft+sg_scl']
@@ -127,9 +127,9 @@ def paired_contrast(left, right, draws=1000):
 
 @lru_cache(maxsize=256)
 def load_cycle(unit_name, data_folder=None):
-    from src.training.state import report_epoch
-    from src.processing.icbhi import cycle_table
-    from src.processing.splits import both_sides_patients
+    from auscult_trust.training.state import report_epoch
+    from auscult_trust.processing.icbhi import cycle_table
+    from auscult_trust.processing.splits import both_sides_patients
     unit = Path(unit_name)
     args = json.loads((unit / 'train_args.json').read_text())
     if not args.get('spectrum_correction') or args.get('sc_mode') != 'static':
@@ -186,10 +186,10 @@ def recording_arrays(path, kind):
 
 
 def recording_metrics(screening, kauh):
-    from src.evaluation.recordings import icbhi_recordings, kauh_recordings
-    from src.processing.splits import calibration_eval_splits
-    from src.evaluation.conformal import lac_scores, split_threshold
-    from src.evaluation.screening import triage
+    from auscult_trust.evaluation.recordings import icbhi_recordings, kauh_recordings
+    from auscult_trust.processing.splits import calibration_eval_splits
+    from auscult_trust.evaluation.conformal import lac_scores, split_threshold
+    from auscult_trust.evaluation.screening import triage
     import pandas as pd
     source, target = icbhi_recordings(screening), kauh_recordings(kauh)
     results = {}

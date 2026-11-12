@@ -2,8 +2,8 @@
 import pytest
 import torch
 
-from src.training import dataset as dataset_module
-from src.training.averaging import EpochAverager
+from auscult_trust.training import dataset as dataset_module
+from auscult_trust.training.averaging import EpochAverager
 
 
 def modules(value):
@@ -66,7 +66,7 @@ def test_training_resume_exports_average_but_restarts_from_live_weights(tmp_path
     import json
     import numpy as np
     from types import SimpleNamespace
-    from src.training import main
+    from auscult_trust.training import main
 
     args = main.build_parser().parse_args([])
     for key, value in dict(exp='train', cell='swa', unit='seed0', selection='fixed',

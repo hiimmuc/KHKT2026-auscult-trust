@@ -7,10 +7,10 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from src.training.methods.base import Batch, StepContext
-from src.models.heads import EventClassifier
-from src.training.methods.event_pafa import Method, event_targets
-from src.training.methods.pafa import Method as PafaMethod
+from auscult_trust.training.methods.base import Batch, StepContext
+from auscult_trust.models.heads import EventClassifier
+from auscult_trust.training.methods.event_pafa import Method, event_targets
+from auscult_trust.training.methods.pafa import Method as PafaMethod
 
 
 class Encoder(nn.Module):

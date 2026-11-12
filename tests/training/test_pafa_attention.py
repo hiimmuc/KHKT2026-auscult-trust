@@ -5,11 +5,11 @@ import pytest
 import torch
 from torch import nn
 
-from src.training.config import parse_args
-from src.models.encoders.beats import BeatsEncoder
-from src.training.methods import get_method
-from src.training.methods.base import Batch, StepContext
-from src.models.upstream import load_reference
+from auscult_trust.training.config import parse_args
+from auscult_trust.models.encoders.beats import BeatsEncoder
+from auscult_trust.training.methods import get_method
+from auscult_trust.training.methods.base import Batch, StepContext
+from auscult_trust.models.upstream import load_reference
 
 
 class TokenEncoder(nn.Module):

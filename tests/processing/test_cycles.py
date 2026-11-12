@@ -3,7 +3,7 @@ import pytest
 import torch
 from torchaudio import transforms as T
 
-from src.processing.cycles import FADE_RATIO, prepare_recording
+from auscult_trust.processing.cycles import FADE_RATIO, prepare_recording
 
 
 @pytest.mark.parametrize("sample_rate", [4000, 16000, 44100])

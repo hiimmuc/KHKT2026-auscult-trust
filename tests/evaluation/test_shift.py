@@ -1,5 +1,5 @@
 import numpy as np
-from src.evaluation.shift import (
+from auscult_trust.evaluation.shift import (
     prior_matched_coverage,
     set_stats,
 )

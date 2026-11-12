@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.models.runtime import load_runtime, runtime_config
+from auscult_trust.models.runtime import load_runtime, runtime_config
 
 
 def test_runtime_config_round_trips_and_rejects_unknown_schema(tmp_path):

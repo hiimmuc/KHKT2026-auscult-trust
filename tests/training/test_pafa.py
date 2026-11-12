@@ -2,7 +2,7 @@
 
 import torch
 
-from src.training.methods.pafa import alignment_loss
+from auscult_trust.training.methods.pafa import alignment_loss
 
 
 def test_pafa_loss_on_fixed_tensor():

@@ -18,9 +18,9 @@ import numpy as np
 
 sys.path.insert(0, "scripts")
 from ensemble import ENS, G, L, REF, SC_ARMS, SEEDS
-from src.evaluation.lodo import load_unit
-from src.processing.icbhi import DEVICES
-from src.training.reporting import per_device_report
+from auscult_trust.evaluation.lodo import load_unit
+from auscult_trust.processing.icbhi import DEVICES
+from auscult_trust.training.reporting import per_device_report
 
 GROUPS = [("ref", [REF])] + list(ENS.items())
 

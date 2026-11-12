@@ -6,8 +6,8 @@ import pytest
 import torch
 from torch import nn
 
-from src.training.dataset import PatientCappedSampler, _training_sampling
-from src.training.optim import adjust_learning_rate, layer_decay_parameters, set_optimizer, warmup_learning_rate
+from auscult_trust.training.dataset import PatientCappedSampler, _training_sampling
+from auscult_trust.training.optim import adjust_learning_rate, layer_decay_parameters, set_optimizer, warmup_learning_rate
 
 
 def _model():
@@ -135,8 +135,8 @@ def test_patient_sampling_rejects_synthetic_multicycle_mode():
 
 def test_validation_metadata_preserves_nested_subset_order(monkeypatch):
     from torch.utils.data import Subset
-    from src.training.dataset import validation_metadata
-    from src.training import recording_bags
+    from auscult_trust.training.dataset import validation_metadata
+    from auscult_trust.training import recording_bags
 
     class Cycles:
         patients = ["a", "a", "b", "c"]

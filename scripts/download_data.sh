@@ -1,6 +1,6 @@
 #!/bin/bash
 # Download every public dataset and model file the project needs into the data directory
-# (DATA_DIR, default ../data next to the repo; same as AT_DATA in src/paths.py). Already complete files are skipped.
+# (DATA_DIR, default ../data next to the repo; same as AT_DATA in auscult_trust/paths.py). Already complete files are skipped.
 #
 #   bash scripts/download_data.sh            ICBHI, KAUH, encoder weights
 #   bash scripts/download_data.sh --hf-lung  also HF_Lung_V1 (large; only needed for the archived early experiments)

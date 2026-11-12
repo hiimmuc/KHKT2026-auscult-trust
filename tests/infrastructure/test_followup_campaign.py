@@ -6,7 +6,7 @@ import pytest
 
 from scripts import followup_campaign as campaign
 from scripts import improvement_campaign as core
-from src.artifacts import atomic_json, sha256_file
+from auscult_trust.artifacts import atomic_json, sha256_file
 
 
 def state(tmp_path):

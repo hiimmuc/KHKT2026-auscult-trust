@@ -6,8 +6,8 @@ DASS is not tested here: it normalises each cycle by its own mean and std, so a 
 import numpy as np
 import torch
 
-from src.processing.cycles import generate_fbank
-from src.models.encoders import get_encoder
+from auscult_trust.processing.cycles import generate_fbank
+from auscult_trust.models.encoders import get_encoder
 
 
 def test_ast_db_scale_matches_fbank_shift():
@@ -22,7 +22,7 @@ def test_ast_db_scale_matches_fbank_shift():
 def test_beats_preprocess_matches_reference_and_db_scale():
     import torchaudio
 
-    from src.models.encoders.beats import preprocess_beats
+    from auscult_trust.models.encoders.beats import preprocess_beats
 
     torch.manual_seed(0)
     wave = torch.randn(1, 16000 * 8) * 0.1

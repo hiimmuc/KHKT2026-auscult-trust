@@ -1,7 +1,7 @@
 # data/
 
 Raw and derived data are not stored in this repo. They live in `../data` (the wrapper directory) or in `$AT_DATA`
-(`src/paths.py:DATA`):
+(`auscult_trust/paths.py:DATA`):
 
 ```
 raw/icbhi/ICBHI_final_database  raw/kauh  raw/hf_lung_v1      immutable originals (never modify)

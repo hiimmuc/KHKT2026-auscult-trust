@@ -9,7 +9,7 @@ dynamic = ["dependencies"]
 dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["auscult_trust*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "api/test_contract.py"]

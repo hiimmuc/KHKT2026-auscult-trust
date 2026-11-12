@@ -25,10 +25,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
-from src.processing.correction import clip_spectra_torch, reference_spectrum  # noqa: E402
-from src.processing.icbhi import DEVICES  # noqa: E402
-from src.training.config import build_parser  # noqa: E402
-from src.training.dataset import ICBHIDataset  # noqa: E402
+from auscult_trust.processing.correction import clip_spectra_torch, reference_spectrum  # noqa: E402
+from auscult_trust.processing.icbhi import DEVICES  # noqa: E402
+from auscult_trust.training.config import build_parser  # noqa: E402
+from auscult_trust.training.dataset import ICBHIDataset  # noqa: E402
 
 OUT = Path("outputs/sc_diag")
 FREQS = np.fft.rfftfreq(1024, 1 / 16000)

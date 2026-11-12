@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.processing.splits import lodo_split
+from auscult_trust.processing.splits import lodo_split
 
 
 def _data():

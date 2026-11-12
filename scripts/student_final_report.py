@@ -4,7 +4,7 @@
 
 Conditions (5 paired seeds 0-4): baseline = BEATs + PAFA no SC (epoch 100), previous = BEATs + PAFA + static SC (epoch 100), anchor = gain6-cv66
 (epoch 66), student = kd_g4_k1 (epoch 66), twin = kd_g4_k1_nosc (epoch 66). Official numbers are the last recorded epoch of each unit; best-on-test
-is the best epoch on the test split and is optimistic. With `--h2` a merged run directory of symlinks is built and `src.evaluation.lodo` is run
+is the best epoch on the test split and is optimistic. With `--h2` a merged run directory of symlinks is built and `auscult_trust.evaluation.lodo` is run
 (null gate and H2 statistic per fold) with the twin and the baseline as bases.
 """
 import argparse
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
-from src.processing.icbhi import DEVICES
-from src.processing.splits import both_sides_patients
-from src.training.reporting import per_device_report
+from auscult_trust.processing.icbhi import DEVICES
+from auscult_trust.processing.splits import both_sides_patients
+from auscult_trust.training.reporting import per_device_report
 
 T = Path("outputs/train")
 NEW = T / "student-final-20261029-final"
@@ -121,7 +121,7 @@ def main():
                         link.symlink_to(unit.resolve())
         for base, arms, stem in (("twin", ["student"], "h2_student_vs_twin"), ("baseline", ["previous", "anchor", "student", "twin"], "h2_vs_baseline")):
             print(f"\n## H2 / null gate, base = {base}\n")
-            subprocess.run([".venv-train/bin/python", "-m", "src.evaluation.lodo", "--run", "student-lodo-merged", "--base", base,
+            subprocess.run([".venv-train/bin/python", "-m", "auscult_trust.evaluation.lodo", "--run", "student-lodo-merged", "--base", base,
                             "--arms", *arms, "--out", stem], check=True, env={**__import__("os").environ, "PYTHONPATH": ".", "CUDA_VISIBLE_DEVICES": ""})
 
 

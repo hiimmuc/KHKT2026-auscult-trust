@@ -3,16 +3,16 @@ import json
 import numpy as np
 import pytest
 
-from src.processing.splits import cv_split, patient_folds, patient_val_split
-from src.training import summary
-from src.training.reporting import cv_epoch, per_device_report, pick_epochs
+from auscult_trust.processing.splits import cv_split, patient_folds, patient_val_split
+from auscult_trust.training import summary
+from auscult_trust.training.reporting import cv_epoch, per_device_report, pick_epochs
 
 
 def test_evaluation_concatenates_batches_and_keeps_row_order(monkeypatch):
     from contextlib import nullcontext
     from types import SimpleNamespace
     import torch
-    from src.training.engine import evaluate
+    from auscult_trust.training.engine import evaluate
     monkeypatch.setattr(torch.Tensor, 'cuda', lambda self, **kwargs: self)
     monkeypatch.setattr(torch.cuda.amp, 'autocast', nullcontext)
     logits = torch.tensor([[3., 0., 0., 0.], [0., 3., 0., 0.], [0., 0., 3., 0.]])
@@ -63,7 +63,7 @@ def test_pick_epochs_screening_and_fixed_modes_and_cv_epoch():
 
 def test_freq_mixstyle_keeps_shape_and_mixes_stats():
     torch = pytest.importorskip("torch")
-    from src.training.augment import freq_mixstyle
+    from auscult_trust.training.augment import freq_mixstyle
     torch.manual_seed(0)
     x = torch.randn(8, 1, 50, 16) * torch.linspace(1, 3, 8).view(8, 1, 1, 1) + torch.arange(8).view(8, 1, 1, 1)
     y = freq_mixstyle(x, p=1.0)

@@ -19,9 +19,9 @@ from pathlib import Path
 import numpy as np
 
 from scripts.eval_log import logger
-from src.artifacts import immutable_json
-from src.artifacts import sha256_file as sha
-from src.provenance import environment, prediction_inputs, verify_prediction
+from auscult_trust.artifacts import immutable_json
+from auscult_trust.artifacts import sha256_file as sha
+from auscult_trust.provenance import environment, prediction_inputs, verify_prediction
 
 RUN = os.environ.get("AT_EVAL_RUN", "final-kd-g4-k1")
 OLD_RUN = "final-pafa-static"
@@ -79,8 +79,8 @@ def main():
     os.environ["PYTHONPATH"] = "."
     event(status="campaign_started", run=RUN, serving_seed=SERVING_SEED,
           git_head=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(), script_sha256=sha(__file__))
-    from src.paths import DATA
-    from src.training.config import load_args
+    from auscult_trust.paths import DATA
+    from auscult_trust.training.config import load_args
     data_files = sorted((DATA / "raw/kauh").rglob("*"))
     args = load_args(CONDITIONS[0][1] / "seed0")
     folder = Path(args.data_folder)
@@ -120,7 +120,7 @@ def main():
                     verify_prediction(export / "test.npz", inputs_now())
                 except (ValueError, FileNotFoundError, OSError):  # stale or missing under the current code: rerun the exporter
                     shutil.rmtree(export, ignore_errors=True)
-                    run(["-m", "src.training.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
+                    run(["-m", "auscult_trust.training.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
                     verify_prediction(export / "test.npz", inputs_now())
                 if (export / "model.sha256").read_text().split()[0] != checkpoint_sha:
                     raise ValueError(f"Cycle export checkpoint mismatch: {unit}")
@@ -133,13 +133,13 @@ def main():
                     for extra in source.parent.glob(f"seed{seed}.npz.*"):
                         shutil.copy2(extra, out.parent / extra.name)
                 if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
-                    run(["-m", "src.pipelines." + module,
+                    run(["-m", "auscult_trust.pipelines." + module,
                          unit, "--ckpt", checkpoint.name, "--out", out, *(["--sc"] if sc else [])])
                     if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
                         raise ValueError(f"Fresh export failed verification: {out}")
-    run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
+    run(["-m", "auscult_trust.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
          "--arms", "previous", "anchor", "student", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
+    run(["-m", "auscult_trust.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
          "--pairs", "baseline:baseline", "previous:previous", "anchor:anchor", "student:student"])
     event(status="campaign_complete", run=RUN)
 

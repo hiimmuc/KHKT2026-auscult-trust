@@ -7,9 +7,9 @@ import pytest
 import torch
 from torch import nn
 
-from src.training.config import parse_args
-from src.training.methods import NAMES, get_method
-from src.training.methods.base import Batch, StepContext
+from auscult_trust.training.config import parse_args
+from auscult_trust.training.methods import NAMES, get_method
+from auscult_trust.training.methods.base import Batch, StepContext
 
 
 class ToyEncoder(nn.Module):
@@ -61,7 +61,7 @@ def test_method_loss_backpropagates_and_returns_four_class_probabilities(name, e
     images = torch.randn(8, 1, 16, 32)
     labels = torch.arange(8) % 4
     if method.multilabel:
-        from src.training.methods.pcmcl_data import multilabel
+        from auscult_trust.training.methods.pcmcl_data import multilabel
         labels = torch.tensor([multilabel(int(y)) for y in labels]).float()
     quality = (torch.arange(8) % 2).float() if method.multilabel else torch.full((8,), 0.8)
     batch = Batch(images, labels, torch.arange(8) % 2, torch.arange(8) // 2, quality)
@@ -85,9 +85,9 @@ def test_method_loss_backpropagates_and_returns_four_class_probabilities(name, e
 
 
 def test_ce_has_no_upstream_method_dependencies():
-    subprocess.run([sys.executable, "-c", "import src.models.upstream as u; u.THIRD_PARTY = u.THIRD_PARTY / 'missing'; "
+    subprocess.run([sys.executable, "-c", "import auscult_trust.models.upstream as u; u.THIRD_PARTY = u.THIRD_PARTY / 'missing'; "
                     "from types import SimpleNamespace; from torch import nn; "
-                    "from src.training.methods import get_method; "
+                    "from auscult_trust.training.methods import get_method; "
                     "get_method('ce').components(SimpleNamespace(mlp_head=nn.Linear(2,4)), SimpleNamespace())"], check=True)
 
 
@@ -97,7 +97,7 @@ def test_unknown_method_is_rejected():
 
 
 def test_gradient_reversal_changes_only_backward():
-    from src.training.methods.sg_scl import GradientReversal
+    from auscult_trust.training.methods.sg_scl import GradientReversal
     x = torch.tensor([2.0], requires_grad=True)
     result = GradientReversal.apply(x, 0.4)
     assert torch.equal(result, x)
@@ -107,11 +107,11 @@ def test_gradient_reversal_changes_only_backward():
 
 @pytest.mark.parametrize("name", ["ce", "add_rsc"])
 def test_frozen_encoder_keeps_only_method_frontend_trainable(name):
-    from src.training.modeling import build_model
+    from auscult_trust.training.modeling import build_model
     from unittest.mock import patch
     args = parse_args(["--method", name, "--freeze_encoder"])
     spec = SimpleNamespace(image_shape=(16, 32), build=lambda _: ToyEncoder())
-    with patch("src.models.factory.get_encoder", return_value=spec):
+    with patch("auscult_trust.models.factory.get_encoder", return_value=spec):
         model, classifier, _, _, optimizer = build_model(args, device="cpu")
     encoder = model.encoder if name == "add_rsc" else model
     assert all(not p.requires_grad for p in encoder.parameters())
@@ -123,8 +123,8 @@ def test_frozen_encoder_keeps_only_method_frontend_trainable(name):
 
 
 def test_every_method_inherits_the_head_inference_builds():
-    from src.models.heads import HEADS, get_head
-    from src.training.methods import NAMES
+    from auscult_trust.models.heads import HEADS, get_head
+    from auscult_trust.training.methods import NAMES
     assert set(HEADS) == set(NAMES)
     for name in NAMES:
         assert isinstance(get_method(name), type(get_head(name)))

@@ -17,8 +17,8 @@ from pathlib import Path
 import numpy as np
 
 from scripts.final_evaluation_student import (RUN, certified, event, export_ok, run, sha)
-from src.artifacts import immutable_json
-from src.provenance import environment, prediction_inputs, verify_prediction
+from auscult_trust.artifacts import immutable_json
+from auscult_trust.provenance import environment, prediction_inputs, verify_prediction
 
 PREV_RUN = "final-kd-g4-k1"
 TWIN = Path("outputs/train/student-final-20261029-final/kd_g4_k1_nosc")
@@ -56,7 +56,7 @@ def main():
                     for extra in source.parent.glob(f"seed{seed}.npz.*"):
                         shutil.copy2(extra, out.parent / extra.name)
                 if not export_ok(out, ck_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
-                    run(["-m", "src.pipelines." + module,
+                    run(["-m", "auscult_trust.pipelines." + module,
                          unit, "--ckpt", ckpt.name, "--out", out, *(["--sc"] if sc else [])])
                     if not export_ok(out, ck_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
                         raise ValueError(f"Fresh export failed verification: {out}")
@@ -70,13 +70,13 @@ def main():
         except (ValueError, FileNotFoundError, OSError):
             ok = False
         if not ok:
-            run(["-m", "src.pipelines.kauh_infer", twin, "--ckpt", t_ckpt.name, "--out", out, "--sc",
+            run(["-m", "auscult_trust.pipelines.kauh_infer", twin, "--ckpt", t_ckpt.name, "--out", out, "--sc",
                  "--sc_state", student / "sc_state.npz", "--sc_args", student / "train_args.json"])
             verify_prediction(out, prediction_inputs(twin, t_ckpt, "kauh", True, sc_unit=student, options=options))
         event(status="verified", artifact=str(out), sha256=sha(out))
-    run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "twin",
+    run(["-m", "auscult_trust.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "twin",
          "--arms", "student", "twin_ttsc", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
+    run(["-m", "auscult_trust.evaluation.screening", "--dir", f"outputs/screening/{RUN}", "--kauh_dir", f"outputs/kauh/{RUN}",
          "--pairs", "twin:twin", "student:student", "twin:twin_ttsc"])
     event(status="campaign_complete", run=RUN)
 

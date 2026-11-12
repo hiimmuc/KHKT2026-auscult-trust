@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts import improvement_campaign as core
-from src.artifacts import atomic_json, sha256_file
+from auscult_trust.artifacts import atomic_json, sha256_file
 
 NAME = 'followup-20261026'
 
@@ -177,7 +177,7 @@ def prepare(args):
             raise ValueError('Source anchor alias points to a different programme')
         reuse.append({'source': str(source), 'alias': str(alias), 'files': {
             str(path): sha256_file(path) for path in source.glob('cv*/*') if path.name in ('report.json', 'val_preds.npz')}})
-    files = [path for folder in ('src', 'scripts', 'experiments', 'tests') for path in (root / folder).rglob('*')
+    files = [path for folder in ('auscult_trust', 'scripts', 'experiments', 'tests') for path in (root / folder).rglob('*')
              if path.is_file() and path.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in path.parts]
     files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     spec = dict(name=NAME, snapshot=str(root), machines=machines, archive_machine='E', data=args.data,

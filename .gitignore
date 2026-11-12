@@ -9,7 +9,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
-# run artefacts (see src/runs.py): small outputs and weights stay out of git, keep the READMEs
+# run artefacts (see auscult_trust/runs.py): small outputs and weights stay out of git, keep the READMEs
 outputs/
 /outputs
 /checkpoints

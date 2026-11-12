@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.artifacts import atomic_json, sha256_file, verify_file
+from auscult_trust.artifacts import atomic_json, sha256_file, verify_file
 
 
 def load(path):
@@ -38,7 +38,7 @@ def identities(path):
 def freeze(config, out):
     spec = load(config)
     root = Path(spec['source'])
-    files = [p for folder in ('src', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
+    files = [p for folder in ('auscult_trust', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
     files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     jobs = [job for machine in spec['machines'].values() for job in identities(root / machine['jobs'])]

@@ -15,8 +15,8 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np
-from src.artifacts import atomic_json, sha256_file, verify_file
-from src.training.reporting import cv_epoch
+from auscult_trust.artifacts import atomic_json, sha256_file, verify_file
+from auscult_trust.training.reporting import cv_epoch
 
 NAME = 'improvements-20261026'
 ARMS = ['llrd', 'patient_cap', 'class_topk', 'class_attention', 'class_aware', 'recording_head', 'band_noise', 'band_noise_consistency']
@@ -150,7 +150,7 @@ def command(spec, job):
     else:
         marker = root / 'outputs/train' / job['run'] / job['cell'] / job['unit'] / 'completion.json'
         env.append('PIPELINE_DONE=' + str(marker))
-        argv += ['-m', 'src.training.main']
+        argv += ['-m', 'auscult_trust.training.main']
     workers = '0' if set(overlays) & {'band_noise', 'band_noise_consistency'} else '2'
     argv += ['--config', configs, '--cell', job['cell'], '--seed', str(job['seed']), '--epochs', '100', '--num_workers', workers]
     if 'recording_head_pcsl0' in overlays:
@@ -167,7 +167,7 @@ def command(spec, job):
         teacher = job['teacher_unit']
         target = root / 'outputs/train' / job['run'] / job['cell'] / job['unit'] / 'teacher.npz'
         checkpoint = root / 'checkpoints/train' / teacher['run'] / teacher['cell'] / teacher['unit'] / 'snapshot_epoch_66.pth'
-        exported = [str(root / '.venv-train/bin/python'), '-m', 'src.training.distillation', '--units',
+        exported = [str(root / '.venv-train/bin/python'), '-m', 'auscult_trust.training.distillation', '--units',
                     str(root / 'outputs/train' / teacher['run'] / teacher['cell'] / teacher['unit']),
                     '--checkpoints', str(checkpoint), '--expected_epoch', '66', '--out', str(target)]
         return ' '.join(env) + ' mkdir -p ' + shlex.quote(str(target.parent)) + ' && ' + \
@@ -616,7 +616,7 @@ def prepare(args):
     machines = load(args.hosts)
     if not machines or set(machines) - {'A', 'B', 'D', 'E', 'F'}:
         raise ValueError('Expected named A/B/D/E/F workers')
-    files = [p for folder in ('src', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
+    files = [p for folder in ('auscult_trust', 'scripts', 'experiments', 'tests') for p in (root / folder).rglob('*')
              if p.is_file() and p.suffix in ('.py', '.yaml', '.json', '.sh') and '__pycache__' not in p.parts]
     files += [root / name for name in ('requirements-train.lock', 'third_party/SOURCES.json', 'pyproject.toml')]
     for name in BASE + ARMS:
@@ -799,9 +799,9 @@ def recording_endpoints(path):
 def recording_triage(screening_path, kauh_path):
     """Calibrate each actual endpoint on patient-disjoint ICBHI halves, then transfer to KAUH."""
     import pandas as pd
-    from src.evaluation.screening import triage
-    from src.evaluation.conformal import lac_scores, split_threshold
-    from src.processing.splits import calibration_eval_splits
+    from auscult_trust.evaluation.screening import triage
+    from auscult_trust.evaluation.conformal import lac_scores, split_threshold
+    from auscult_trust.processing.splits import calibration_eval_splits
     source, target = recording_endpoints(screening_path), recording_endpoints(kauh_path)
     rows = []
     for endpoint, ic in source.items():
@@ -831,9 +831,9 @@ def report(spec):
     """Frozen comparisons against both specified historical baselines; no selection here."""
     import shutil
     from scripts.improvement_report import paired_score_interval
-    from src.evaluation.ensemble_study import classification
-    from src.evaluation.lodo import load_unit
-    from src.evaluation.calibration import coverage
+    from auscult_trust.evaluation.ensemble_study import classification
+    from auscult_trust.evaluation.lodo import load_unit
+    from auscult_trust.evaluation.calibration import coverage
     root = Path(spec['snapshot'])
     destination = root / 'outputs/evaluation' / programme_name(spec)
     rows, intervals, inputs = [], {}, {}
@@ -901,9 +901,9 @@ def report(spec):
                 link = folder / label
                 if not link.exists():
                     link.symlink_to(Path('..') / label, target_is_directory=True)
-        for module, arguments in [('src.evaluation.kauh', ['--dir', str(root / 'outputs/kauh' / programme_name(spec) / comparison), '--base', baseline,
+        for module, arguments in [('auscult_trust.evaluation.kauh', ['--dir', str(root / 'outputs/kauh' / programme_name(spec) / comparison), '--base', baseline,
                                                          '--arms', *spec['selected'], '--boot', '1000', '--null_splits', '200']),
-                                  ('src.evaluation.screening', ['analyse', '--dir', str(root / 'outputs/screening' / programme_name(spec) / comparison),
+                                  ('auscult_trust.evaluation.screening', ['analyse', '--dir', str(root / 'outputs/screening' / programme_name(spec) / comparison),
                                                                '--kauh_dir', str(root / 'outputs/kauh' / programme_name(spec) / comparison), '--pairs',
                                                                *[a + ':' + a for a in [baseline, *spec['selected']]]])]:
             subprocess.run([sys.executable, '-m', module, *arguments], cwd=root, check=True)

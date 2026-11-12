@@ -6,10 +6,10 @@ import pytest
 import torch
 from torch import nn
 
-from src.models.encoders.beats import BeatsEncoder, TokenClassifier
-from src.training.methods.base import Batch, StepContext
-from src.training.methods.class_aware_pafa import ClassAwarePAFA, Method, centroid_pair_masks
-from src.training.methods.pafa import Method as PafaMethod, alignment_loss
+from auscult_trust.models.encoders.beats import BeatsEncoder, TokenClassifier
+from auscult_trust.training.methods.base import Batch, StepContext
+from auscult_trust.training.methods.class_aware_pafa import ClassAwarePAFA, Method, centroid_pair_masks
+from auscult_trust.training.methods.pafa import Method as PafaMethod, alignment_loss
 
 
 @pytest.mark.parametrize("pool", ["topk", "attention"])

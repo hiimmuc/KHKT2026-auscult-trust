@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 import torch
 
-from src.artifacts import atomic_json
-from src.training.state import capture_rng, restore_rng, completed, publish_completion, report_epoch
+from auscult_trust.artifacts import atomic_json
+from auscult_trust.training.state import capture_rng, restore_rng, completed, publish_completion, report_epoch
 
 
 def test_rng_resume_reproduces_next_draws():
@@ -54,7 +54,7 @@ def test_completion_rejects_partial_or_modified_results(tmp_path):
 
 
 def test_config_mismatch_is_checked_before_completed_skip(tmp_path, monkeypatch):
-    from src.training import main
+    from auscult_trust.training import main
     args = SimpleNamespace(exp="train", cell="test", unit="seed0", seed=1)
     atomic_json(tmp_path / "train_args.json", {"seed": 0})
     atomic_json(tmp_path / "report.json", {"history": [1]})

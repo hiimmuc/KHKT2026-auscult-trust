@@ -6,18 +6,18 @@ spec.loader.exec_module(sweep)
 
 
 def test_reservations_sum_running_units_only():
-    jobs = ["RUN_ID=g MEM_GB=10 python -m src.training.main --cell ast+ft+ce --seed 1",
-            "RUN_ID=g MEM_GB=13 python -m src.training.main --cell ast+ft+ce --seed 12",
-            "RUN_ID=g python -m src.training.main --cell ast+ft+pafa --seed 0"]
-    ps = ("python -m src.training.main --cell ast+ft+ce --seed 1 --num_workers 4\n"
-          "python -m src.training.main --cell ast+ft+pafa --seed 0 --num_workers 4\n")
+    jobs = ["RUN_ID=g MEM_GB=10 python -m auscult_trust.training.main --cell ast+ft+ce --seed 1",
+            "RUN_ID=g MEM_GB=13 python -m auscult_trust.training.main --cell ast+ft+ce --seed 12",
+            "RUN_ID=g python -m auscult_trust.training.main --cell ast+ft+pafa --seed 0"]
+    ps = ("python -m auscult_trust.training.main --cell ast+ft+ce --seed 1 --num_workers 4\n"
+          "python -m auscult_trust.training.main --cell ast+ft+pafa --seed 0 --num_workers 4\n")
     assert sum(sweep.mem_gb(c, 8.0) for c in jobs if sweep.running_elsewhere(c, ps)) == 18.0  # seed 12 is not seed 1
 
 
 def test_saved_job_lists_and_live_legacy_processes_are_supported():
-    old = "python -m src.training.patchmix_cl.main --cell beats+ft+pafa --seed 0"
+    old = "python -m auscult_trust.training.patchmix_cl.main --cell beats+ft+pafa --seed 0"
     current = sweep.training_command(old)
-    assert current == "python -m src.training.main --cell beats+ft+pafa --seed 0"
+    assert current == "python -m auscult_trust.training.main --cell beats+ft+pafa --seed 0"
     assert sweep.training_command(current) == current
     assert sweep.running_elsewhere(current, old)
 
@@ -42,13 +42,13 @@ def test_pipeline_waits_for_exports_and_reserves_inference_worker(tmp_path):
 
 
 def test_command_preserves_explicit_loader_workers():
-    explicit = 'python -m src.training.main --num_workers 0'
+    explicit = 'python -m auscult_trust.training.main --num_workers 0'
     assert sweep.with_loader_workers(explicit, 2) == explicit
     assert sweep.with_loader_workers('python train.py', 2).endswith('--num_workers 2')
 
 
 def test_cv_seed_identity_does_not_double_reserve_other_seed():
-    command = 'python -m src.training.main --cell arm --cv_folds 3 --cv_fold 0 --seed 0'
+    command = 'python -m auscult_trust.training.main --cell arm --cv_folds 3 --cv_fold 0 --seed 0'
     other = command.replace('--seed 0', '--seed 1')
     assert sweep.running_elsewhere(command, command)
     assert not sweep.running_elsewhere(other, command)
@@ -57,7 +57,7 @@ def test_cv_seed_identity_does_not_double_reserve_other_seed():
 def test_orphan_training_jobs_count_against_worker_limit_after_restart(tmp_path, monkeypatch):
     import sys
     import pytest
-    jobs = ['MEM_GB=10 python -m src.training.main --cell arm --seed ' + str(seed) for seed in range(3)]
+    jobs = ['MEM_GB=10 python -m auscult_trust.training.main --cell arm --seed ' + str(seed) for seed in range(3)]
     jobfile = tmp_path / 'jobs.txt'
     jobfile.write_text('\n'.join(jobs))
     monkeypatch.chdir(tmp_path)
@@ -83,7 +83,7 @@ def test_owned_training_job_is_not_double_counted_as_an_orphan(tmp_path, monkeyp
     import sys
     import pytest
     from types import SimpleNamespace
-    jobs = ['MEM_GB=10 python -m src.training.main --cell arm --seed ' + str(seed) for seed in range(3)]
+    jobs = ['MEM_GB=10 python -m auscult_trust.training.main --cell arm --seed ' + str(seed) for seed in range(3)]
     jobfile = tmp_path / 'jobs.txt'
     jobfile.write_text('\n'.join(jobs))
     monkeypatch.chdir(tmp_path)

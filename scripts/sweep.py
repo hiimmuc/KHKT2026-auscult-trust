@@ -68,7 +68,7 @@ def running_elsewhere(cmd, ps=None):
         return False
     flag = f"--cv_fold {fold.group(1)}" if fold and "--cv_folds" in cmd else f"--seed {seed.group(1) if seed else 0}"
     ps = ps_args() if ps is None else ps
-    entrypoints = ("src.training.main", "src.training.patchmix_cl.main", "scripts/improvement_unit.py")
+    entrypoints = ("auscult_trust.training.main", "auscult_trust.training.patchmix_cl.main", "scripts/improvement_unit.py")
     return any(any(entry in l for entry in entrypoints) and f"--cell {cell.group(1)} " in l
                and re.search(re.escape(flag) + r"( |$)", l)
                and (not fold or not seed or re.search(r'--seed ' + seed.group(1) + r'( |$)', l))
@@ -77,7 +77,7 @@ def running_elsewhere(cmd, ps=None):
 
 def training_command(command):
     """Run saved job lists through the current CLI without rewriting historical logs."""
-    return command.replace("-m src.training.patchmix_cl.main", "-m src.training.main")
+    return command.replace("-m auscult_trust.training.patchmix_cl.main", "-m auscult_trust.training.main")
 
 
 def admission_open(deadline, disk_gb, now=None):

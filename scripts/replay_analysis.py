@@ -41,13 +41,13 @@ import pandas as pd
 import torch
 from scipy.signal import butter, coherence, sosfiltfilt, welch
 
-from src.paths import CHECKPOINTS, DATA, OUTPUTS
-from src.processing.audio import SR, load_wav
-from src.processing.correction import _stft, apply_spectrum_correction, mean_spectrum, spectrum_coefficients
-from src.processing.cycles import cut_pad
-from src.processing.icbhi import DEVICES
-from src.training.config import load_args
-from src.inference.model import images_of, load_frozen, predict_images
+from auscult_trust.paths import CHECKPOINTS, DATA, OUTPUTS
+from auscult_trust.processing.audio import SR, load_wav
+from auscult_trust.processing.correction import _stft, apply_spectrum_correction, mean_spectrum, spectrum_coefficients
+from auscult_trust.processing.cycles import cut_pad
+from auscult_trust.processing.icbhi import DEVICES
+from auscult_trust.training.config import load_args
+from auscult_trust.inference.model import images_of, load_frozen, predict_images
 
 ICBHI = DATA / "raw" / "icbhi" / "ICBHI_final_database"
 MODELS = {
@@ -296,8 +296,8 @@ def main():
             images = images_of(flat, args)
             p = predict_images(images, model_nn, clf, method=args.method)
             # TTA-EQ (8 fixed-seed smooth gain views, 6 dB SD) on the denoised + SC replay cycles
-            from src.inference.adaptation import TTA_DB, TTA_SEED0, gain_curves
-            from src.models.encoders import get_encoder
+            from auscult_trust.inference.adaptation import TTA_DB, TTA_SEED0, gain_curves
+            from auscult_trust.models.encoders import get_encoder
             sd = TTA_DB * get_encoder(args.encoder).db_scale
             i, extra = 0, []
             for c, v, s, ws in batch:

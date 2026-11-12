@@ -19,13 +19,13 @@ import numpy as np
 import soundfile as sf
 import torch
 
-from src.evaluation.conformal import predict_sets
-from src.inference.model import images_of, load_frozen, predict_images
-from src.models.runtime import load_runtime
-from src.processing.correction import apply_spectrum_correction, mean_spectrum, spectrum_coefficients
-from src.processing.cycles import cut_pad, prepare_recording
-from src.artifacts import verify_file
-from src.paths import THIRD_PARTY
+from auscult_trust.evaluation.conformal import predict_sets
+from auscult_trust.inference.model import images_of, load_frozen, predict_images
+from auscult_trust.models.runtime import load_runtime
+from auscult_trust.processing.correction import apply_spectrum_correction, mean_spectrum, spectrum_coefficients
+from auscult_trust.processing.cycles import cut_pad, prepare_recording
+from auscult_trust.artifacts import verify_file
+from auscult_trust.paths import THIRD_PARTY
 
 SR, SEG_SEC = 16000, 8
 MIN_SEC, MAX_SEC = 2.0, 90.0

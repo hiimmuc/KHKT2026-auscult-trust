@@ -15,9 +15,9 @@ import torch
 from scipy.signal import resample_poly
 from math import gcd
 
-from src.paths import DATA, REPO
-from src.processing.cycles import cut_pad, prepare_recording
-from src.processing.icbhi import DEVICES
+from auscult_trust.paths import DATA, REPO
+from auscult_trust.processing.cycles import cut_pad, prepare_recording
+from auscult_trust.processing.icbhi import DEVICES
 
 
 def source_rows(data_folder):
@@ -98,7 +98,7 @@ def audit(data_folder, max_recordings=16):
 
 
 def validation_rows(rows, args):
-    from src.processing.splits import cv_split
+    from auscult_trust.processing.splits import cv_split
     if args.selection != "cv" or not args.cv_folds or args.test_fold != "official" or args.holdout_device:
         raise ValueError("requires an official-source patient-CV unit")
     train, val = cv_split(np.array([row["patient"] for row in rows]), np.array([row["device"] for row in rows]), args.cv_folds, args.cv_fold)
@@ -107,12 +107,12 @@ def validation_rows(rows, args):
 
 
 def compare_unit(unit, device="cpu"):
-    from src.training.config import load_args
-    from src.inference.model import load_frozen, images_of, predict_images
-    from src.processing.correction import apply_spectrum_correction
-    from src.evaluation.metrics import sp_se
-    from src.artifacts import sha256_file
-    from src.runs import twin_dir
+    from auscult_trust.training.config import load_args
+    from auscult_trust.inference.model import load_frozen, images_of, predict_images
+    from auscult_trust.processing.correction import apply_spectrum_correction
+    from auscult_trust.evaluation.metrics import sp_se
+    from auscult_trust.artifacts import sha256_file
+    from auscult_trust.runs import twin_dir
     args = load_args(unit)
     rows = validation_rows(source_rows(args.data_folder), args)
     checkpoint = twin_dir(unit, "checkpoints") / "best.pth"
@@ -171,8 +171,8 @@ def main():
         torch.backends.cudnn.allow_tf32 = False
     torch.set_num_threads(2)
     summary = audit(cli.data_folder, cli.max_recordings)
-    traced = ["experiments/train/grid/pafa_beats.yaml", "src/processing/cycles.py", "src/processing/audio.py",
-              "src/pipelines/screening_infer.py", "src/pipelines/kauh_infer.py"]
+    traced = ["experiments/train/grid/pafa_beats.yaml", "auscult_trust/processing/cycles.py", "auscult_trust/processing/audio.py",
+              "auscult_trust/pipelines/screening_infer.py", "auscult_trust/pipelines/kauh_infer.py"]
     summary["source_sha256"] = {name: hashlib.sha256((REPO / name).read_bytes()).hexdigest() for name in traced}
     summary["training_recipe_yaml"] = (REPO / traced[0]).read_text()
     effects = summary["effects"]

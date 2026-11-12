@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.training.config import parse_args
-from src.training.optim import warmup_learning_rate
+from auscult_trust.training.config import parse_args
+from auscult_trust.training.optim import warmup_learning_rate
 
 
 @pytest.mark.parametrize('extra, epoch, expected_lr', [

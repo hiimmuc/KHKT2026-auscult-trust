@@ -18,12 +18,12 @@ bash scripts/download_data.sh && python scripts/prepare_data.py
 
 # 3. Train one model: BEATs + PAFA baseline, official split, seed 0
 export RUN_ID=my-run PYTHONPATH=. C=experiments/train
-.venv-train/bin/python -m src.training.main \
+.venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
     --cell beats+ft+pafa --selection fixed --report_epochs 100 --seed 0
 
 # 4. Inference on the official test set
-.venv-train/bin/python -m src.training.export_probs outputs/train/$RUN_ID/beats+ft+pafa/seed0 --ckpt report_epoch_100.pth
+.venv-train/bin/python -m auscult_trust.training.export_probs outputs/train/$RUN_ID/beats+ft+pafa/seed0 --ckpt report_epoch_100.pth
 
 # 5. App: API on :8000, web on :5173
 uv pip install --python .venv-train/bin/python -r api/requirements.txt
@@ -52,10 +52,10 @@ PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 &
 
 | Path | Content |
 | --- | --- |
-| `src/processing/` | Audio, ICBHI/KAUH, patient splits, spectrum correction |
-| `src/training/` | Training loop, encoders (AST, BEATs, HTS-AT, OPERA-CT, DASS), methods, distillation |
-| `src/inference/` | Frozen prediction, test-time SC |
-| `src/evaluation/` | Metrics, conformal, LODO, KAUH, screening, ensembles |
+| `auscult_trust/processing/` | Audio, ICBHI/KAUH, patient splits, spectrum correction |
+| `auscult_trust/training/` | Training loop, encoders (AST, BEATs, HTS-AT, OPERA-CT, DASS), methods, distillation |
+| `auscult_trust/inference/` | Frozen prediction, test-time SC |
+| `auscult_trust/evaluation/` | Metrics, conformal, LODO, KAUH, screening, ensembles |
 | `experiments/train/` | YAML recipes, composed left to right |
 | `scripts/` | Grid, campaigns, frozen evaluation, ensembles, replay analysis |
 | `notebooks/` | Analysis of finished outputs |

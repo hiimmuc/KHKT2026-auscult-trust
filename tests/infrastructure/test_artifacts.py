@@ -1,16 +1,16 @@
-from src import provenance
+from auscult_trust import provenance
 import json
 
 import pytest
 
-from src import artifacts
+from auscult_trust import artifacts
 
 
 def test_artifact_primitives_do_not_import_run_or_model_modules():
     import subprocess
     import sys
-    subprocess.run([sys.executable, "-c", "import sys; import src.artifacts; "
-                    "assert not {'src.runs', 'src.provenance', 'torch'} & sys.modules.keys()"], check=True)
+    subprocess.run([sys.executable, "-c", "import sys; import auscult_trust.artifacts; "
+                    "assert not {'auscult_trust.runs', 'auscult_trust.provenance', 'torch'} & sys.modules.keys()"], check=True)
 
 
 def test_atomic_failure_preserves_previous_artifact(tmp_path):
@@ -41,7 +41,7 @@ def test_prediction_certificate_rejects_stale_inputs_and_modified_output(tmp_pat
 
 
 def test_fingerprint_tracks_data_sc_code_and_checkpoint(tmp_path, monkeypatch):
-    for name in ("repo/src", "refs", "data", "audio/audio_test_data", "unit"):
+    for name in ("repo/auscult_trust", "refs", "data", "audio/audio_test_data", "unit"):
         (tmp_path / name).mkdir(parents=True)
     monkeypatch.setattr(provenance, "REPO", tmp_path / "repo")
     monkeypatch.setattr(provenance, "THIRD_PARTY", tmp_path / "refs")
@@ -50,7 +50,7 @@ def test_fingerprint_tracks_data_sc_code_and_checkpoint(tmp_path, monkeypatch):
     unit, checkpoint = tmp_path / "unit", tmp_path / "model.pth"
     artifacts.atomic_json(unit / "train_args.json", {"data_folder": str(tmp_path / "audio"), "encoder": "beats"})
     files = [checkpoint, unit / "sc_state.npz", tmp_path / "audio/official_split.txt",
-             tmp_path / "audio/audio_test_data/a.wav", tmp_path / "repo/src/preprocess.py"]
+             tmp_path / "audio/audio_test_data/a.wav", tmp_path / "repo/auscult_trust/preprocess.py"]
     for path in files:
         path.write_bytes(b"original")
     original = provenance.prediction_inputs(unit, checkpoint, "screening", True)

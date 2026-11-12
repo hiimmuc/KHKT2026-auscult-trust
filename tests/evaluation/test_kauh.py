@@ -1,7 +1,7 @@
 import pytest
-from src.paths import DATA
-from src.processing.kauh import ORDERED_PAIRS, file_table, partitions, sound_label
-from src.processing.splits import assert_disjoint, split_frames
+from auscult_trust.paths import DATA
+from auscult_trust.processing.kauh import ORDERED_PAIRS, file_table, partitions, sound_label
+from auscult_trust.processing.splits import assert_disjoint, split_frames
 
 ROOT = str(DATA / "raw" / "kauh")
 
@@ -39,7 +39,7 @@ def test_real_table_and_partitions():
 
 @pytest.mark.skipif(not __import__("pathlib").Path(ROOT).exists(), reason="KAUH data not present")
 def test_windows_cover_recordings_and_keep_patient_groups():
-    from src.processing.kauh import windows
+    from auscult_trust.processing.kauh import windows
 
     df = file_table(ROOT)
     w = windows(df)
@@ -54,7 +54,7 @@ def test_windows_cover_recordings_and_keep_patient_groups():
 
 def test_rotation_partitions_each_patient_tested_once_and_disjoint():
     import pandas as pd
-    from src.processing.kauh import rotation_partitions
+    from auscult_trust.processing.kauh import rotation_partitions
 
     df = pd.DataFrame({"patient": [f"kauh_P{i}" for i in range(23) for _ in range(3)]})
     parts = rotation_partitions(df, 5)
@@ -72,7 +72,7 @@ def test_b2_identical_conditions_have_zero_paired_interval(tmp_path, monkeypatch
     import sys
     import json
     import numpy as np
-    from src.evaluation import kauh
+    from auscult_trust.evaluation import kauh
 
     rng = np.random.default_rng(5)
     patients = np.repeat(np.arange(12), 3)

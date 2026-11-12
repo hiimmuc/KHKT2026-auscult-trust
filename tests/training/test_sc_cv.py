@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import torch
 
-from src.processing import cycle_correction
-from src.training import dataset
+from auscult_trust.processing import cycle_correction
+from auscult_trust.training import dataset
 
 
 def make_dataset(selection='cv', profile='target'):
@@ -48,7 +48,7 @@ def test_fixed_sc_retains_full_training_pool(monkeypatch):
 
 
 def test_cv_sc_persists_validation_state_and_patient_boundary(tmp_path):
-    from src.training.main import save_sc_state
+    from auscult_trust.training.main import save_sc_state
     train = SimpleNamespace(sc={'reference': np.ones(513), 'device_spectra': {0: np.ones(513)},
         'coefficients': {0: np.ones(513)}, 'validation_spectra': {0: np.full(513, 2.)},
         'validation_coefficients': {0: np.full(513, .5)},

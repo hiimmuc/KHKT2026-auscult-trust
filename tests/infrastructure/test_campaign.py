@@ -12,7 +12,7 @@ spec.loader.exec_module(campaign)
 
 def test_job_identity_includes_run_cell_and_seed(tmp_path):
     jobs = tmp_path / 'jobs.txt'
-    jobs.write_text('RUN_ID=new MEM_GB=10 python -m src.training.main --cell ast+ft+pafa+sc --seed 12\n')
+    jobs.write_text('RUN_ID=new MEM_GB=10 python -m auscult_trust.training.main --cell ast+ft+pafa+sc --seed 12\n')
     assert campaign.identities(jobs) == [('new', 'ast+ft+pafa+sc', 'seed12')]
     jobs.write_text('python broken\n')
     with pytest.raises(ValueError, match='Invalid training job'):
@@ -55,7 +55,7 @@ def test_campaign_assignments_are_unique():
 def test_freeze_keeps_same_seed_cv_folds_as_distinct_units(tmp_path):
     jobs = tmp_path / 'jobs.txt'
     jobs.write_text(''.join(
-        f'RUN_ID=cv python -m src.training.main --cell {cell} --seed 0 --cv_folds 3 --cv_fold {fold}\n'
+        f'RUN_ID=cv python -m auscult_trust.training.main --cell {cell} --seed 0 --cv_folds 3 --cv_fold {fold}\n'
         for cell in ('pafa', 'pafa+warm5') for fold in range(3)))
     assert campaign.identities(jobs) == [
         ('cv', cell, f'cv{fold}') for cell in ('pafa', 'pafa+warm5') for fold in range(3)]
@@ -71,6 +71,6 @@ def test_freeze_keeps_same_seed_cv_folds_as_distinct_units(tmp_path):
 
 def test_cv_identity_uses_default_fold_and_zero_folds_stays_seed_unit(tmp_path):
     jobs = tmp_path / 'jobs.txt'
-    jobs.write_text('RUN_ID=cv python -m src.training.main --cell pafa --seed 2 --cv_folds 3\n'
-                    'RUN_ID=cv python -m src.training.main --cell pafa --seed 2 --cv_folds 0 --cv_fold 1\n')
+    jobs.write_text('RUN_ID=cv python -m auscult_trust.training.main --cell pafa --seed 2 --cv_folds 3\n'
+                    'RUN_ID=cv python -m auscult_trust.training.main --cell pafa --seed 2 --cv_folds 0 --cv_fold 1\n')
     assert campaign.identities(jobs) == [('cv', 'pafa', 'cv0'), ('cv', 'pafa', 'seed2')]

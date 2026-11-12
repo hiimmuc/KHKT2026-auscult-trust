@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.evaluation.ensemble_study import adaptation_split, average, k_for_rate, predict
+from auscult_trust.evaluation.ensemble_study import adaptation_split, average, k_for_rate, predict
 
 
 def test_adaptation_is_patient_disjoint_and_seeded():

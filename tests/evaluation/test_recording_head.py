@@ -5,8 +5,8 @@ import pytest
 import torch
 from torch import nn
 
-from src.pipelines.recording_head import recording_predictions
-from src.models.heads import RecordingClassifier
+from auscult_trust.pipelines.recording_head import recording_predictions
+from auscult_trust.models.heads import RecordingClassifier
 
 
 def classifier():

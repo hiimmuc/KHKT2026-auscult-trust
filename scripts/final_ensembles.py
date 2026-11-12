@@ -10,9 +10,9 @@ from pathlib import Path
 import numpy as np
 
 from final_evaluation import RUN, event, export_ok, run, sha
-from src.training.state import report_epoch
-from src.artifacts import file_hashes, atomic_npz, immutable_json
-from src.provenance import record_prediction
+from auscult_trust.training.state import report_epoch
+from auscult_trust.artifacts import file_hashes, atomic_npz, immutable_json
+from auscult_trust.provenance import record_prediction
 
 E1 = ["beats+ft+pafa", "beats+ft+sg_scl", "beats+ft+patchmix_cl"]
 E3 = ["htsat+ft+patchmix_cl", "htsat+ft+sg_scl"]
@@ -59,7 +59,7 @@ def main():
                     if not export_ok(out, ckpt_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset):
                         if cell == E1[0]:
                             raise RuntimeError("Run final_evaluation.py first: " + str(out))
-                        run(["-m", "src.pipelines." + module,
+                        run(["-m", "auscult_trust.pipelines." + module,
                              unit, "--ckpt", ckpt.name, "--out", out, *(["--sc"] if sc else [])])
                         export_ok(out, ckpt_sha, sc, unit=unit, checkpoint=ckpt, dataset=dataset)
                     paths[cell, dataset] = out
@@ -71,9 +71,9 @@ def main():
     for name in ("e1", "e1_e3"):
         kr = f"outputs/kauh/{RUN}/extensions/{name}"
         sr = f"outputs/screening/{RUN}/extensions/{name}"
-        run(["-m", "src.evaluation.kauh", "--dir", kr, "--base", "baseline", "--arms", "auscult",
+        run(["-m", "auscult_trust.evaluation.kauh", "--dir", kr, "--base", "baseline", "--arms", "auscult",
              "--boot", "1000", "--null_splits", "200"])
-        run(["-m", "src.evaluation.screening", "--dir", sr, "--kauh_dir", kr,
+        run(["-m", "auscult_trust.evaluation.screening", "--dir", sr, "--kauh_dir", kr,
              "--pairs", "baseline:baseline", "auscult:auscult"])
     event(status="extensions_complete", groups=["E1", "E1+E3"], rule="raw equal-weight mean softmax")
 

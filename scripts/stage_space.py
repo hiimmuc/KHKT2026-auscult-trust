@@ -2,7 +2,7 @@
 
     python scripts/stage_space.py
 
-build/space/    public Space repo: Dockerfile, requirements, src/, api/, and the reference code the model builds from.
+build/space/    public Space repo: Dockerfile, requirements, auscult_trust/, api/, and the reference code the model builds from.
 build/weights/  private model repo: checkpoints, BEATs pretrained weights, SC state and a manifest with relative paths.
                 Its tree mirrors the container's /app, so `snapshot_download(local_dir="/app")` puts every file in place.
 Demo sample WAVs (ICBHI recordings) stay out.
@@ -13,7 +13,7 @@ import os
 import shutil
 from pathlib import Path
 
-from src.paths import DATA, REPO, THIRD_PARTY
+from auscult_trust.paths import DATA, REPO, THIRD_PARTY
 
 REFERENCE_REPOS = ["PAFA", "ADD-RSC", "patch-mix_contrastive_learning", "QLung", "SG-SCL"]
 BEATS = "models/beats/BEATs_iter3_plus_AS2M.pt"
@@ -37,7 +37,7 @@ def main():
     space.mkdir(parents=True)
     for f in ("Dockerfile", "README.md", "requirements.txt", "entrypoint.sh"):
         shutil.copy2(REPO / "app/deploy/space" / f, space / f)
-    shutil.copytree(REPO / "src", space / "auscult-trust/src", ignore=IGNORE)
+    shutil.copytree(REPO / "auscult_trust", space / "auscult-trust/auscult_trust", ignore=IGNORE)
     shutil.copytree(REPO / "api", space / "auscult-trust/api", ignore=API_IGNORE)
     for r in REFERENCE_REPOS:
         shutil.copytree(THIRD_PARTY / r, space / "auscult-trust/third_party" / r, ignore=IGNORE)

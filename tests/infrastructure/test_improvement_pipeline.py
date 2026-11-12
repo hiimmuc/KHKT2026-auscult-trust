@@ -72,4 +72,4 @@ def test_final_report_rebases_collected_receipts_and_chains_analyses(tmp_path, m
     summary = json.loads((source / 'outputs/evaluation/final/summary.json').read_text())
     assert summary['cohorts']['Meditron']['gain_minus_control_ci'] == [0., 0.]
     assert (source / 'outputs/evaluation/final/complete.json').exists()
-    assert [c[2] for c in commands] == ['src.evaluation.kauh', 'src.evaluation.screening']
+    assert [c[2] for c in commands] == ['auscult_trust.evaluation.kauh', 'auscult_trust.evaluation.screening']

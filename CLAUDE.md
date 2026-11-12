@@ -32,7 +32,7 @@ One question: does spectrum correction (SC) let a benchmark-level lung-sound cla
 
 - Official 60/40 split, 4-class primary, 2-class view of the same predictions, Sp/Se/Score/HS per device and pooled, 5 seeds (0-4, same in every arm).
 - Arms: P0 Patch-Mix CL; P1 = P0 + SC (`--spectrum_correction`); P1+P3 = SC + random per-bin gain (6 dB SD); P4 Freq-MixStyle p = 0.5 (competitor). AuscultTrust = P1 or P1+P3 by mean 3-fold CV Score (tie: P1). v8 variants P2, P6, P7, P8, P9 are not candidates; report them in an appendix if run.
-- SC: STFT n_fft 1024, hop 512, 16 kHz; reference = arithmetic mean of training-device mean spectra; `sc_mode` (`--sc_mode`, `src/processing/correction.py:limit_coefficients`): `dynamic` (default) clips every bin to +-20 dB (4 kHz devices have no energy above 2 kHz); `static` leaves 50-2000 Hz unclipped, no-op outside. Not a reported ablation: at CV screening run both, keep the higher mean CV Score per SC arm, tie -> `dynamic`. Device from file name; target-device spectrum from unlabelled clips only.
+- SC: STFT n_fft 1024, hop 512, 16 kHz; reference = arithmetic mean of training-device mean spectra; `sc_mode` (`--sc_mode`, `auscult_trust/processing/correction.py:limit_coefficients`): `dynamic` (default) clips every bin to +-20 dB (4 kHz devices have no energy above 2 kHz); `static` leaves 50-2000 Hz unclipped, no-op outside. Not a reported ablation: at CV screening run both, keep the higher mean CV Score per SC arm, tie -> `dynamic`. Device from file name; target-device spectrum from unlabelled clips only.
 - Primary result: refit all four arms at their CV epoch (`--selection fixed`), seeds 0-4, test once; seeds 5-9 for P0 and AuscultTrust (gate G). Literature column: best epoch on test, labelled optimistic. Stage-1 SC estimates test-device spectra from unlabelled official-test clips (transductive, as in [3]).
 - Hand-off to Stage 2: frozen checkpoint + SHA-256, saved s_ref and coefficients, exported softmax (`export_probs.py`).
 
@@ -52,19 +52,19 @@ Arm names in code and configs: P0 = `baseline`, P1 = `sc`, P1+P3 = `sc_gain`, P4
 Two envs: analysis/tests `.venv` and training `.venv-train` (Python 3.10, `timm==0.4.5`). Data: `bash scripts/download_data.sh`, `python scripts/prepare_data.py`. Details: `docs/SETUP.md`, `docs/REPRODUCE.md`.
 
 - Tests: `uv run --no-project --python .venv/bin/python python -m pytest -q tests` (single: append `tests/training/test_training.py::test_summary_counts_match_metrics`).
-- Registered AST campaign (one `RUN_ID`): `bash scripts/run.sh screen|summary|final|report`. Grid, LODO, SC, ensembles, distillation, replay: `docs/REPRODUCE.md`. Same `RUN_ID` skips finished units and resumes interrupted ones from `last.pth`. One unit: `PYTHONPATH=. .venv-train/bin/python -m src.training.main --config experiments/train/base.yaml,experiments/train/<arm>.yaml [--cv_folds 3 --cv_fold k | --selection fixed --report_epochs E] --seed S`.
-- Freeze/export: `python -m src.training.export_probs <outputs unit dir> --ckpt report_epoch_<E>.pth` -> softmax, embeddings, `export/model.sha256`.
+- Registered AST campaign (one `RUN_ID`): `bash scripts/run.sh screen|summary|final|report`. Grid, LODO, SC, ensembles, distillation, replay: `docs/REPRODUCE.md`. Same `RUN_ID` skips finished units and resumes interrupted ones from `last.pth`. One unit: `PYTHONPATH=. .venv-train/bin/python -m auscult_trust.training.main --config experiments/train/base.yaml,experiments/train/<arm>.yaml [--cv_folds 3 --cv_fold k | --selection fixed --report_epochs E] --seed S`.
+- Freeze/export: `python -m auscult_trust.training.export_probs <outputs unit dir> --ckpt report_epoch_<E>.pth` -> softmax, embeddings, `export/model.sha256`.
 - Earlier-phase tools are in `../archive/auscult-trust-phase0`; code removed on 03/11/2026 is in git history (`git show d722ae8`).
 - CPU-heavy extraction: prefix `OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4`.
 
 ## Code map
 
-Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
+Run from repo root, imports are `auscult_trust.*` (`pyproject.toml` sets `pythonpath`).
 
-- `src/paths.py` (REPO, DATA = `AT_DATA` or `../data`, THIRD_PARTY = `third_party/`, OUTPUTS, CHECKPOINTS), `src/runs.py` (run directories `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`, `meta.json`, `twin_dir`). `src/artifacts.py` owns atomic writes and `sha256_file`; `src/provenance.py` owns environment and prediction certificates.
-- `src/models/` owns the networks: `encoders/`, `adapters.py`, prediction `heads.py` (training methods inherit the head of their name), `factory.py` and `upstream.py` (loader of `third_party/`). Training and inference both build models there; `src/inference/` never imports `src/training/` for networks.
-- `src/pipelines/` runs frozen models over datasets (KAUH, LODO test-time SC, ICBHI screening windows) and writes certified exports; `src/evaluation/` keeps metrics, conformal analysis and aggregation only. `src/processing/recordings.py` selects the recordings of a split, `cycle_correction.py` fits SC on a set of cycles, `src/training/cache.py` holds the spectrogram cache; `ICBHIDataset` only combines them, and `build_loaders` returns a `Loaders` tuple.
-- `src/processing/cycles.py` owns cycle preparation; `src/inference/` owns frozen prediction and test-time adaptation. API and experiment workflows use these shared modules; evaluation primitives belong in `src/evaluation/calibration.py`, `recordings.py`, and `metrics.py`.
+- `auscult_trust/paths.py` (REPO, DATA = `AT_DATA` or `../data`, THIRD_PARTY = `third_party/`, OUTPUTS, CHECKPOINTS), `auscult_trust/runs.py` (run directories `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`, `meta.json`, `twin_dir`). `auscult_trust/artifacts.py` owns atomic writes and `sha256_file`; `auscult_trust/provenance.py` owns environment and prediction certificates.
+- `auscult_trust/models/` owns the networks: `encoders/`, `adapters.py`, prediction `heads.py` (training methods inherit the head of their name), `factory.py` and `upstream.py` (loader of `third_party/`). Training and inference both build models there; `auscult_trust/inference/` never imports `auscult_trust/training/` for networks.
+- `auscult_trust/pipelines/` runs frozen models over datasets (KAUH, LODO test-time SC, ICBHI screening windows) and writes certified exports; `auscult_trust/evaluation/` keeps metrics, conformal analysis and aggregation only. `auscult_trust/processing/recordings.py` selects the recordings of a split, `cycle_correction.py` fits SC on a set of cycles, `auscult_trust/training/cache.py` holds the spectrogram cache; `ICBHIDataset` only combines them, and `build_loaders` returns a `Loaders` tuple.
+- `auscult_trust/processing/cycles.py` owns cycle preparation; `auscult_trust/inference/` owns frozen prediction and test-time adaptation. API and experiment workflows use these shared modules; evaluation primitives belong in `auscult_trust/evaluation/calibration.py`, `recordings.py`, and `metrics.py`.
 - Docstrings: Google style. Code, comments, scripts and configs are self-contained: no references to documents, versions, sections or stage numbers; plain names.
 
 ## Data tiers (hard rules)
@@ -92,7 +92,7 @@ Run from repo root, imports are `src.*` (`pyproject.toml` sets `pythonpath`).
 
 ## Working conventions
 
-- `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`src/models/upstream.py`).
+- `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`auscult_trust/models/upstream.py`).
 - Docs: results in `report.md`, detail in `docs/reports/`, handoff in `docs/handoff/` (written when a session runs out of context), registered documents in `docs/registered/`, plans in `docs/plans/`, decisions in `docs/decision-logs/`.
 - Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
 - Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../docs`.

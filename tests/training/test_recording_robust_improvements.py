@@ -7,12 +7,12 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, Subset
 
-from src.training.device_augment import band_noise, DeviceAugmentedCycles
-from src.training.methods.base import Batch, StepContext
-from src.models.heads import RecordingClassifier
-from src.training.methods.recording_pafa import Method
-from src.training.methods.device_pafa import Method as DeviceMethod
-from src.training.recording_bags import RecordingBags, predict_recording, evaluate_recordings
+from auscult_trust.training.device_augment import band_noise, DeviceAugmentedCycles
+from auscult_trust.training.methods.base import Batch, StepContext
+from auscult_trust.models.heads import RecordingClassifier
+from auscult_trust.training.methods.recording_pafa import Method
+from auscult_trust.training.methods.device_pafa import Method as DeviceMethod
+from auscult_trust.training.recording_bags import RecordingBags, predict_recording, evaluate_recordings
 
 
 class Cycles(Dataset):
@@ -99,7 +99,7 @@ def test_joint_objective_trains_shared_encoder_and_both_heads():
 
 
 def test_recording_validation_rejects_training_patient_overlap(monkeypatch):
-    monkeypatch.setattr('src.training.recording_bags.cycle_recordings', lambda _: IDS)
+    monkeypatch.setattr('auscult_trust.training.recording_bags.cycle_recordings', lambda _: IDS)
     head = RecordingClassifier(nn.Linear(3, 4), 3)
     with pytest.raises(ValueError, match='overlap'):
         evaluate_recordings(Subset(Cycles(), [0, 1]), context(head).model, head,
@@ -140,7 +140,7 @@ def test_device_consistency_has_finite_shared_encoder_gradient():
 
 
 def test_device_wrapper_preserves_subset_and_raw_cycle_labels(monkeypatch):
-    monkeypatch.setattr('src.processing.cycles.read_annotations', lambda _: {key: [0, 1] for key in ['a', 'b', 'c']})
+    monkeypatch.setattr('auscult_trust.processing.cycles.read_annotations', lambda _: {key: [0, 1] for key in ['a', 'b', 'c']})
     args = SimpleNamespace(data_folder='unused', sample_rate=16000, device_augment_prob=1.,
                            device_rate_low=4000, device_rate_high=8000,
                            device_snr_low=20., device_snr_high=35., random_gain_db=0.)
@@ -153,7 +153,7 @@ def test_device_wrapper_preserves_subset_and_raw_cycle_labels(monkeypatch):
 
 
 def test_recording_validation_cycle_baseline_is_explicit(monkeypatch):
-    monkeypatch.setattr('src.training.recording_bags.cycle_recordings', lambda _: IDS)
+    monkeypatch.setattr('auscult_trust.training.recording_bags.cycle_recordings', lambda _: IDS)
     model = nn.Sequential(nn.Flatten(), nn.Linear(4, 3))
     head = nn.Linear(3, 4)
     with torch.no_grad():

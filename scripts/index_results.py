@@ -5,7 +5,7 @@
 import csv
 import json
 
-from src.paths import CHECKPOINTS, OUTPUTS
+from auscult_trust.paths import CHECKPOINTS, OUTPUTS
 
 
 def row(unit):

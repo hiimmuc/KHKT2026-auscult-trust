@@ -4,12 +4,12 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 
-from src.training.config import parse_args
-from src.training.methods import qlung
+from auscult_trust.training.config import parse_args
+from auscult_trust.training.methods import qlung
 
 
 def test_silent_quality_fallback_and_cache(tmp_path, monkeypatch):
-    from src.processing import cycles
+    from auscult_trust.processing import cycles
     dataset = SimpleNamespace(args=parse_args(["--method", "qlung"]), split="train", filenames=["silent"], labels=[0])
     reference = SimpleNamespace(compute_spectral_entropy=lambda _: float("nan"), compute_rms_energy=lambda _: 0,
                                 compute_quality_score_entropy_rms=lambda e, r, **kw: e)

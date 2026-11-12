@@ -1,6 +1,6 @@
 import pytest
 
-from src.training.config import parse_args
+from auscult_trust.training.config import parse_args
 
 C = "experiments/train/"
 

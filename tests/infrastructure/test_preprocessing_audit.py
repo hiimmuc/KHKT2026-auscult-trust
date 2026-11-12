@@ -7,7 +7,7 @@ import soundfile as sf
 import torch
 
 from scripts.preprocessing_audit import audit, energy, prepare_variant, recording_windows, source_rows, validation_rows
-from src.processing.cycles import cut_pad, individual_cycles
+from auscult_trust.processing.cycles import cut_pad, individual_cycles
 
 
 @pytest.mark.parametrize("sr", [4000, 16000, 44100])

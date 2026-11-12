@@ -4,12 +4,12 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from src import provenance
-from src.inference import adaptation
+from auscult_trust import provenance
+from auscult_trust.inference import adaptation
 
 
 def test_source_statistics_are_unit_scoped_and_reject_stale_inputs(tmp_path, monkeypatch):
-    from src.training import dataset
+    from auscult_trust.training import dataset
     images = np.arange(48, dtype=np.float32).reshape(2, 4, 6, 1)
     calls = []
     def build_dataset(train, transform, args, print_flag):

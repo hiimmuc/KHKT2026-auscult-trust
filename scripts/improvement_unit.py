@@ -6,9 +6,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src import runs
-from src.artifacts import atomic_json, file_hashes, sha256_file, verify_file
-from src.training.config import parse_args
+from auscult_trust import runs
+from auscult_trust.artifacts import atomic_json, file_hashes, sha256_file, verify_file
+from auscult_trust.training.config import parse_args
 
 
 def checked_step(command, outputs, checkpoint_sha, receipt):
@@ -33,17 +33,17 @@ def main():
     marker = out / 'pipeline-complete.json'
     if Path(os.environ['PIPELINE_DONE']).resolve() != marker.resolve():
         raise ValueError('Pipeline marker does not match this training unit')
-    subprocess.run([sys.executable, '-u', '-m', 'src.training.main', *sys.argv[1:]], check=True)
+    subprocess.run([sys.executable, '-u', '-m', 'auscult_trust.training.main', *sys.argv[1:]], check=True)
     checkpoint_sha = sha256_file(checkpoint)
     outputs = [out / name for name in ('train_args.json', 'report.json', 'test_preds.npz', 'sc_state.npz')]
     if args.holdout_device:
         outputs.append(out / 'cal_preds.npz')
     else:
         cycle = out / 'export/test.npz'
-        checked_step([sys.executable, '-m', 'src.training.export_probs', str(out), '--ckpt', checkpoint.name,
+        checked_step([sys.executable, '-m', 'auscult_trust.training.export_probs', str(out), '--ckpt', checkpoint.name,
                       '--num_workers', '0'], [cycle, out / 'export/model.sha256'], checkpoint_sha, out / 'cycle-export.complete.json')
         outputs += [cycle, out / 'export/model.sha256']
-        for name, command in [('screening', ['src.pipelines.screening_infer']), ('kauh', ['src.pipelines.kauh_infer'])]:
+        for name, command in [('screening', ['auscult_trust.pipelines.screening_infer']), ('kauh', ['auscult_trust.pipelines.kauh_infer'])]:
             prediction = out / (name + '.npz')
             checked_step([sys.executable, '-m', *command, str(out), '--ckpt', checkpoint.name,
                           '--out', str(prediction), '--sc'], [prediction], checkpoint_sha, out / (name + '.complete.json'))

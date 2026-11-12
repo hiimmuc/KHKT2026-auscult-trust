@@ -11,9 +11,9 @@ import subprocess
 
 import numpy as np
 from scripts.eval_log import logger
-from src.artifacts import sha256_file as sha
-from src.artifacts import immutable_json
-from src.provenance import prediction_inputs, verify_prediction, environment
+from auscult_trust.artifacts import sha256_file as sha
+from auscult_trust.artifacts import immutable_json
+from auscult_trust.provenance import prediction_inputs, verify_prediction, environment
 
 RUN = os.environ.get("AT_EVAL_RUN", "final-pafa-static")
 LOG = Path("logs") / RUN
@@ -50,8 +50,8 @@ def main():
           git_head=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
           script_sha256=sha(__file__))
     # Record the exact evaluation inputs, including all audio and labels used downstream.
-    from src.paths import DATA
-    from src.training.config import load_args
+    from auscult_trust.paths import DATA
+    from auscult_trust.training.config import load_args
     data_files = sorted((DATA / "raw/kauh").rglob("*"))
     args = load_args(BASE / "seed0")
     folder = Path(args.data_folder)
@@ -84,7 +84,7 @@ def main():
             event(status="frozen", condition=name, seed=seed, checkpoint_sha256=checkpoint_sha)
             export = unit / "export"
             if not (export / "test.npz").exists():
-                run(["-m", "src.training.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
+                run(["-m", "auscult_trust.training.export_probs", unit, "--ckpt", checkpoint.name, "--num_workers", "0"])
             verify_prediction(export / "test.npz", prediction_inputs(unit, checkpoint, "cycles", sc,
                               options={"sc_test_profile": None}))
             if (export / "model.sha256").read_text().split()[0] != checkpoint_sha:
@@ -92,7 +92,7 @@ def main():
             for dataset, module in (("screening", "screening_infer"), ("kauh", "kauh_infer")):
                 out = Path("outputs") / dataset / RUN / name / f"seed{seed}.npz"
                 if not export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset):
-                    run(["-m", "src.pipelines." + module,
+                    run(["-m", "auscult_trust.pipelines." + module,
                          unit, "--ckpt", checkpoint.name, "--out", out, *(["--sc"] if sc else [])])
                     export_ok(out, checkpoint_sha, sc, unit=unit, checkpoint=checkpoint, dataset=dataset)
         # Isolation contrast: baseline weights with static SC from the corresponding SC run.
@@ -100,12 +100,12 @@ def main():
         checkpoint = Path(str(unit).replace("outputs/", "checkpoints/", 1)) / "report_epoch_100.pth"
         out = Path("outputs/kauh") / RUN / "baseline_ttsc" / f"seed{seed}.npz"
         if not export_ok(out, sha(checkpoint), True, unit=unit, checkpoint=checkpoint, dataset="kauh", sc_unit=sc_unit):
-            run(["-m", "src.pipelines.kauh_infer", unit, "--ckpt", checkpoint.name, "--out", out,
+            run(["-m", "auscult_trust.pipelines.kauh_infer", unit, "--ckpt", checkpoint.name, "--out", out,
                  "--sc", "--sc_state", sc_unit / "sc_state.npz", "--sc_args", sc_unit / "train_args.json"])
             export_ok(out, sha(checkpoint), True, unit=unit, checkpoint=checkpoint, dataset="kauh", sc_unit=sc_unit)
-    run(["-m", "src.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
+    run(["-m", "auscult_trust.evaluation.kauh", "--dir", f"outputs/kauh/{RUN}", "--base", "baseline",
          "--arms", "auscult", "baseline_ttsc", "--boot", "1000", "--null_splits", "200"])
-    run(["-m", "src.evaluation.screening", "--dir", f"outputs/screening/{RUN}",
+    run(["-m", "auscult_trust.evaluation.screening", "--dir", f"outputs/screening/{RUN}",
          "--kauh_dir", f"outputs/kauh/{RUN}", "--pairs", "baseline:baseline", "baseline:baseline_ttsc", "auscult:auscult"])
     run(["-m", "api.bundle", "--out", f"app/bundle-{RUN}"])
     event(status="campaign_complete", run=RUN)

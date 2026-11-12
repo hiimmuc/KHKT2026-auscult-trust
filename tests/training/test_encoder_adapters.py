@@ -3,7 +3,7 @@ import pytest
 import torch
 from torch import nn
 
-from src.models.adapters import LoRALinear, apply_lora, multiscale_features
+from auscult_trust.models.adapters import LoRALinear, apply_lora, multiscale_features
 
 
 def test_lora_starts_identical_and_trains_only_adapter():

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from scripts import improvement_campaign as campaign
-from src.artifacts import atomic_json, sha256_file
+from auscult_trust.artifacts import atomic_json, sha256_file
 
 
 def curve(value=60.0, epoch=7, recording=None):
@@ -171,7 +171,7 @@ def test_launch_uses_persistent_services_without_training_in_test(tmp_path, monk
 def test_compatible_stack_preserves_every_effective_recipe_option(tmp_path):
     import itertools
     import shlex
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     state = spec(tmp_path)
     for size in (2, 3):
         for members in itertools.combinations(campaign.ARMS, size):
@@ -202,7 +202,7 @@ def test_incompatible_objectives_and_recording_patient_cap_are_never_stacked():
 
 def test_final_fit_stops_at_source_epoch_without_shortening_cosine_horizon(tmp_path):
     import shlex
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     state = spec(tmp_path)
     job = campaign.final_jobs({'llrd': 17})[0]
     words = shlex.split(campaign.command(state, job))
@@ -227,7 +227,7 @@ def test_recording_report_keeps_learned_head_separate_from_cycle_controls(tmp_pa
 
 
 def test_source_curve_accepts_real_history_json_schema():
-    from src.training.main import history_json
+    from auscult_trust.training.main import history_json
     raw = []
     for epoch in range(1, 101):
         raw.append({'epoch': epoch, 'train_acc': 1, 'train_loss': 2,
@@ -277,8 +277,8 @@ def test_new_phase_skips_low_disk_workers(tmp_path):
 
 
 def test_true_head_triage_calibrates_on_source_patients_and_transfers_same_threshold(tmp_path, monkeypatch):
-    from src.processing import splits
-    from src.evaluation import screening
+    from auscult_trust.processing import splits
+    from auscult_trust.evaluation import screening
     source = tmp_path / 'source.npz'
     target = tmp_path / 'target.npz'
     np.savez(source, stem=['r0', 'r1'], patient=['a', 'b'], label=[0, 1], device=[0, 0],
@@ -305,7 +305,7 @@ def test_true_head_triage_calibrates_on_source_patients_and_transfers_same_thres
 
 
 def test_source_completion_requires_oof_and_hash_verified_best_checkpoint(tmp_path):
-    from src.artifacts import atomic_json, sha256_file
+    from auscult_trust.artifacts import atomic_json, sha256_file
     state = spec(tmp_path)
     job = campaign.cv_jobs(['anchor'], [0])[0]
     job['machine'] = 'A'
@@ -331,7 +331,7 @@ def test_source_completion_requires_oof_and_hash_verified_best_checkpoint(tmp_pa
 
 
 def test_deadline_never_launches_new_training(tmp_path, monkeypatch):
-    from src.artifacts import atomic_json
+    from auscult_trust.artifacts import atomic_json
     state = spec(tmp_path)
     state['machines'] = {'A': {'local': True}}
     state.update(source_hashes={}, deadline='2000-01-01T00:00:00+00:00')
@@ -349,7 +349,7 @@ def test_source_preprocessing_audit_is_persistent_cpu_only_and_idempotent(tmp_pa
     state = spec(tmp_path)
     state.update(data='/source-data')
     job = campaign.cv_jobs(['anchor'], [0])[0]
-    from src.artifacts import atomic_json
+    from auscult_trust.artifacts import atomic_json
     atomic_json(campaign.unit_path(state, job) / 'collected-checkpoint.json', {'sha256': 'certified'})
     monkeypatch.setattr(campaign.Path, 'home', lambda: tmp_path / 'home')
     calls = []
@@ -366,7 +366,7 @@ def test_source_preprocessing_audit_is_persistent_cpu_only_and_idempotent(tmp_pa
 
 
 def test_final_completion_waits_for_all_three_verified_source_audits(tmp_path, monkeypatch):
-    from src.artifacts import atomic_json
+    from auscult_trust.artifacts import atomic_json
     state = spec(tmp_path)
     state.update(source_hashes={}, phase='complete_no_survivors', audits={}, screen_results={})
     manifest = tmp_path / 'logs' / campaign.NAME / 'programme.json'
@@ -510,7 +510,7 @@ def test_phase_rejects_invalid_throughput_weights(tmp_path):
 
 def test_optional_recording_refinement_uses_original_overlay_and_only_changes_pcsl(tmp_path):
     import shlex
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     state = spec(tmp_path)
     for arm, stack in [('recording_head_pcsl0', []), ('stack', ['llrd', 'recording_head_pcsl0'])]:
         state['stack'] = stack
@@ -726,7 +726,7 @@ def test_low_disk_reclamation_verifies_a_and_b_then_uses_f_only_remote_guard(tmp
 
 def test_future_queue_reservations_match_measured_normal_and_consistency_peaks(tmp_path):
     import shlex
-    from src.training.config import parse_args
+    from auscult_trust.training.config import parse_args
     from scripts.sweep import mem_gb
     state = spec(tmp_path)
     for arm in ['anchor', *campaign.ARMS, 'recording_head_pcsl0']:

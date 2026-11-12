@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 import torch
 
-from src.training.config import parse_args
+from auscult_trust.training.config import parse_args
 
 CONFIG = 'experiments/train/base.yaml,experiments/train/encoder_beats.yaml,experiments/train/grid/pafa_beats.yaml,experiments/train/sc.yaml,experiments/train/sc_static.yaml,experiments/train/sc_gain.yaml'
 
 
 def test_cv_never_constructs_official_test(monkeypatch):
-    from src.training import dataset
+    from auscult_trust.training import dataset
     seen = []
     class Source(torch.utils.data.Dataset):
         def __init__(self, train_flag, transform, args, **kwargs):
@@ -43,7 +43,7 @@ def test_invalid_combinations_rejected():
 
 
 def test_export_pools_embeddings_without_changing_token_classification(monkeypatch):
-    from src.training.export_probs import run
+    from auscult_trust.training.export_probs import run
     monkeypatch.setattr(torch.Tensor, 'cuda', lambda self, **kwargs: self)
     class Encoder(torch.nn.Module):
         def forward(self, images):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.processing.correction import (apply_spectrum_correction, isa_match, limit_coefficients, logmel_stats,
+from auscult_trust.processing.correction import (apply_spectrum_correction, isa_match, limit_coefficients, logmel_stats,
                                   mean_spectrum, random_bin_gain, spectrum_coefficients)
 
 
@@ -68,7 +68,7 @@ def test_static_sc_mode_is_a_no_op_outside_the_band():
 def test_torch_sc_matches_librosa():
     import torch
 
-    from src.processing.correction import (
+    from auscult_trust.processing.correction import (
         apply_spectrum_correction,
         apply_spectrum_correction_torch,
         clip_spectra_torch,

@@ -8,10 +8,10 @@ import pytest
 import torch
 from torch import nn
 
-from src.inference.model import load_frozen, predict_images
-from src.training.config import parse_args
-from src.training.methods import get_method
-from src.models.factory import build_inference_model
+from auscult_trust.inference.model import load_frozen, predict_images
+from auscult_trust.training.config import parse_args
+from auscult_trust.training.methods import get_method
+from auscult_trust.models.factory import build_inference_model
 
 
 class Encoder(nn.Module):
@@ -28,8 +28,8 @@ class Encoder(nn.Module):
 
 @pytest.mark.parametrize("method", ["ce", "ce_pafa", "pcmcl", "qlung"])
 def test_frozen_checkpoint_matches_direct_prediction_without_training_components(tmp_path, monkeypatch, method):
-    from src.models import factory
-    from src.training import modeling
+    from auscult_trust.models import factory
+    from auscult_trust.training import modeling
     args = parse_args(["--method", method])
     spec = SimpleNamespace(build=lambda _: Encoder(), image_shape=(16, 32))
     monkeypatch.setattr(factory, "get_encoder", lambda _: spec)
@@ -65,6 +65,6 @@ tensor_cuda, module_cuda = torch.Tensor.cuda, torch.nn.Module.cuda
 import api.engine
 assert torch.Tensor.cuda is tensor_cuda
 assert torch.nn.Module.cuda is module_cuda
-assert not {'src.pipelines.kauh_infer', 'src.pipelines.lodo_ttsc',
-            'src.evaluation.screening'} & sys.modules.keys()
+assert not {'auscult_trust.pipelines.kauh_infer', 'auscult_trust.pipelines.lodo_ttsc',
+            'auscult_trust.evaluation.screening'} & sys.modules.keys()
 """], check=True)

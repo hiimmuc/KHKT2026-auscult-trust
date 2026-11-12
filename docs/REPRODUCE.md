@@ -18,7 +18,7 @@ One unit:
 
 ```bash
 C=experiments/train
-$PY -m src.training.main --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
+$PY -m auscult_trust.training.main --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
     --cell beats+ft+pafa --selection fixed --report_epochs 100 --seed 0
 ```
 
@@ -37,16 +37,16 @@ $PY scripts/lodo_tables.py > lodo_tables.md
 Add `$C/sc.yaml,$C/sc_static.yaml` (static bound) or `$C/sc.yaml` (dynamic) to any cell, official split or LODO.
 
 ```bash
-$PY -m src.training.main --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/sc.yaml,$C/sc_static.yaml \
+$PY -m auscult_trust.training.main --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml,$C/sc.yaml,$C/sc_static.yaml \
     --cell beats+ft+pafa+sc+sc_static --selection fixed --report_epochs 100 --seed 0
 ```
 
 ## 4. SC at inference
 
 ```bash
-bash scripts/run_lodo_infer.sh        # test-time SC, A2, TTA-EQ on trained LODO units (src/pipelines/lodo_ttsc.py)
+bash scripts/run_lodo_infer.sh        # test-time SC, A2, TTA-EQ on trained LODO units (auscult_trust/pipelines/lodo_ttsc.py)
 bash scripts/run_kauh.sh              # KAUH filter pairs with frozen models
-$PY -m src.training.export_probs outputs/train/<run>/<cell>/seed0 --ckpt report_epoch_<E>.pth   # freeze: softmax + model.sha256
+$PY -m auscult_trust.training.export_probs outputs/train/<run>/<cell>/seed0 --ckpt report_epoch_<E>.pth   # freeze: softmax + model.sha256
 $PY scripts/final_evaluation.py       # frozen baseline vs SC evaluation: KAUH A/B2/B1, screening
 ```
 

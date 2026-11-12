@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 
-from src.evaluation import lodo
+from auscult_trust.evaluation import lodo
 
 
 def _write_unit(root, cell, seed, shift, rng):

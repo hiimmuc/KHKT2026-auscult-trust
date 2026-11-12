@@ -31,22 +31,22 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src import runs, artifacts
-from src.artifacts import atomic_json, atomic_npz
-from src.provenance import prediction_inputs, verify_prediction
-from src.paths import REPO, THIRD_PARTY
-from src.evaluation.conformal import lac_scores, split_threshold
-from src.training.config import load_args
-from src.inference.model import load_frozen
-from src.models.runtime import runtime_config
-from src.training.state import report_epoch
-from src.evaluation.calibration import ALPHA
-from src.evaluation.recordings import icbhi_recordings
-from src.processing.icbhi import CLASSES, DEVICES, cycle_table
-from src.processing.splits import calibration_eval_splits
-from src.processing.splits import both_sides_patients
+from auscult_trust import runs, artifacts
+from auscult_trust.artifacts import atomic_json, atomic_npz
+from auscult_trust.provenance import prediction_inputs, verify_prediction
+from auscult_trust.paths import REPO, THIRD_PARTY
+from auscult_trust.evaluation.conformal import lac_scores, split_threshold
+from auscult_trust.training.config import load_args
+from auscult_trust.inference.model import load_frozen
+from auscult_trust.models.runtime import runtime_config
+from auscult_trust.training.state import report_epoch
+from auscult_trust.evaluation.calibration import ALPHA
+from auscult_trust.evaluation.recordings import icbhi_recordings
+from auscult_trust.processing.icbhi import CLASSES, DEVICES, cycle_table
+from auscult_trust.processing.splits import calibration_eval_splits
+from auscult_trust.processing.splits import both_sides_patients
 
-# (unit, screening export from `src.pipelines.screening_infer`, label); BEATs + PAFA with and without static SC.
+# (unit, screening export from `auscult_trust.pipelines.screening_infer`, label); BEATs + PAFA with and without static SC.
 # The AST units (screen-ast/sc+sc_static, screen-ast/baseline) fit too once their weights are on disk.
 PIPELINES = {
     "auscult": ("outputs/train/lodo-v1/beats+ft+pafa+sc+sc_static/seed0", "outputs/screening/final-pafa-static/auscult/seed0.npz",

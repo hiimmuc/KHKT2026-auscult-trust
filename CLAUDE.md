@@ -94,7 +94,7 @@ Run from repo root, imports are `auscult_trust.*` (`pyproject.toml` sets `python
 
 - `third_party/*` is vendored upstream code, byte-identical to the pinned commits in `third_party/SOURCES.json` (hashed by certificates and bundles). Never edit it; load it by path (`auscult_trust/models/upstream.py`).
 - Docs: results in `report.md`, detail in `docs/reports/`, handoff in `docs/handoff/` (written when a session runs out of context), registered documents in `docs/registered/`, plans in `docs/plans/`, decisions in `docs/decision-logs/`.
-- Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config.
+- Results: `outputs|checkpoints/<exp>/<run_id>/<cell>/<unit>/`; `<exp>` = `train`, `<cell>` = variant (config stems joined by `+`, no `base`), `<unit>` = `cv<k>` or `seed<s>`, `run_id` = `YYYYMMDD-HHMMSS[_$RUN_TAG]` or a `RUN_ID` set to resume one campaign. Never write elsewhere, never reuse a unit with another config. Finished runs are grouped by plan stage in the store (`<kind>/<stage>/<run_id>/...`, see `LAYOUT.md` in `/storage/hdd/disk0/namdp15/auscult-trust-A/`); `<kind>/train/<run_id>` stays as a link to the stage folder, because certificates record those paths.
 - Frozen Phase 0 code lives in `../archive`; the wrapper holds `../data`, `../docs`.
 - Install a missing package before reaching for a workaround.
 - Simplest change that works. No speculative abstractions.

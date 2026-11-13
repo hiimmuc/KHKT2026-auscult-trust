@@ -13,6 +13,8 @@ __pycache__/
 outputs/
 /outputs
 /checkpoints
+/build
+/logs
 logs/
 *.log
 # data lives in ../data (or $AT_DATA); only the README is tracked

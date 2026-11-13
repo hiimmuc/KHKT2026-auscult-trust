@@ -5,9 +5,9 @@ State of the repo after the consolidation of 03/11/2026. Read `../../report.md`,
 ## Done
 
 - Every training campaign is finished; results are consolidated on this machine (`outputs/train/<run>/<cell>/<unit>/`, index `outputs/index.csv`).
-- Checkpoints kept: final / report-epoch units of `grid-v1`, `lodo-v1`, `lodo-ast`, `lodo-bench`, `pcmcl-v1`, `sc-dynamic-completion-20261024`, `followup-20261026-final`, `target-20261027-final`, `distill-20261028-final`, `student-final-20261029-final`. Source-CV (`cv*`) checkpoints stay on the training machines and in `/storage/hdd/disk0/namdp15/auscult-remote-mirror/`.
+- Checkpoints kept: final / report-epoch units of `grid-v1`, `lodo-v1`, `lodo-ast`, `lodo-bench`, `pcmcl-v1`, `sc-dynamic-completion-20261024`, `followup-20261026-final`, `target-20261027-final`, `distill-20261028-final`, `student-final-20261029-final`. Source-CV (`cv*`) checkpoints stay on the training machines and in `/storage/hdd/disk0/namdp15/auscult-trust-A/mirror/`.
 - Code reduced to what reproduces the plan: grid, LODO, SC (train and inference), ensembles, distillation, replay, analysis notebooks, app. Removed: CLAP/HeAR encoders, noise-training arm, layer/device probes, SNR stress, grid-rerun and queue tooling, combo/fivefold/next campaigns.
-- Archived (not deleted) at `/storage/hdd/disk0/namdp15/auscult-trust-archive/`: old outputs and checkpoints, campaign snapshots, ladders, old app bundles, removed docs.
+- Archived (not deleted) at `/storage/hdd/disk0/namdp15/auscult-trust-A/archive/`: old outputs and checkpoints, campaign snapshots, ladders, old app bundles, removed docs.
 
 ## Open
 
@@ -21,3 +21,7 @@ State of the repo after the consolidation of 03/11/2026. Read `../../report.md`,
 
 - Never `pkill -f` / `pgrep -f` with a pattern that appears in your own command line: it kills the shell. Kill by PID.
 - Do not run an unknown script with `--help`: `scripts/final_evaluation*.py` have no argument parser and start a run.
+
+## Storage (12/11/2026)
+
+`outputs/`, `checkpoints/`, `build/` and `logs/` are links into `/storage/hdd/disk0/namdp15/auscult-trust-A/`, next to `mirror/` and `archive/`. Runs sit in stage folders (`LAYOUT.md`); `train/<run>` links keep old paths valid. Checkpoints of `lodo-v1`, `lodo-ast`, `lodo-bench` and `pcmcl-v1` were pruned except the units that certificates, the serving bundle and the distillation chain reference (list: `PRUNE-20261112-checkpoints.tsv`).

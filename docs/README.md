@@ -14,4 +14,4 @@ Names: `YYYY-MM-DD-topic.md`, lower-case kebab-case. New results go into `../rep
 Claims carry a tag: [Fact], [Interpretation], [Assumption], [Pending].
 
 Removed material (phase-0 ladders, audits, stage-12 trial reports, older decision logs and handoffs) is archived outside the repo at
-`/storage/hdd/disk0/namdp15/auscult-trust-archive/`; git history holds the tracked files.
+`/storage/hdd/disk0/namdp15/auscult-trust-A/archive/`; git history holds the tracked files.

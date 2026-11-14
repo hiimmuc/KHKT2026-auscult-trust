@@ -41,6 +41,8 @@ Verified on Linux (Ubuntu, NVIDIA RTX 5000 Ada, Python 3.10.12):
 | `scripts/validate.sh` (pip check, tests, web audit and build) | exit 0 |
 | `colab_quickstart.ipynb` executed end to end on a clean copy of the tree (installs, data, tests, 1 training epoch, export), CPU override | 0 error outputs; test Score 34.00 after 1 epoch (smoke value, not a result) |
 
+In the extracted archive (no data, no outputs) the suite gives 302 passed, 4 skipped, and 319 passed, 4 skipped with the API contract. The skips need the KAUH data, the campaign lists or a finished grid unit.
+
 Not verified: Windows (no Windows machine here; the Windows commands are written from the lock files and the code paths), Colab (the notebook was executed locally, not in a Colab session), the GPU run of the notebook (the GPU was occupied by another process during testing: a 28 GB vLLM engine, which the notebook's CUDA run ran out of memory against).
 
 ## Known limits

@@ -51,6 +51,7 @@ from auscult_trust.training.reporting import per_device_report
 from auscult_trust.training.state import report_epoch
 
 BATCH = 64
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class Pipeline:
@@ -73,7 +74,7 @@ class Pipeline:
         self.clip_spec = np.zeros((len(self.waves), 513))
         for i in range(0, len(self.used), 256):
             j = self.used[i : i + 256]
-            self.clip_spec[j] = clip_spectra_torch(self.waves[j].cuda().double()).cpu().numpy()
+            self.clip_spec[j] = clip_spectra_torch(self.waves[j].to(DEVICE).double()).cpu().numpy()
         self.ckpt = runs.twin_dir(self.unit, "checkpoints") / "report_epoch_{}.pth".format(
             self.epoch
         )
@@ -108,16 +109,16 @@ class Pipeline:
         out = []
         for i in range(0, len(rows), BATCH):
             j = rows[i : i + BATCH]
-            w = self.waves[j].cuda()
+            w = self.waves[j].to(DEVICE)
             fix = np.isin(self.devices[j], list(apply_devices))
             if fix.any():
                 c = (
                     torch.from_numpy(np.stack([coef[d] for d in self.devices[j][fix]]))
-                    .cuda()
+                    .to(DEVICE)
                     .float()
                 )
-                w[torch.from_numpy(fix).cuda()] = apply_spectrum_correction_torch(
-                    w[torch.from_numpy(fix).cuda()], c
+                w[torch.from_numpy(fix).to(DEVICE)] = apply_spectrum_correction_torch(
+                    w[torch.from_numpy(fix).to(DEVICE)], c
                 )
             out += [torch.from_numpy(self.encoder.preprocess(x[None])) for x in w]
         return torch.stack(out).permute(0, 3, 1, 2)  # (n, 1, time, freq) on CPU
@@ -127,9 +128,9 @@ class Pipeline:
         """Softmax and pooled features; `curves` (n, freq) are added to every frame of the matching image (TTA-EQ view)."""
         probs, feats = [], []
         for i in range(0, len(images), BATCH):
-            x = images[i : i + BATCH].cuda()
+            x = images[i : i + BATCH].to(DEVICE)
             if curves is not None:
-                x = x + torch.from_numpy(curves[i : i + BATCH]).cuda()[:, None, None, :].to(
+                x = x + torch.from_numpy(curves[i : i + BATCH]).to(DEVICE)[:, None, None, :].to(
                     x.dtype
                 )
             with torch.cuda.amp.autocast():

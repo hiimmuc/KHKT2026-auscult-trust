@@ -12,6 +12,8 @@ from .methods import get_method
 from .methods.base import Batch, StepContext
 from .optim import AverageMeter, accuracy, update_moving_average, warmup_learning_rate
 from .reporting import per_device_report
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 def train_epoch(loader, model, classifier, projector, criterion, optimizer, epoch, args, scaler):
     """Optimize one epoch with the selected method; return mean loss and accuracy."""
     method = get_method(args.method)
@@ -32,7 +34,7 @@ def train_epoch(loader, model, classifier, projector, criterion, optimizer, epoc
                     None if m is model and args.freeze_encoder and not method.trainable_frontend else deepcopy(m.state_dict())
                     for m in (model, classifier, projector)
                 ]
-        images, labels = images.cuda(non_blocking=True), labels.cuda(non_blocking=True)
+        images, labels = images.to(DEVICE, non_blocking=True), labels.to(DEVICE, non_blocking=True)
         bsz = labels.shape[0]
         if args.freq_mixstyle > 0:
             images = freq_mixstyle(images, p=args.freq_mixstyle)
@@ -92,7 +94,7 @@ def evaluate(loader, model, classifier, args):
     preds, probs, ys, devs = [], [], [], []
     for images, labels, devices, *_ in loader:
         with torch.cuda.amp.autocast():
-            output = classifier(model(images.cuda(non_blocking=True)))
+            output = classifier(model(images.to(DEVICE, non_blocking=True)))
         p = method.probabilities(output)
         preds.append(p.argmax(1).cpu().numpy())
         probs.append(p.cpu().numpy())

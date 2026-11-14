@@ -49,7 +49,10 @@ def run_dir(exp, kind="outputs"):
     latest = d.parent / "latest"
     if latest.is_symlink() or not latest.exists():
         latest.unlink(missing_ok=True)
-        latest.symlink_to(d.name)
+        try:
+            latest.symlink_to(d.name)
+        except OSError:  # Windows without Developer Mode: pass --run explicitly instead
+            pass
     return d
 
 

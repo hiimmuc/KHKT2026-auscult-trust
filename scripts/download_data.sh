@@ -3,6 +3,7 @@
 # (DATA_DIR, default ../data next to the repo; same as AT_DATA in auscult_trust/paths.py). Already complete files are skipped.
 #
 #   bash scripts/download_data.sh            ICBHI, KAUH, encoder weights
+#   bash scripts/download_data.sh --icbhi-only  ICBHI only (baseline and student smoke runs; ~2 GB)
 #   bash scripts/download_data.sh --hf-lung  also HF_Lung_V1 (large; only needed for the archived early experiments)
 #
 # Sources
@@ -35,6 +36,11 @@ if [ ! -d "$DATA_DIR/raw/icbhi/ICBHI_final_database" ]; then
   fetch "$ICBHI_URL" "$zip" -k || fetch "$ICBHI_MIRROR" "$zip"
   [ "$(md5sum "$zip" | cut -d' ' -f1)" = "$ICBHI_MD5" ] || { echo "ICBHI zip md5 mismatch: delete $zip and retry"; exit 1; }
   unzip -q -n "$zip" -d "$DATA_DIR/raw/icbhi" && rm "$zip"
+fi
+
+if [ "${1:-}" = "--icbhi-only" ]; then
+  echo "done (ICBHI only); BEATs weights are a manual download, then: python scripts/prepare_data.py"
+  exit 0
 fi
 
 # KAUH

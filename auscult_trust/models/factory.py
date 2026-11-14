@@ -26,8 +26,9 @@ def place_encoder(model, head, args, device):
     return model
 
 
-def build_inference_model(args, device="cuda"):
-    """Return the encoder and the classifier head."""
+def build_inference_model(args, device=None):
+    """Return the encoder and the classifier head on `device` (CUDA when available, else CPU)."""
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     head = get_head(args.method)
     model = build_encoder(args, head)
     classifier = head.classifier(model, args)

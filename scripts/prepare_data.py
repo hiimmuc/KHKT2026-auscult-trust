@@ -8,6 +8,7 @@ the training code: `audio_test_data/` (symlinks to every wav and txt of the raw 
 (the official 60/40 train/test split, taken from the Patch-Mix CL reference repository).
 KAUH: checked only (336 wav = 112 patients x 3 filters).
 """
+import shutil
 import sys
 from pathlib import Path
 
@@ -42,8 +43,11 @@ def link_icbhi():
     for f in sorted(ICBHI.glob("*")):
         if f.suffix in (".wav", ".txt") and f.name[0].isdigit():
             link = audio / f.name
-            if not link.is_symlink():
-                link.symlink_to(f.resolve())
+            if not (link.is_symlink() or link.exists()):
+                try:
+                    link.symlink_to(f.resolve())
+                except OSError:  # Windows without Developer Mode: copy instead
+                    shutil.copy2(f, link)
     (PROCESSED / "official_split.txt").write_text(SPLIT_SOURCE.read_text())
 
 

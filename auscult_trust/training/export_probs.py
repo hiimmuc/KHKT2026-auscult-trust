@@ -21,6 +21,7 @@ from .config import load_args
 from .dataset import build_loaders
 from auscult_trust.inference.model import load_frozen
 from .reporting import per_device_report
+from .engine import DEVICE
 from .methods import get_method
 
 
@@ -30,7 +31,7 @@ def run(loader, model, classifier, method="ce"):
     objective = get_method(method)
     probs, emb, ys, devs = [], [], [], []
     for images, labels, devices, *_ in loader:
-        feat = model(images.cuda(non_blocking=True))
+        feat = model(images.to(DEVICE, non_blocking=True))
         probs.append(objective.probabilities(classifier(feat)).cpu().numpy())
         emb.append((feat.mean(1) if feat.ndim == 3 else feat).float().cpu().numpy())
         ys.append(labels.numpy())

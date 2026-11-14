@@ -12,3 +12,4 @@ torch
 torchvision
 torchaudio
 pytest
+matplotlib==3.10.9

@@ -6,6 +6,8 @@ AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEA
 
 ## Quick start
 
+Pick a platform: Linux with a GPU (below), Windows (GPU or CPU) or Google Colab. Windows and Colab steps are in [docs/SETUP.md](docs/SETUP.md) sections 11-12; Colab runs from [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb). What is and is not in the delivery: [DELIVERY.md](DELIVERY.md).
+
 ```bash
 # 1. Environments (details: docs/SETUP.md sections 1-2)
 uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
@@ -37,6 +39,8 @@ PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 &
 | Step | Where |
 | --- | --- |
 | Environment, data, checks | [docs/SETUP.md](docs/SETUP.md) sections 1-4 |
+| Windows (GPU or CPU) | SETUP section 11 |
+| Google Colab | SETUP section 12, [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb) |
 | Train one model (baseline, SC, LODO, other encoders) | SETUP section 5 |
 | Inference, screening, KAUH, SC at inference | SETUP section 6 |
 | Ensemble | SETUP section 7 |
@@ -58,7 +62,7 @@ PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 &
 | `auscult_trust/evaluation/` | Metrics, conformal, LODO, KAUH, screening, ensembles |
 | `experiments/train/` | YAML recipes, composed left to right |
 | `scripts/` | Grid, campaigns, frozen evaluation, ensembles, replay analysis |
-| `notebooks/` | Analysis of finished outputs |
+| `notebooks/` | Analysis of finished outputs; `colab_quickstart.ipynb` runs the pipeline end to end |
 | `api/`, `app/` | FastAPI service, web demo |
 | `outputs/train/<run>/<cell>/<unit>/` | Reports, predictions; `outputs/index.csv` lists every unit |
 | `checkpoints/train/<run>/<cell>/<unit>/` | Weights |

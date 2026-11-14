@@ -11,8 +11,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import sys
+
 REPO = Path(__file__).resolve().parents[1]
-DATA = REPO.parent / "data"
+sys.path.insert(0, str(REPO))  # auscult_trust package
+from auscult_trust.paths import DATA  # noqa: E402  ($AT_DATA or ../data)
+
 ICBHI = DATA / "processed" / "patchmix_icbhi"
 CLASSES = ["normal", "crackle", "wheeze", "both"]
 DEVICES = ["Meditron", "LittC2SE", "Litt3200", "AKGC417L"]  # device ids 0..3 in exports
@@ -57,6 +61,17 @@ def unit(arm, cohort="official", seed=0):
 
 def exists(arm, cohort="official", seed=0):
     return (unit(arm, cohort, seed) / "test_preds.npz").exists()
+
+
+def check_artifacts(arms=("kd_g4_k1",)):
+    """Stop with a clear message when the finished runs these notebooks read are not in `outputs/`."""
+    missing = [a for a in arms if not exists(a)]
+    if missing:
+        raise RuntimeError(
+            "Missing finished runs under outputs/train/ for: " + ", ".join(missing) + ". These notebooks read the "
+            "project's finished runs, which are not part of the code delivery. Run the Colab quickstart "
+            "(notebooks/colab_quickstart.ipynb) to produce a smoke unit, or see docs/SETUP.md section 5."
+        )
 
 
 def report(arm, cohort="official", seed=0):

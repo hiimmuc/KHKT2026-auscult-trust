@@ -1,0 +1,5 @@
+# Bash scripts and configs keep LF endings on Windows checkouts (Git Bash, WSL2).
+*.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.lock text eol=lf

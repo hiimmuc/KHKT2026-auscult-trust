@@ -1,5 +1,12 @@
 # Setup and step-by-step guide
 
+| Platform | What it can do | Where |
+| --- | --- | --- |
+| Linux with NVIDIA GPU (reference) | everything, including full training and DASS | sections 1-10 |
+| Windows with NVIDIA GPU | training, inference, tests, app; DASS not available | section 11 |
+| Windows CPU only | tests, data preparation, frozen inference, one smoke training unit | section 11 |
+| Google Colab (GPU) | setup, data, tests, smoke training, export | section 12, `notebooks/colab_quickstart.ipynb` |
+
 Every command runs from the repository root. `PY=.venv-train/bin/python` for training and inference, `.venv/bin/python` for tests and analysis. Sweeps and per-stage campaign commands are in [REPRODUCE.md](REPRODUCE.md).
 
 ## 1. Requirements
@@ -35,6 +42,8 @@ uv pip sync --python .venv-train/bin/python \
 bash scripts/download_data.sh      # ICBHI, KAUH, encoder weights; skips finished files
 python scripts/prepare_data.py     # builds processed/ and the committed splits; idempotent
 ```
+
+`bash scripts/download_data.sh --icbhi-only` downloads ICBHI alone (about 2 GB), which is enough for the baseline and the smoke runs.
 
 Check: ICBHI 920 wav, 6,898 cycles, 126 patients; KAUH 336 wav (112 patients x 3 filters). HTS-AT weights are a manual download (see the header of `scripts/download_data.sh`). BEATs weights: `../data/models/beats/BEATs_iter3_plus_AS2M.pt`. Never edit `../data/raw/` or the committed splits.
 
@@ -199,3 +208,69 @@ PYTHONPATH=. .venv/bin/python scripts/index_results.py                 # outputs
 | Unit refused: config differs | The unit exists with another config. Use a new `RUN_ID` or `--cell`. |
 | Export rejected: stale provenance | Code or weights changed since the export. Redo the export. |
 | GPU out of memory | Lower `--num_workers`, or run one job at a time (`MEM_GB` gates `scripts/sweep.py`). |
+
+## 11. Windows
+
+Use the commands below in PowerShell from the repository root. Bash scripts (`scripts/*.sh`) need Git Bash or WSL2; the data download needs `unzip` and `md5sum`, so WSL2 is the simplest route for section 3. Everything else is Python.
+
+**Environments.** Install [uv](https://docs.astral.sh/uv/) (`winget install astral-sh.uv`), then:
+
+```powershell
+uv venv .venv --python 3.10
+uv pip install --python .venv\Scripts\python.exe -r requirements.txt
+uv venv .venv-train --python 3.10
+```
+
+Training, GPU (NVIDIA driver with CUDA 12.8 support; check `nvidia-smi`):
+
+```powershell
+uv pip sync --python .venv-train\Scripts\python.exe --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train-windows-cu128.lock
+```
+
+Training, CPU only:
+
+```powershell
+uv pip sync --python .venv-train\Scripts\python.exe --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cpu requirements-train-windows-cpu.lock
+```
+
+Check the install: `.venv-train\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available())"`. The CPU lock prints `False`, as expected.
+
+**Data.** Put the data next to the repo as in section 1, or set `AT_DATA`. Get ICBHI from the Dataverse mirror (`https://dataverse.harvard.edu/api/access/datafile/7127117`, md5 `f6a5d0ea40bbcd25e17754f9d5ddae48`) and unzip it to `..\data\raw\icbhi\ICBHI_final_database`. Then:
+
+```powershell
+.venv\Scripts\python.exe scripts\prepare_data.py
+```
+
+On Windows without Developer Mode, `prepare_data.py` copies the wav files instead of linking them. BEATs weights (`BEATs_iter3_plus_AS2M.pt`) go to `..\data\models\beats\`; get them from the [BEATs release](https://github.com/microsoft/unilm/tree/master/beats). KAUH, AST, DASS and OPERA weights are needed only for their experiments.
+
+**Run.** Set the environment in the same window, then train. Use `--num_workers 0` on Windows (process spawning makes data workers slow and fragile):
+
+```powershell
+$env:PYTHONPATH="."; $env:RUN_ID="my-run"; $C="experiments\train"
+.venv-train\Scripts\python.exe -m auscult_trust.training.main --config $C\base.yaml,$C\encoder_beats.yaml,$C\grid\pafa_beats.yaml --cell beats+ft+pafa --selection fixed --report_epochs 2 --epochs 2 --seed 0 --num_workers 0
+.venv-train\Scripts\python.exe -m auscult_trust.training.export_probs outputs\train\my-run\beats+ft+pafa\seed0 --ckpt report_epoch_2.pth --num_workers 0
+```
+
+Two-epoch smoke run as above first. Full runs (100 epochs) need about 11 GB of GPU memory and take hours on a consumer GPU. On CPU, one training epoch of the baseline took 1409 s (about 24 min) on a 32-core Linux machine with `OMP_NUM_THREADS=4`, plus about 5 min for validation and export; a laptop will be slower. Treat CPU as a smoke-test device only.
+
+**Known limits on Windows**
+
+- DASS needs the CUDA selective-scan kernel (`scripts/build_dass_env.sh`, Linux only). Do not use `encoder_dass`.
+- `scripts/campaign.py`, `followup_campaign.py`, `improvement_campaign.py` use `fcntl` (POSIX file locks). Run them on Linux or WSL2. Their tests are skipped on Windows (`tests/conftest.py`).
+- No `latest` symlink: pass `--run <run_id>` to `auscult_trust.training.summary` explicitly.
+- Long paths: nested cell names can exceed 260 characters. Run `git config --global core.longpaths true` before cloning, or keep the repo near the drive root.
+- Tests: `.venv\Scripts\python.exe -m pytest -q tests`.
+
+## 12. Google Colab
+
+Open `notebooks/colab_quickstart.ipynb` in Colab (File > Upload notebook, or Drive). Then:
+
+1. Runtime > Change runtime type > GPU.
+2. Upload the code zip (see `DELIVERY.md`) to `MyDrive/auscult-trust-delivery.zip`.
+3. Run the cells in order. The notebook checks for a GPU and stops if none is found, creates a Python 3.10 environment with the same pinned lock as section 2, downloads ICBHI, checks the BEATs weights, runs the tests, trains the two-epoch smoke unit and exports its predictions.
+4. Place the BEATs file at `MyDrive/auscult-trust-data/models/beats/BEATs_iter3_plus_AS2M.pt` before the data cell; the notebook prints the exact path if it is missing.
+
+With Drive mounted, data lives in `MyDrive/auscult-trust-data` and outputs in `MyDrive/auscult-trust-outputs`, so a session reset loses nothing. Set `RUN_FULL = True` in the training cell for the 100-epoch baseline (several hours on a T4).
+
+The notebook was executed end-to-end on a Linux machine with the same steps (CPU override `ALLOW_CPU=1`, one epoch). It has not been run in a Colab session yet. [Pending]
+

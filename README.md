@@ -4,6 +4,36 @@ Lung-sound classification that keeps its predictions and its split-conformal cov
 
 AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEATs + PAFA without SC. Results: [report.md](report.md). Research prototype for sound classification; not a medical device, no diagnosis.
 
+## Method
+
+```mermaid
+flowchart LR
+    A[Recording + device] --> B[Spectrum correction<br/>per-bin gain to reference]
+    B --> C[BEATs + PAFA student<br/>4-class softmax]
+    C --> D[Split-conformal sets<br/>alpha 0.1]
+    D --> E[Triage: normal / refer / uncertain / re-record]
+```
+
+Devices differ in spectrum, so the same sound looks different to the model. SC estimates each device's mean spectrum from unlabelled clips and maps it to the training reference (gain in dB, static band 50-2000 Hz shaded):
+
+![Mean spectrum and SC gain per ICBHI device](docs/figures/device_spectra.png)
+
+## Results
+
+Numbers and tags: [report.md](report.md). Figures are from `notebooks/`; dots are seeds, bars mean and SD.
+
+**Official split, test Score, seeds 0-4.** `kd_g4_k1` is AuscultTrust, `anchor` the SC model it distils from; dashed line = anchor mean.
+
+![Official test Score per arm](docs/figures/official_score.png)
+
+**Leave-one-device-out, Score per held-out device and macro, seeds 0-2.**
+
+![LODO Score](docs/figures/lodo_score.png)
+
+**KAUH, one recording through three filters.** Lower flip rate and TV distance mean more invariant. `kd_g4_k1` is not more invariant than the frozen baseline here; the SC gain is not shown on this measure.
+
+![KAUH filter invariance](docs/figures/kauh_invariance.png)
+
 ## Quick start
 
 | Platform | Steps |

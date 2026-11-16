@@ -4,6 +4,7 @@
 | --- | --- |
 | `../report.md` | Results by stage (read first) |
 | `SETUP.md`, `REPRODUCE.md` | Environment and data; commands per stage |
+| `ARCHITECTURE.md` | Diagrams: inference pipeline, model, SC, distillation |
 | `registered/` | Pre-registration v8, amendments 1-5, proposals v9 (registered) and v10 (current). Do not edit |
 | `plans/` | Stage plan (grid), LODO plan, target-evaluation plan, distillation plan |
 | `decision-logs/` | Decisions that bind later work: dB scale, final model (23/10), distilled model (29/10) |

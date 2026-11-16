@@ -6,6 +6,8 @@ AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEA
 
 ## Method
 
+System diagrams (inference pipeline, model, SC, distillation): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ```mermaid
 flowchart LR
     A[Recording + device] --> B[Spectrum correction<br/>per-bin gain to reference]

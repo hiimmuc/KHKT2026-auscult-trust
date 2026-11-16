@@ -266,11 +266,17 @@ The command above is a 2-epoch smoke run. Full runs (100 epochs) need about 11 G
 Open `notebooks/colab_quickstart.ipynb` in Colab (File > Upload notebook, or Drive). Then:
 
 1. Runtime > Change runtime type > GPU.
-2. Upload the code zip (see `DELIVERY.md`) to `MyDrive/auscult-trust-delivery.zip`.
+2. Code: the notebook clones the public repo, or unzips `MyDrive/auscult-trust-delivery.zip` if it exists (see `DELIVERY.md`).
 3. Run the cells in order. The notebook checks for a GPU and stops if none is found, creates a Python 3.10 environment with the same pinned lock as section 2, downloads ICBHI, checks the BEATs weights, runs the tests, trains the two-epoch smoke unit and exports its predictions.
 4. Place the BEATs file at `MyDrive/auscult-trust-data/models/beats/BEATs_iter3_plus_AS2M.pt` before the data cell; the notebook prints the exact path if it is missing.
 
 With Drive mounted, data lives in `MyDrive/auscult-trust-data` and outputs in `MyDrive/auscult-trust-outputs`, so a session reset loses nothing. Set `RUN_FULL = True` in the training cell for the 100-epoch baseline (several hours on a T4).
 
 [Pending] Executed end to end on Linux with `ALLOW_CPU=1`; not yet run in a Colab session.
+
+**From VS Code.** The Google Colab extension (`Google.colab`) attaches a local `.ipynb` to a Colab runtime: Select Kernel > Colab > New Colab Server. Same GPU and same notebook. Differences:
+
+- Code runs on the Colab VM, so local files and local `AT_DATA` are not visible. The notebook's clone-or-zip cell supplies the code; data downloads on the VM.
+- Edit the repo locally, then push and re-clone, or keep edits inside the notebook. Nothing syncs automatically.
+- [Pending] Not tested here: `drive.mount` inside the extension, and whether `google.colab` is imported in the kernel (the notebook relies on it to detect Colab). If Drive fails, data and outputs stay on the VM and vanish at session end.
 

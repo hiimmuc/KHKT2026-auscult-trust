@@ -251,7 +251,7 @@ $env:PYTHONPATH="."; $env:RUN_ID="my-run"; $C="experiments\train"
 .venv-train\Scripts\python.exe -m auscult_trust.training.export_probs outputs\train\my-run\beats+ft+pafa\seed0 --ckpt report_epoch_2.pth --num_workers 0
 ```
 
-Two-epoch smoke run as above first. Full runs (100 epochs) need about 11 GB of GPU memory and take hours on a consumer GPU. On CPU, one training epoch of the baseline took 1409 s (about 24 min) on a 32-core Linux machine with `OMP_NUM_THREADS=4`, plus about 5 min for validation and export; a laptop will be slower. Treat CPU as a smoke-test device only.
+The command above is a 2-epoch smoke run. Full runs (100 epochs) need about 11 GB of GPU memory and take hours on a consumer GPU. On CPU, one training epoch of the baseline took 1409 s (about 24 min) on a 32-core Linux machine with `OMP_NUM_THREADS=4`, plus about 5 min for validation and export; a laptop will be slower. Treat CPU as a smoke-test device only.
 
 **Known limits on Windows**
 
@@ -272,5 +272,5 @@ Open `notebooks/colab_quickstart.ipynb` in Colab (File > Upload notebook, or Dri
 
 With Drive mounted, data lives in `MyDrive/auscult-trust-data` and outputs in `MyDrive/auscult-trust-outputs`, so a session reset loses nothing. Set `RUN_FULL = True` in the training cell for the 100-epoch baseline (several hours on a T4).
 
-The notebook was executed end-to-end on a Linux machine with the same steps (CPU override `ALLOW_CPU=1`, one epoch). It has not been run in a Colab session yet. [Pending]
+[Pending] Executed end to end on Linux with `ALLOW_CPU=1`; not yet run in a Colab session.
 

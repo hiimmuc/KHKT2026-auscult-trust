@@ -6,41 +6,30 @@ AuscultTrust is the distilled student `kd_g4_k1`. The baseline is fine-tuned BEA
 
 ## Quick start
 
-Pick a platform: Linux with a GPU (below), Windows (GPU or CPU) or Google Colab. Windows and Colab steps are in [docs/SETUP.md](docs/SETUP.md) sections 11-12; Colab runs from [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb). What is and is not in the delivery: [DELIVERY.md](DELIVERY.md).
+| Platform | Steps |
+| --- | --- |
+| Linux, NVIDIA GPU | below; details in [docs/SETUP.md](docs/SETUP.md) sections 1-6 |
+| Windows, GPU or CPU | [docs/SETUP.md](docs/SETUP.md) section 11 |
+| Google Colab | [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb), [docs/SETUP.md](docs/SETUP.md) section 12 |
 
 ```bash
-# 1. Environments (details: docs/SETUP.md sections 1-2)
-uv venv .venv && uv pip install --python .venv/bin/python -r requirements.txt
 uv venv .venv-train --python 3.10
 uv pip sync --python .venv-train/bin/python --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cu128 requirements-train.lock
-
-# 2. Data (ICBHI, KAUH, encoder weights) and tests
 bash scripts/download_data.sh && python scripts/prepare_data.py
-.venv/bin/python -m pytest -q tests
-
-# 3. Train one model: BEATs + PAFA baseline, official split, seed 0
+.venv-train/bin/python -m pytest -q tests
 export RUN_ID=my-run PYTHONPATH=. C=experiments/train
 .venv-train/bin/python -m auscult_trust.training.main \
     --config $C/base.yaml,$C/encoder_beats.yaml,$C/grid/pafa_beats.yaml \
     --cell beats+ft+pafa --selection fixed --report_epochs 100 --seed 0
-
-# 4. Inference on the official test set
-.venv-train/bin/python -m auscult_trust.training.export_probs outputs/train/$RUN_ID/beats+ft+pafa/seed0 --ckpt report_epoch_100.pth
-
-# 5. App: API on :8000, web on :5173
-uv pip install --python .venv-train/bin/python -r api/requirements.txt
-PYTHONPATH=. .venv-train/bin/python -m api.bundle
-PYTHONPATH=. .venv-train/bin/uvicorn api.main:app --host 127.0.0.1 --port 8000 &
-(cd app/web && npm ci && npm run dev)
 ```
+
+Final weights: GitHub Release `weights-final` ([DELIVERY.md](DELIVERY.md)).
 
 ## Guides
 
 | Step | Where |
 | --- | --- |
 | Environment, data, checks | [docs/SETUP.md](docs/SETUP.md) sections 1-4 |
-| Windows (GPU or CPU) | SETUP section 11 |
-| Google Colab | SETUP section 12, [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb) |
 | Train one model (baseline, SC, LODO, other encoders) | SETUP section 5 |
 | Inference, screening, KAUH, SC at inference | SETUP section 6 |
 | Ensemble | SETUP section 7 |

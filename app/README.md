@@ -101,11 +101,11 @@ npx wrangler@4.60.0 pages project create auscult-trust --production-branch main 
 npx wrangler@4.60.0 pages deploy app/web/dist --project-name auscult-trust --branch main
 ```
 
-The site is `https://auscult-trust.pages.dev`; individual deployment URLs are version-specific previews, while this is the stable project URL. If Cloudflare gives another project hostname, add that origin to `AT_APP_ORIGINS` and restart the API. Rebuild and redeploy whenever the API URL changes. The current local `.env` sets `AT_APP_AUTH=off`, so the connection dialog token can be left blank. This makes every API route public, including inference. It currently also leaves demo samples enabled and has no rate limit; choose those settings deliberately before keeping the host internet-facing. The local env file is ignored by git and must not be copied into a public bundle.
+The site is `https://auscult-trust.pages.dev`; individual deployment URLs are version-specific previews, while this is the stable project URL. If Cloudflare gives another project hostname, add that origin to `AT_APP_ORIGINS` and restart the API. Rebuild and redeploy whenever the API URL changes. With `AT_APP_AUTH=off` every route is public, including inference; set the samples and rate-limit variables deliberately (section 1). Never copy `.env` into a public bundle.
 
 ### 5. Fallback API: Hugging Face Space (CPU)
 
-The Space runs the same `api.main:app` on CPU. The shared frozen-model loader selects CPU when CUDA is unavailable; it does not patch PyTorch globally or construct training losses/optimizers. Historical check on the earlier bundle, not a fresh CPU benchmark of the final PAFA model: building the image and running it locally with `--cpus 2 --memory 16g` gave argmax agrees with the GPU on all 14 windows (max |Δp| 0.0008), memory 1.7 GiB, a 20 s recording takes 30 to 50 s (GPU: 0.4 s), so recordings near the 90 s limit can hit the 120 s timeout there. The Space has not been created on Hugging Face.
+The Space runs the same `api.main:app` on CPU. The shared frozen-model loader selects CPU when CUDA is unavailable; it does not patch PyTorch globally or construct training losses/optimizers. On 2 CPUs a 20 s recording takes 30 to 50 s (GPU: 0.4 s), so recordings near the 90 s limit can hit the 120 s timeout. Measured on an earlier bundle. The Space has not been created.
 
 ```bash
 PYTHONPATH=. .venv-train/bin/python scripts/stage_space.py      # writes build/space (public, 13 MB) and build/weights (private, 1.1 GB); build/ is git-ignored
@@ -192,7 +192,7 @@ The page never routes the microphone to the speaker, so there is no feedback loo
 
 ## What the model gives, and how the app shows it
 
-The checks below come from the code (`auscult_trust/evaluation/*`, `auscult_trust/processing/correction.py`), not from assumptions.
+Sources are the evaluation and processing modules.
 
 | Output | Source | Shown as |
 | --- | --- | --- |
@@ -204,14 +204,14 @@ The checks below come from the code (`auscult_trust/evaluation/*`, `auscult_trus
 
 The two proposed methods carry a **Proposed** tag in the page: spectrum correction (the SC pipeline) and conformal prediction. The *Conformal prediction* switch in the toolbar (kept in local storage, shared by both modes) hides or shows the conformal layer: set labels on the boxes, set chips in the tables, the set pattern in the 2-class lane, the set stats in the demo comparison and the triage card. Off, the page shows top classes only and the screening card shows a plain Normal / Abnormal at p(abnormal) 0.5.
 
-The serving bundle uses seed 0 at a fixed epoch; `AT_APP_BUNDLE` selects the bundle directory. It currently holds BEATs + PAFA with and without static SC. The project model is now the distilled student `kd_g4_k1` (`docs/decision-logs/2026-10-29-final-model-distilled.md`); swap the `PIPELINES` units in `api/bundle.py` and rebuild after the real-checkpoint API test passes.
+The serving bundle uses seed 0 at a fixed epoch. It holds BEATs + PAFA with and without static SC; the project model is the distilled student `kd_g4_k1` (`docs/decision-logs/2026-10-29-final-model-distilled.md`), not yet in `PIPELINES`.
 
 | Name | Unit | Epoch | SC |
 | --- | --- | --- | --- |
 | `auscult` = AuscultTrust (BEATs + PAFA) | `outputs/train/lodo-v1/beats+ft+pafa+sc+sc_static/seed0` | 100 | yes, static mode |
 | `baseline` = BEATs + PAFA (no SC) | `outputs/train/grid-v1/beats+ft+pafa/seed0` | 100 | no |
 
-The reproducible evaluation and candidate bundle build are documented in `docs/decision-logs/2026-10-23-final-model.md` and `report.md`. The campaign freezes five paired seeds, exports predictions, and builds the candidate bundle; thresholds are generated from the selected seed's saved predictions and screening export. To change the served model, update `PIPELINES` in `api/bundle.py`, rebuild, then validate the bundle before pointing `AT_APP_BUNDLE` at it.
+To change the served model, update `PIPELINES` in `api/bundle.py`, rebuild, validate the bundle, then point `AT_APP_BUNDLE` at it and restart the API. Evaluation and bundle build: `docs/decision-logs/2026-10-23-final-model.md`, `report.md`.
 
 Thresholds are calibrated on split 0 of `calibration_eval_splits` over official-test patients, excluding patients present on both sides of the official split. Cycle probabilities come from the unit's verified `export/test.npz`; recording-level probabilities come from its matching screening export. Both require provenance sidecars matching the current data, configuration, checkpoint, correction state, code, and environment. Re-export explicitly when those inputs change.
 

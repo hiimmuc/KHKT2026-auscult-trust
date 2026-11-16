@@ -33,9 +33,9 @@ History mixes descriptive subjects with prefixes such as `docs:` and `api:`. Use
 
 Preserve raw data and committed splits. Tune only on training-patient CV; retain negative results and log seeds, configuration, and artifact hashes. Never commit weights or generated results. Read `CLAUDE.md` for research conventions. When a CodeGraph index is available, query it before locating or reading code; never index automatically.
 
-## Current Evidence and Artifacts (3 November 2026)
+## Current Evidence and Artifacts (16 November 2026)
 
-- Results are consolidated in `outputs/train/<run>/<cell>/<unit>/` (index: `outputs/index.csv`); weights of final units in `checkpoints/train/`. Old runs, snapshots and removed code are archived at `/storage/hdd/disk0/namdp15/auscult-trust-A/archive/`; per-machine mirrors are in `/storage/hdd/disk0/namdp15/auscult-trust-A/mirror/`.
+- Results: `outputs/train/<run>/<cell>/<unit>/` (index: `outputs/index.csv`); weights of final units: `checkpoints/train/`. Both are links into the HDD store (`LAYOUT.md`). Removed code is in git history.
 - AuscultTrust is the distilled student `kd_g4_k1`; the baseline is BEATs + PAFA without SC (`docs/decision-logs/2026-10-29-final-model-distilled.md`). Results: `report.md`. State: `docs/handoff/HANDOFF.md`.
 - Stage-12 source-CV gains (class-aware light, LoRA) did not transfer to official or LODO; do not present source gains as target-device improvement. Keep registered v9 results and later exploratory selections distinct.
 - Verify completion receipts and SHA-256 before using or deleting a checkpoint.

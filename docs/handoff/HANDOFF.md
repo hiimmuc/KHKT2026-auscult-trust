@@ -1,27 +1,23 @@
-# Handoff (03/11/2026)
+# Handoff (16/11/2026)
 
-State of the repo after the consolidation of 03/11/2026. Read `../../report.md`, then `../REPRODUCE.md`.
+Read `../../report.md`, then `../REPRODUCE.md`.
 
-## Done
+## State
 
-- Every training campaign is finished; results are consolidated on this machine (`outputs/train/<run>/<cell>/<unit>/`, index `outputs/index.csv`).
-- Checkpoints kept: final / report-epoch units of `grid-v1`, `lodo-v1`, `lodo-ast`, `lodo-bench`, `pcmcl-v1`, `sc-dynamic-completion-20261024`, `followup-20261026-final`, `target-20261027-final`, `distill-20261028-final`, `student-final-20261029-final`. Source-CV (`cv*`) checkpoints stay on the training machines and in `/storage/hdd/disk0/namdp15/auscult-trust-A/mirror/`.
-- Code reduced to what reproduces the plan: grid, LODO, SC (train and inference), ensembles, distillation, replay, analysis notebooks, app. Removed: CLAP/HeAR encoders, noise-training arm, layer/device probes, SNR stress, grid-rerun and queue tooling, combo/fivefold/next campaigns.
-- Archived (not deleted) at `/storage/hdd/disk0/namdp15/auscult-trust-A/archive/`: old outputs and checkpoints, campaign snapshots, ladders, old app bundles, removed docs.
+- All training campaigns are finished. Results: `outputs/train/<run>/<cell>/<unit>/` (index `outputs/index.csv`).
+- Storage: `outputs/`, `checkpoints/`, `build/`, `logs/` are links into `/storage/hdd/disk0/namdp15/auscult-trust-A/`. Runs sit in stage folders (`LAYOUT.md` there); `train/<run>` links keep certificate paths valid.
+- Checkpoints kept: final and report-epoch units of `grid-v1`, `lodo-v1`, `lodo-ast`, `lodo-bench`, `pcmcl-v1`, `sc-dynamic-completion-20261024`, `followup-20261026-final`, `target-20261027-final`, `distill-20261028-final`, `student-final-20261029-final`. Units that no certificate, bundle or distillation chain references were pruned (`PRUNE-20261112-checkpoints.tsv`).
+- `mirror/` and `archive/` were deleted on 14/11 after a hash dedupe against the store. The 12,174 files without a duplicate are listed in `REMAINING-DELETED-20261114.tsv`. Source-CV (`cv*`) checkpoints that existed only on old machines are gone.
+- Final weights (AuscultTrust `kd_g4_k1` seed 0, baseline seed 0): GitHub Release `weights-final`. See `../../DELIVERY.md`.
 
 ## Open
 
-1. Serving bundle: `app/bundle` still serves BEATs + PAFA static SC, not the student `kd_g4_k1`. Rebuild with `python -m api.bundle` after validating hashes and health.
-2. Phantom H1, H3, co-primary H2: need transducer recordings. Weights and `s_ref` are frozen (`outputs/train/final-*/*/seed*/freeze.json`).
-3. Frozen-evaluation provenance: refactored code changes the implementation hash, so old KAUH/screening exports under `outputs/kauh/final-*` and `outputs/screening/final-*` are rejected as stale by the strict workflows (`baseline/seed0` of `final-kd-g4-k1` was regenerated on 03/11). Re-export before reusing them.
-4. Checkpoints of `lodo-v1` and `sc-dynamic-completion` units were copied from the machine mirrors; check `outputs/index.csv` (`ckpt` column) before inference runs.
-5. Unreachable on 03/11: 10.148.183.171 (D) and 10.148.182.97 (laptop). Their results were already in the local mirror.
+1. Serving bundle still holds BEATs + PAFA static SC, not `kd_g4_k1`. Edit `PIPELINES` in `api/bundle.py`, run `python -m api.bundle`, validate hashes and health.
+2. Phantom H1, H3 and the co-primary H2 need transducer recordings. Weights and `s_ref` are frozen (`outputs/train/final-*/*/seed*/freeze.json`).
+3. Old KAUH and screening exports (`outputs/kauh/final-*`, `outputs/screening/final-*`) fail the strict provenance check since the refactor. Re-export before reuse.
+4. Pages worker needs `API_UPSTREAM` set at deploy (`app/README.md`).
 
 ## Gotchas
 
-- Never `pkill -f` / `pgrep -f` with a pattern that appears in your own command line: it kills the shell. Kill by PID.
-- Do not run an unknown script with `--help`: `scripts/final_evaluation*.py` have no argument parser and start a run.
-
-## Storage (12/11/2026)
-
-`outputs/`, `checkpoints/`, `build/` and `logs/` are links into `/storage/hdd/disk0/namdp15/auscult-trust-A/`, next to `mirror/` and `archive/`. Runs sit in stage folders (`LAYOUT.md`); `train/<run>` links keep old paths valid. Checkpoints of `lodo-v1`, `lodo-ast`, `lodo-bench` and `pcmcl-v1` were pruned except the units that certificates, the serving bundle and the distillation chain reference (list: `PRUNE-20261112-checkpoints.tsv`).
+- Never `pkill -f` or `pgrep -f` with a pattern that appears in your own command line. Kill by PID.
+- `scripts/final_evaluation*.py` have no argument parser; `--help` starts a run.

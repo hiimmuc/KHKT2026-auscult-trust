@@ -8,7 +8,7 @@ Two parts that deploy independently:
 ```
 browser ─► web app on Cloudflare Pages (static, https://auscult-trust.pages.dev)
    │  fetch, configured API origin, CORS allowlist
-   ├─► /api on the same Pages origin → Pages gateway → Tailscale Funnel (`vmo-namdp15-d.tail09c58b.ts.net`) → this machine (GPU, 127.0.0.1:8000)
+   ├─► /api on the same Pages origin → Pages gateway → Tailscale Funnel (the host set in the `API_UPSTREAM` variable) → this machine (GPU, 127.0.0.1:8000)
    └─► fallback API: Hugging Face Space (Docker, CPU), tried when the primary does not answer or has no model
 ```
 

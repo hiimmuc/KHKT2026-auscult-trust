@@ -1,6 +1,4 @@
 // Same-origin API gateway: browsers never need to resolve a tailnet address.
-const DEFAULT_UPSTREAM = "https://vmo-namdp15-d.tail09c58b.ts.net";
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -8,7 +6,11 @@ export default {
     if (!url.pathname.startsWith("/api/v1/") || !["GET", "POST", "OPTIONS"].includes(request.method)) {
       return new Response("Not found", { status: 404 });
     }
-    const target = new URL(env.API_UPSTREAM || DEFAULT_UPSTREAM);
+    if (!env.API_UPSTREAM) {
+      return Response.json({ error: { code: "upstream_not_configured", message: "The inference API address is not configured." } },
+        { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    const target = new URL(env.API_UPSTREAM);
     target.pathname = url.pathname.slice(4);
     target.search = url.search;
     const headers = new Headers(request.headers);
